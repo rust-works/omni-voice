@@ -15,7 +15,7 @@ pub mod srt;
 pub mod txt;
 pub mod vtt;
 
-/// Output formats supported by `omni-dev transcript … fetch`.
+/// Output formats supported by `omni-voice transcript … fetch`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Format {
     /// SubRip (`.srt`) — sequence-numbered cues with `HH:MM:SS,mmm` timecodes.

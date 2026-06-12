@@ -238,10 +238,10 @@ mod tests {
     #[test]
     fn strip_prefix_makes_paths_repo_relative() {
         let mut report = CoverageReport::new();
-        let mut f = FileCoverage::new("/home/runner/work/omni-dev/omni-dev/src/a.rs");
+        let mut f = FileCoverage::new("/home/runner/work/omni-voice/omni-voice/src/a.rs");
         f.record(1, 1);
         report.insert(f);
-        report.strip_prefix(Path::new("/home/runner/work/omni-dev/omni-dev"));
+        report.strip_prefix(Path::new("/home/runner/work/omni-voice/omni-voice"));
         assert!(report.files.contains_key("src/a.rs"));
     }
 

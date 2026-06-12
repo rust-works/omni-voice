@@ -24,13 +24,13 @@ pub struct CommitContext {
 /// Project-level context discovered from configuration files.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ProjectContext {
-    /// Project-specific commit guidelines from .omni-dev/commit-guidelines.md.
+    /// Project-specific commit guidelines from .omni-voice/commit-guidelines.md.
     pub commit_guidelines: Option<String>,
-    /// Project-specific PR guidelines from .omni-dev/pr-guidelines.md.
+    /// Project-specific PR guidelines from .omni-voice/pr-guidelines.md.
     pub pr_guidelines: Option<String>,
-    /// Valid scopes and their descriptions from .omni-dev/scopes.yaml.
+    /// Valid scopes and their descriptions from .omni-voice/scopes.yaml.
     pub valid_scopes: Vec<ScopeDefinition>,
-    /// Feature-specific context from .omni-dev/context/.
+    /// Feature-specific context from .omni-voice/context/.
     pub feature_contexts: HashMap<String, FeatureContext>,
     /// Parsed conventions from CONTRIBUTING.md.
     pub project_conventions: ProjectConventions,

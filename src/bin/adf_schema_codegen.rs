@@ -25,7 +25,7 @@
 //! cargo run --bin adf-schema-codegen -- --check
 //! ```
 //!
-//! [#732]: https://github.com/rust-works/omni-dev/issues/732
+//! [#732]: https://github.com/rust-works/omni-voice/issues/732
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -40,7 +40,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-use omni_dev::atlassian::adf_schema::drift::{hex_encode, parse_upstream_full_json};
+use omni_voice::atlassian::adf_schema::drift::{hex_encode, parse_upstream_full_json};
 
 /// Sidecar provenance file. Mirrors the JSON shape of
 /// `assets/adf-schema/provenance.json`.

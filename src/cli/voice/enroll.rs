@@ -1,5 +1,5 @@
-//! `omni-dev voice enroll` — capture a microphone sample, compute the
-//! speaker embedding, and persist to `~/.omni-dev/voice/speakers/<name>.json`.
+//! `omni-voice voice enroll` — capture a microphone sample, compute the
+//! speaker embedding, and persist to `~/.omni-voice/voice/speakers/<name>.json`.
 //!
 //! Stops on the first of: `--idle-after` seconds of trailing silence,
 //! `--max-secs` elapsed since start, or Ctrl-C. Refuses to overwrite an
@@ -29,7 +29,7 @@ pub const DEFAULT_IDLE_AFTER_SECS: u32 = 2;
 pub const DEFAULT_MAX_SECS: u32 = 30;
 
 /// Captures audio from a microphone, computes a speaker embedding, and
-/// persists it to `~/.omni-dev/voice/speakers/<name>.json`.
+/// persists it to `~/.omni-voice/voice/speakers/<name>.json`.
 ///
 /// Stops on the first of: `--idle-after` seconds of trailing silence,
 /// `--max-secs` elapsed (default 30), or Ctrl-C. Refuses to overwrite an
@@ -56,8 +56,8 @@ pub struct EnrollCommand {
     pub device: Option<String>,
 
     /// Path to the wespeaker ONNX model. Overrides the default at
-    /// `~/.omni-dev/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and
-    /// the `OMNI_DEV_VOICE_SPEAKER_MODEL` env var.
+    /// `~/.omni-voice/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and
+    /// the `OMNI_VOICE_VOICE_SPEAKER_MODEL` env var.
     #[arg(long)]
     pub speaker_model: Option<PathBuf>,
 

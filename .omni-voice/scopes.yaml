@@ -46,7 +46,7 @@ scopes:
   - name: "scopes"
     description: "Commit scope definitions and configuration"
     examples: ["scopes: add release scope", "scopes: update file patterns"]
-    file_patterns: [".omni-dev/scopes.yaml"]
+    file_patterns: [".omni-voice/scopes.yaml"]
   - name: "voice"
     description: "Voice capture, transcription, and ASR backends"
     examples: ["voice: add Transcriber trait", "voice: wire mock backend"]

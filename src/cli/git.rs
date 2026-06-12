@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn cli_parses_git_commit_message_view() {
         let cli = Cli::try_parse_from([
-            "omni-dev",
+            "omni-voice",
             "git",
             "commit",
             "message",
@@ -250,7 +250,7 @@ mod tests {
     #[test]
     fn cli_parses_git_commit_message_amend() {
         let cli = Cli::try_parse_from([
-            "omni-dev",
+            "omni-voice",
             "git",
             "commit",
             "message",
@@ -262,38 +262,38 @@ mod tests {
 
     #[test]
     fn cli_parses_git_branch_info() {
-        let cli = Cli::try_parse_from(["omni-dev", "git", "branch", "info"]);
+        let cli = Cli::try_parse_from(["omni-voice", "git", "branch", "info"]);
         assert!(cli.is_ok(), "Failed to parse: {:?}", cli.err());
     }
 
     #[test]
     fn cli_parses_git_branch_info_with_base() {
-        let cli = Cli::try_parse_from(["omni-dev", "git", "branch", "info", "develop"]);
+        let cli = Cli::try_parse_from(["omni-voice", "git", "branch", "info", "develop"]);
         assert!(cli.is_ok(), "Failed to parse: {:?}", cli.err());
     }
 
     #[test]
     fn cli_parses_config_models_show() {
-        let cli = Cli::try_parse_from(["omni-dev", "config", "models", "show"]);
+        let cli = Cli::try_parse_from(["omni-voice", "config", "models", "show"]);
         assert!(cli.is_ok(), "Failed to parse: {:?}", cli.err());
     }
 
     #[test]
     fn cli_parses_help_all() {
-        let cli = Cli::try_parse_from(["omni-dev", "help-all"]);
+        let cli = Cli::try_parse_from(["omni-voice", "help-all"]);
         assert!(cli.is_ok(), "Failed to parse: {:?}", cli.err());
     }
 
     #[test]
     fn cli_rejects_unknown_command() {
-        let cli = Cli::try_parse_from(["omni-dev", "nonexistent"]);
+        let cli = Cli::try_parse_from(["omni-voice", "nonexistent"]);
         assert!(cli.is_err());
     }
 
     #[test]
     fn cli_parses_twiddle_with_options() {
         let cli = Cli::try_parse_from([
-            "omni-dev",
+            "omni-voice",
             "git",
             "commit",
             "message",
@@ -309,7 +309,14 @@ mod tests {
     #[test]
     fn cli_parses_check_with_options() {
         let cli = Cli::try_parse_from([
-            "omni-dev", "git", "commit", "message", "check", "--strict", "--quiet", "--format",
+            "omni-voice",
+            "git",
+            "commit",
+            "message",
+            "check",
+            "--strict",
+            "--quiet",
+            "--format",
             "json",
         ]);
         assert!(cli.is_ok(), "Failed to parse: {:?}", cli.err());
@@ -317,14 +324,14 @@ mod tests {
 
     #[test]
     fn cli_parses_git_commit_message_staged() {
-        let cli = Cli::try_parse_from(["omni-dev", "git", "commit", "message", "staged"]);
+        let cli = Cli::try_parse_from(["omni-voice", "git", "commit", "message", "staged"]);
         assert!(cli.is_ok(), "Failed to parse: {:?}", cli.err());
     }
 
     #[test]
     fn cli_parses_git_commit_message_staged_print_only() {
         let cli = Cli::try_parse_from([
-            "omni-dev",
+            "omni-voice",
             "git",
             "commit",
             "message",
@@ -337,7 +344,7 @@ mod tests {
     #[test]
     fn cli_parses_git_commit_message_staged_with_model_and_beta() {
         let cli = Cli::try_parse_from([
-            "omni-dev",
+            "omni-voice",
             "git",
             "commit",
             "message",
@@ -352,25 +359,25 @@ mod tests {
 
     #[test]
     fn cli_parses_commands_generate_all() {
-        let cli = Cli::try_parse_from(["omni-dev", "commands", "generate", "all"]);
+        let cli = Cli::try_parse_from(["omni-voice", "commands", "generate", "all"]);
         assert!(cli.is_ok(), "Failed to parse: {:?}", cli.err());
     }
 
     #[test]
     fn cli_parses_ai_chat() {
-        let cli = Cli::try_parse_from(["omni-dev", "ai", "chat"]);
+        let cli = Cli::try_parse_from(["omni-voice", "ai", "chat"]);
         assert!(cli.is_ok(), "Failed to parse: {:?}", cli.err());
     }
 
     #[test]
     fn cli_parses_ai_chat_with_model() {
-        let cli = Cli::try_parse_from(["omni-dev", "ai", "chat", "--model", "claude-sonnet-4"]);
+        let cli = Cli::try_parse_from(["omni-voice", "ai", "chat", "--model", "claude-sonnet-4"]);
         assert!(cli.is_ok(), "Failed to parse: {:?}", cli.err());
     }
 
     #[test]
     fn cli_parses_ai_claude_cli_model_resolve() {
-        let cli = Cli::try_parse_from(["omni-dev", "ai", "claude", "cli", "model", "resolve"]);
+        let cli = Cli::try_parse_from(["omni-voice", "ai", "claude", "cli", "model", "resolve"]);
         assert!(cli.is_ok(), "Failed to parse: {:?}", cli.err());
     }
 

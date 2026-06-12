@@ -1,4 +1,4 @@
-//! `omni-dev transcript youtube sync` — enumerate a channel's videos and
+//! `omni-voice transcript youtube sync` — enumerate a channel's videos and
 //! sync their transcripts to the filesystem, incrementally.
 //!
 //! Builds on the per-video fetcher: enumerate video IDs in each channel

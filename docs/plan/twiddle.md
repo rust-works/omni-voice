@@ -17,7 +17,7 @@
 - ✅ Comprehensive error messages via ClaudeError enum
 
 **Phase 3: Contextual Intelligence** - 🔄 **PLANNED**
-- 🔄 Project-level context discovery (.omni-dev/, .gitmessage, CONTRIBUTING.md)
+- 🔄 Project-level context discovery (.omni-voice/, .gitmessage, CONTRIBUTING.md)
 - 🔄 Branch-aware commit analysis and work pattern detection
 - 🔄 Multi-commit range context understanding
 - 🔄 File-based architectural context recognition
@@ -26,7 +26,7 @@
 **Current Status**: Ready for production use with full Phase 1 & 2 functionality. Phase 3 (contextual intelligence) and subsequent phases remain for future development.
 
 ### Key Accomplishments
-- ✅ Full `omni-dev git commit message twiddle` command implementation
+- ✅ Full `omni-voice git commit message twiddle` command implementation
 - ✅ Claude API integration with proper error handling  
 - ✅ Async/await support with Tokio runtime
 - ✅ Repository view generation reusing existing ViewCommand logic
@@ -38,13 +38,13 @@
 
 ## Overview
 
-The `omni-dev git commit message twiddle` command is a new feature that combines the functionality of the existing `view` and `amend` commands with Claude AI integration to automatically generate commit message improvements.
+The `omni-voice git commit message twiddle` command is a new feature that combines the functionality of the existing `view` and `amend` commands with Claude AI integration to automatically generate commit message improvements.
 
 ## Command Flow
 
 ### Basic Flow (Phase 1 & 2 - Implemented)
 ```
-omni-dev git commit message twiddle [COMMIT_RANGE]
+omni-voice git commit message twiddle [COMMIT_RANGE]
     ↓
 1. Execute view command logic → YAML output
     ↓  
@@ -55,9 +55,9 @@ omni-dev git commit message twiddle [COMMIT_RANGE]
 
 ### Enhanced Contextual Flow (Phase 3 - Planned)
 ```
-omni-dev git commit message twiddle [COMMIT_RANGE] --use-context
+omni-voice git commit message twiddle [COMMIT_RANGE] --use-context
     ↓
-1. Project Context Discovery (.omni-dev/, .gitmessage, CONTRIBUTING.md)
+1. Project Context Discovery (.omni-voice/, .gitmessage, CONTRIBUTING.md)
     ↓
 2. Branch Analysis (naming patterns, work type detection)
     ↓
@@ -141,7 +141,7 @@ pub struct TwiddleCommand {
     #[arg(long, default_value = "true")]
     pub use_context: bool,
     
-    /// Path to custom context directory (defaults to .omni-dev/)
+    /// Path to custom context directory (defaults to .omni-voice/)
     #[arg(long)]
     pub context_dir: Option<PathBuf>,
     
@@ -256,10 +256,10 @@ pub struct CommitContext {
 
 /// Project-level context discovered from configuration files
 pub struct ProjectContext {
-    pub commit_guidelines: Option<String>,      // From .omni-dev/commit-guidelines.md
-    pub commit_template: Option<String>,        // From .gitmessage or .omni-dev/commit-template.txt
-    pub valid_scopes: Vec<ScopeDefinition>,     // From .omni-dev/scopes.yaml
-    pub feature_contexts: HashMap<String, FeatureContext>, // From .omni-dev/context/
+    pub commit_guidelines: Option<String>,      // From .omni-voice/commit-guidelines.md
+    pub commit_template: Option<String>,        // From .gitmessage or .omni-voice/commit-template.txt
+    pub valid_scopes: Vec<ScopeDefinition>,     // From .omni-voice/scopes.yaml
+    pub feature_contexts: HashMap<String, FeatureContext>, // From .omni-voice/context/
     pub project_conventions: ProjectConventions, // Parsed from CONTRIBUTING.md
 }
 
@@ -293,7 +293,7 @@ pub struct FileContext {
 #### 5.2. Project Context Discovery
 
 **Convention-Based Discovery Priority**:
-1. `.omni-dev/` directory (project-specific)
+1. `.omni-voice/` directory (project-specific)
 2. Standard git files (`.gitmessage`)
 3. Documentation parsing (`CONTRIBUTING.md`, `README.md`)
 4. Ecosystem conventions (Rust, Node.js, Python, etc.)
@@ -303,10 +303,10 @@ impl ProjectContext {
     pub fn discover(repo_path: &Path) -> Result<Self> {
         let mut context = Self::default();
         
-        // 1. Check .omni-dev/ directory
-        let omni_dev_dir = repo_path.join(".omni-dev");
-        if omni_dev_dir.exists() {
-            context.load_omni_dev_config(&omni_dev_dir)?;
+        // 1. Check .omni-voice/ directory
+        let omni_voice_dir = repo_path.join(".omni-voice");
+        if omni_voice_dir.exists() {
+            context.load_omni_voice_config(&omni_voice_dir)?;
         }
         
         // 2. Standard git configuration
@@ -321,7 +321,7 @@ impl ProjectContext {
         Ok(context)
     }
     
-    fn load_omni_dev_config(&mut self, dir: &Path) -> Result<()> {
+    fn load_omni_voice_config(&mut self, dir: &Path) -> Result<()> {
         // Load commit-guidelines.md
         if let Ok(guidelines) = fs::read_to_string(dir.join("commit-guidelines.md")) {
             self.commit_guidelines = Some(guidelines);
@@ -394,9 +394,9 @@ pub fn generate_contextual_system_prompt(context: &CommitContext) -> String {
 
 > For the full format contract — recognised fields, precedence, and validation
 > behaviour — see
-> [`omni-dev-directory.md`](../omni-dev-directory.md#file-specs).
+> [`omni-voice-directory.md`](../omni-voice-directory.md#file-specs).
 
-**.omni-dev/commit-guidelines.md**:
+**.omni-voice/commit-guidelines.md**:
 ```markdown
 # Project Commit Guidelines
 
@@ -419,7 +419,7 @@ Good: `feat(auth): add JWT token validation with expiry`
 Bad: `fixed login stuff`
 ```
 
-**.omni-dev/scopes.yaml**:
+**.omni-voice/scopes.yaml**:
 ```yaml
 scopes:
   - name: auth
@@ -482,11 +482,11 @@ static BRANCH_PATTERN: Lazy<Regex> = Lazy::new(|| {
 
 **Context-Aware Command Output**:
 ```bash
-$ omni-dev git commit message twiddle HEAD~3..HEAD --use-context
+$ omni-voice git commit message twiddle HEAD~3..HEAD --use-context
 
 🔍 Discovering project context...
-  ✓ Found commit guidelines in .omni-dev/commit-guidelines.md
-  ✓ Loaded 5 project scopes from .omni-dev/scopes.yaml  
+  ✓ Found commit guidelines in .omni-voice/commit-guidelines.md
+  ✓ Loaded 5 project scopes from .omni-voice/scopes.yaml  
   ✓ Detected feature branch: feature/auth/user-login
   ✓ Work pattern: Sequential feature development
   ✓ Common scope detected: auth (authentication systems)
@@ -623,7 +623,7 @@ impl TwiddleCommand {
 #### Command Help
 ```
 USAGE:
-    omni-dev git commit message twiddle [OPTIONS] [COMMIT_RANGE]
+    omni-voice git commit message twiddle [OPTIONS] [COMMIT_RANGE]
 
 ARGS:
     <COMMIT_RANGE>    Commit range to analyze (e.g., HEAD~3..HEAD) [default: HEAD~5..HEAD]
@@ -636,7 +636,7 @@ OPTIONS:
     
     Phase 3 (Contextual Intelligence - Planned):
         --use-context            Use project context for enhanced suggestions [default: true]
-        --context-dir <DIR>      Path to custom context directory [default: .omni-dev]
+        --context-dir <DIR>      Path to custom context directory [default: .omni-voice]
         --work-context <TEXT>    Specify work context (e.g., "feature: user auth")
         --branch-context <TEXT>  Override detected branch context
         --no-context             Disable contextual analysis (Phase 1 behavior)
@@ -645,25 +645,25 @@ OPTIONS:
 
 EXAMPLES:
     # Basic usage (Phase 1 & 2)
-    omni-dev git commit message twiddle HEAD~3..HEAD
+    omni-voice git commit message twiddle HEAD~3..HEAD
     
     # With enhanced context (Phase 3)
-    omni-dev git commit message twiddle HEAD~3..HEAD --use-context
+    omni-voice git commit message twiddle HEAD~3..HEAD --use-context
     
     # Custom work context
-    omni-dev git commit message twiddle --work-context "feature: user authentication system"
+    omni-voice git commit message twiddle --work-context "feature: user authentication system"
     
     # Use custom context directory
-    omni-dev git commit message twiddle --context-dir .config/commits
+    omni-voice git commit message twiddle --context-dir .config/commits
     
     # Disable context (fallback to basic mode)
-    omni-dev git commit message twiddle --no-context
+    omni-voice git commit message twiddle --no-context
     
     # Save amendments without applying
-    omni-dev git commit message twiddle --save-only amendments.yaml
+    omni-voice git commit message twiddle --save-only amendments.yaml
     
     # Auto-apply without confirmation (useful for CI)
-    omni-dev git commit message twiddle --auto-apply
+    omni-voice git commit message twiddle --auto-apply
 ```
 
 #### Environment Setup
@@ -674,7 +674,7 @@ export CLAUDE_API_KEY="your-api-key-here"
 export ANTHROPIC_API_KEY="your-api-key-here"
 
 # Optional: Configure default model
-export OMNI_DEV_CLAUDE_MODEL="claude-3-5-sonnet-20241022"
+export OMNI_VOICE_CLAUDE_MODEL="claude-3-5-sonnet-20241022"
 ```
 
 ### 10. Future Enhancements
@@ -719,7 +719,7 @@ export OMNI_DEV_CLAUDE_MODEL="claude-3-5-sonnet-20241022"
 4. ✅ Help documentation and examples (CLI help text, templates)
 
 #### Phase 3: Contextual Intelligence 🔄 **PLANNED**
-1. 🔄 Project-level context discovery system (`.omni-dev/`, `.gitmessage`, docs parsing)
+1. 🔄 Project-level context discovery system (`.omni-voice/`, `.gitmessage`, docs parsing)
 2. 🔄 Branch analysis and work pattern detection
 3. 🔄 Multi-commit range context understanding
 4. 🔄 File-based architectural context recognition  
@@ -785,7 +785,7 @@ src/
     └── amendments.rs         # 🔄 Enhanced with context validation
 
 # Project Configuration Examples (User-created)
-.omni-dev/                    # 🔄 NEW - Project-specific context directory
+.omni-voice/                    # 🔄 NEW - Project-specific context directory
 ├── commit-guidelines.md      # 🔄 Project commit conventions
 ├── commit-template.txt       # 🔄 Default commit message template
 ├── scopes.yaml              # 🔄 Valid scopes and descriptions
@@ -808,6 +808,6 @@ This plan provides a comprehensive roadmap for implementing the `twiddle` comman
 - Provides context-enhanced Claude prompting for superior suggestions
 - Supports popular open source conventions out-of-the-box
 
-The contextual system respects existing project standards while providing intelligent enhancements, making omni-dev's twiddle command a powerful tool for maintaining consistent, high-quality commit messages across diverse development workflows.
+The contextual system respects existing project standards while providing intelligent enhancements, making omni-voice's twiddle command a powerful tool for maintaining consistent, high-quality commit messages across diverse development workflows.
 
 **Architecture Philosophy**: The design maintains backward compatibility while enabling progressive enhancement—users benefit from basic functionality immediately, with contextual intelligence available when configured. The system gracefully handles missing context, ensuring robust operation in any environment.

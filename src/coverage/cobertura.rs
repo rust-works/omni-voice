@@ -100,7 +100,7 @@ mod tests {
         let xml = r#"<?xml version="1.0" ?>
 <coverage>
   <packages>
-    <package name="omni-dev">
+    <package name="omni-voice">
       <classes>
         <class name="a" filename="src/a.rs">
           <lines>

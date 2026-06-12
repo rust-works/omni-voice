@@ -16,12 +16,12 @@ use rmcp::{
 use super::catalogue_cache::CatalogueCache;
 use super::resources;
 
-/// The omni-dev MCP server.
+/// The omni-voice MCP server.
 ///
 /// All tool handlers are defined on this struct via `#[tool_router]` in
 /// submodules under `src/mcp/`. Routers are combined in [`Self::new`].
 #[derive(Clone)]
-pub struct OmniDevServer {
+pub struct OmniVoiceServer {
     /// Combined tool router.
     pub tool_router: ToolRouter<Self>,
     /// Shared TTL-bounded cache for near-static JIRA catalogue API responses.
@@ -30,13 +30,13 @@ pub struct OmniDevServer {
     pub catalogue_cache: Arc<CatalogueCache>,
 }
 
-impl Default for OmniDevServer {
+impl Default for OmniVoiceServer {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl OmniDevServer {
+impl OmniVoiceServer {
     /// Constructs a new server with all tool routers combined.
     pub fn new() -> Self {
         Self {
@@ -54,7 +54,7 @@ impl OmniDevServer {
 }
 
 #[tool_handler(router = self.tool_router)]
-impl ServerHandler for OmniDevServer {
+impl ServerHandler for OmniVoiceServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo::new(
             ServerCapabilities::builder()
@@ -63,15 +63,15 @@ impl ServerHandler for OmniDevServer {
                 .build(),
         )
         .with_server_info(Implementation::new(
-            "omni-dev-mcp",
+            "omni-voice-mcp",
             env!("CARGO_PKG_VERSION"),
         ))
         .with_protocol_version(ProtocolVersion::V_2024_11_05)
         .with_instructions(
-            "omni-dev MCP server. Provides tools for git analysis, commit \
+            "omni-voice MCP server. Provides tools for git analysis, commit \
              improvement, and Atlassian integration. Resources expose \
              URI-addressable content via `jira://`, `confluence://`, and \
-             `omni-dev://` (e.g. `omni-dev://specs/jfm` for the \
+             `omni-voice://` (e.g. `omni-voice://specs/jfm` for the \
              JIRA-Flavoured Markdown reference — fetch before writing JIRA or \
              Confluence content).",
         )
@@ -113,23 +113,23 @@ mod tests {
 
     #[test]
     fn server_info_advertises_tools_and_resources_capability() {
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let info = server.get_info();
         assert!(info.capabilities.tools.is_some());
         assert!(info.capabilities.resources.is_some());
-        assert_eq!(info.server_info.name, "omni-dev-mcp");
+        assert_eq!(info.server_info.name, "omni-voice-mcp");
         assert_eq!(info.server_info.version, env!("CARGO_PKG_VERSION"));
     }
 
     #[test]
     fn tool_router_registers_git_view_commits() {
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         assert!(server.tool_router.has_route("git_view_commits"));
     }
 
     #[test]
     fn tool_router_registers_all_phase1_git_tools() {
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         for name in [
             "git_view_commits",
             "git_branch_info",
@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     fn tool_router_registers_confluence_tools() {
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         for name in [
             "confluence_children",
             "confluence_comment_list",
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn tool_router_lists_all_registered_tools() {
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let tools = server.tool_router.list_all();
         let names: Vec<&str> = tools.iter().map(|t| t.name.as_ref()).collect();
         for expected in [
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn tool_router_registers_all_jira_extension_tools() {
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let expected = [
             "jira_attachment_download",
             "jira_attachment_images",
@@ -224,7 +224,7 @@ mod tests {
 
     #[test]
     fn tool_router_registers_all_confluence_and_atlassian_tools() {
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         for name in [
             "confluence_read",
             "confluence_search",
@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn tool_router_registers_ai_and_config_tools() {
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         for name in [
             "ai_chat",
             "claude_skills_sync",
@@ -259,8 +259,8 @@ mod tests {
 
     #[test]
     fn default_constructs_same_as_new() {
-        let from_default = OmniDevServer::default();
-        let from_new = OmniDevServer::new();
+        let from_default = OmniVoiceServer::default();
+        let from_new = OmniVoiceServer::new();
         assert_eq!(
             from_default.tool_router.list_all().len(),
             from_new.tool_router.list_all().len(),
@@ -271,7 +271,7 @@ mod tests {
 
     #[test]
     fn tool_router_registers_all_datadog_tools() {
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         for name in [
             "datadog_auth_status",
             "datadog_metrics_query",
@@ -288,7 +288,7 @@ mod tests {
 
     #[test]
     fn tool_router_registers_all_jira_tools() {
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         for name in [
             "jira_read",
             "jira_search",

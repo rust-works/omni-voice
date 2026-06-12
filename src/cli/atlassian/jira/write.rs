@@ -41,7 +41,7 @@ pub struct WriteCommand {
 
     /// Sets the assignee `accountId`. The empty string `""` clears the
     /// assignee; `"-1"` triggers JIRA automatic assignment. Use
-    /// `omni-dev atlassian jira user search` to resolve a name or email
+    /// `omni-voice atlassian jira user search` to resolve a name or email
     /// to an `accountId`.
     #[arg(long, value_name = "ACCOUNT_ID")]
     pub assignee: Option<String>,
@@ -59,7 +59,7 @@ pub struct WriteCommand {
 
     /// Sets the parent issue key (e.g., establishes Epic → Story or
     /// Story → Sub-task hierarchy). Maps to JIRA's `parent` system field;
-    /// distinct from "Composition" links created via `omni-dev jira link`.
+    /// distinct from "Composition" links created via `omni-voice jira link`.
     #[arg(long, value_name = "KEY")]
     pub parent: Option<String>,
 

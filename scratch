@@ -1,6 +1,6 @@
 ---
 versions:
-  omni_dev: 0.3.0
+  omni_voice: 0.3.0
 explanation:
   text: |
     Field documentation for the YAML output format. Each entry describes the purpose and content of fields returned by the view command.
@@ -78,9 +78,9 @@ explanation:
       text: "Full diff content showing line-by-line changes with added, removed, and context lines"
       command: git show <commit>
       present: false
-    - name: versions.omni_dev
-      text: Version of the omni-dev tool
-      command: omni-dev --version
+    - name: versions.omni_voice
+      text: Version of the omni-voice tool
+      command: omni-voice --version
       present: true
     - name: branch_info.branch
       text: Current branch name (only present in branch commands)
@@ -124,7 +124,7 @@ working_directory:
       file: src/utils/mod.rs
 remotes:
   - name: origin
-    uri: "git@github.com:rust-works/omni-dev.git"
+    uri: "git@github.com:rust-works/omni-voice.git"
     main_branch: main
 branch_info:
   branch: main

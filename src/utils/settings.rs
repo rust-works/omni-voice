@@ -1,6 +1,6 @@
 //! Settings and configuration utilities.
 //!
-//! This module provides functionality to read settings from $HOME/.omni-dev/settings.json
+//! This module provides functionality to read settings from $HOME/.omni-voice/settings.json
 //! and use them as a fallback for environment variables.
 
 use std::collections::HashMap;
@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde::Deserialize;
 
-/// Settings loaded from $HOME/.omni-dev/settings.json.
+/// Settings loaded from $HOME/.omni-voice/settings.json.
 #[derive(Debug, Deserialize)]
 pub struct Settings {
     /// Environment variable overrides.
@@ -49,7 +49,7 @@ impl Settings {
     pub fn get_settings_path() -> Result<PathBuf> {
         let home_dir = dirs::home_dir().context("Failed to determine home directory")?;
 
-        Ok(home_dir.join(".omni-dev").join("settings.json"))
+        Ok(home_dir.join(".omni-voice").join("settings.json"))
     }
 
     /// Returns an environment variable with fallback to settings.

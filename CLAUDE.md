@@ -1,10 +1,10 @@
 # Claude AI Assistant Guide
 
-This document provides guidance for AI assistants (particularly Claude) working with the omni-dev project.
+This document provides guidance for AI assistants (particularly Claude) working with the omni-voice project.
 
 ## Project Overview
 
-omni-dev is a powerful Git commit message analysis and amendment toolkit written in Rust. It provides:
+omni-voice is a powerful Git commit message analysis and amendment toolkit written in Rust. It provides:
 
 - Comprehensive commit analysis with YAML output
 - Branch-aware commit analysis 
@@ -71,7 +71,7 @@ Common types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`
 3. **Configuration Changes**: When modifying config loading or scope resolution, consult [docs/configuration-best-practices.md](docs/configuration-best-practices.md) and [docs/plan/config-internals.md](docs/plan/config-internals.md)
 4. **Test Changes**: Run tests after modifications
 5. **CLI Surface Changes**: After any change to `src/cli/**`, `src/main.rs`, or any `#[derive(Parser)]` / `#[derive(Subcommand)]` / `#[arg(...)]` site, invoke the [`update-snapshots`](.claude/skills/update-snapshots/SKILL.md) skill to review and update `insta` golden snapshots — most often [tests/snapshots/integration_test__help_all_output.snap](tests/snapshots/integration_test__help_all_output.snap). Do **not** assume `cargo test` passing in isolation surfaces drift before you've inspected the new snapshot: golden tests fail loudly, but only after the full suite has run, and the fix (`cargo insta accept`) must only be applied when the diff matches the *intended* CLI change. If the diff contains anything you did not intend, investigate the regression instead of accepting.
-6. **Conventional Commits**: Use proper commit message format (see `.omni-dev/commit-guidelines.md`)
+6. **Conventional Commits**: Use proper commit message format (see `.omni-voice/commit-guidelines.md`)
 7. **Incremental Changes**: Make focused, reviewable changes
 
 ### Release Process
@@ -125,13 +125,13 @@ The project includes a comprehensive model registry system:
 - **Model Registry**: `src/claude/model_config.rs` manages AI model specifications
 - **Model Templates**: `src/templates/models.yaml` defines supported Claude models with token limits
 - **Fuzzy Matching**: Supports various identifier formats (Bedrock, AWS, regional)
-- **Configuration Commands**: Use `omni-dev config models show` to view available models
+- **Configuration Commands**: Use `omni-voice config models show` to view available models
 - **Dynamic Limits**: Token limits are automatically applied based on model specifications
 
 ### AI Backend Dispatch
 Backends are selected inside `src/claude/client.rs::create_default_claude_client` in this order:
 
-1. `OMNI_DEV_AI_BACKEND=claude-cli` (or `--ai-backend claude-cli`) → `ClaudeCliAiClient` in `src/claude/ai/claude_cli.rs`.
+1. `OMNI_VOICE_AI_BACKEND=claude-cli` (or `--ai-backend claude-cli`) → `ClaudeCliAiClient` in `src/claude/ai/claude_cli.rs`.
 2. `USE_OLLAMA=true` → `OpenAiAiClient::new_ollama` in `src/claude/ai/openai.rs`.
 3. `USE_OPENAI=true` → `OpenAiAiClient::new_openai` in `src/claude/ai/openai.rs`.
 4. `CLAUDE_CODE_USE_BEDROCK=true` → `BedrockAiClient` in `src/claude/ai/bedrock.rs`.
@@ -148,7 +148,7 @@ Dev-only notes:
 - `--beta-header` is ignored for the `claude-cli` backend (`claude`'s `--betas` flag has different semantics).
 
 ### Browser Bridge
-The `omni-dev browser bridge` command tree drives HTTP requests **through an authenticated browser tab** (Grafana/Loki, SSO-gated dashboards) without exfiltrating the browser's cookies/tokens — a *confused deputy by design*. It is a two-plane local server joined by an `id`-keyed correlator:
+The `omni-voice browser bridge` command tree drives HTTP requests **through an authenticated browser tab** (Grafana/Loki, SSO-gated dashboards) without exfiltrating the browser's cookies/tokens — a *confused deputy by design*. It is a two-plane local server joined by an `id`-keyed correlator:
 
 - `src/cli/browser.rs` + `src/cli/browser/` — the CLI surface: `bridge serve` (`bridge.rs`, the long-lived server), `bridge request` (`request.rs`, the thin client), and `bridge harvest <platform> <object>` (`harvest.rs`, best-effort scrapers). Both clients send a `ControlRequest` to `POST /__bridge/request` via the shared `src/browser/client.rs::BridgeClient` rather than opening their own socket.
 - `src/browser/harvest/` — the harvest engines (`facebook.rs` = own-timeline pagination). These drive **reverse-engineered, undocumented** site internals: best-effort, re-harvest every volatile `doc_id`/token/provider flag per run (never hardcoded), fail with staged actionable errors on drift, and only ever use the connected tab's own session. The Facebook recipe is documented in [docs/browser-bridge.md](docs/browser-bridge.md) and issue #922.

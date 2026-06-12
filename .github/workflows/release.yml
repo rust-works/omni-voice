@@ -48,17 +48,17 @@ jobs:
           os: ubuntu-latest
           rust: stable
           target: x86_64-unknown-linux-gnu
-          archive-name: omni-dev-linux.tar.gz
+          archive-name: omni-voice-linux.tar.gz
         - build: macos
           os: macos-latest
           rust: stable
           target: aarch64-apple-darwin
-          archive-name: omni-dev-macos-arm64.tar.gz
+          archive-name: omni-voice-macos-arm64.tar.gz
         - build: win-msvc
           os: windows-latest
           rust: stable
           target: x86_64-pc-windows-msvc
-          archive-name: omni-dev-windows.zip
+          archive-name: omni-voice-windows.zip
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
@@ -75,13 +75,13 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y libasound2-dev
 
     - name: Build release binaries
-      run: cargo build --verbose --release --target ${{ matrix.target }} --features mcp --bin omni-dev --bin omni-dev-mcp
+      run: cargo build --verbose --release --target ${{ matrix.target }} --features mcp --bin omni-voice --bin omni-voice-mcp
 
     - name: Strip release binaries (linux and macos)
       if: matrix.build == 'linux' || matrix.build == 'macos'
       run: |
-        strip "target/${{ matrix.target }}/release/omni-dev"
-        strip "target/${{ matrix.target }}/release/omni-dev-mcp"
+        strip "target/${{ matrix.target }}/release/omni-voice"
+        strip "target/${{ matrix.target }}/release/omni-voice-mcp"
 
     - name: Build archive
       shell: bash
@@ -89,13 +89,13 @@ jobs:
         mkdir archive
         cp LICENSE README.md archive/
         if [ "${{ matrix.build }}" = "win-msvc" ]; then
-          cp "target/${{ matrix.target }}/release/omni-dev.exe" archive/
-          cp "target/${{ matrix.target }}/release/omni-dev-mcp.exe" archive/
+          cp "target/${{ matrix.target }}/release/omni-voice.exe" archive/
+          cp "target/${{ matrix.target }}/release/omni-voice-mcp.exe" archive/
           cd archive
           7z a "${{ matrix.archive-name }}" *
         else
-          cp "target/${{ matrix.target }}/release/omni-dev" archive/
-          cp "target/${{ matrix.target }}/release/omni-dev-mcp" archive/
+          cp "target/${{ matrix.target }}/release/omni-voice" archive/
+          cp "target/${{ matrix.target }}/release/omni-voice-mcp" archive/
           cd archive
           tar czf "${{ matrix.archive-name }}" *
         fi

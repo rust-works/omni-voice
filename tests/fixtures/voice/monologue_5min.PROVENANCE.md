@@ -63,7 +63,7 @@ These match the invariants enforced by
 ## Size note (~9.6 MB vs the issue's "≤ ~6 MB" indicative cap)
 
 The fixture is 9.6 MB rather than the "~6 MB" target mentioned in
-[#826](https://github.com/rust-works/omni-dev/issues/826). 16 kHz mono
+[#826](https://github.com/rust-works/omni-voice/issues/826). 16 kHz mono
 signed-16-bit PCM has a hard floor of `16000 × 2 = 32 000` bytes per
 second, so 5 minutes is ~9.6 MB by construction. The 5-minute duration
 is the load-bearing requirement (boundary artefact testing across many

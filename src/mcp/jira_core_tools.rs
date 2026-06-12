@@ -27,7 +27,7 @@ use crate::cli::atlassian::helpers::create_client;
 use super::catalogue_cache::CatalogueCache;
 use super::error::tool_error;
 use super::output_file::write_to_file_yaml;
-use super::server::OmniDevServer;
+use super::server::OmniVoiceServer;
 
 // ── parameter types ────────────────────────────────────────────────────────
 
@@ -70,7 +70,7 @@ pub struct JiraCreateParams {
     /// Issue summary / title.
     pub summary: String,
     /// Optional description in JFM markdown — see resource
-    /// `omni-dev://specs/jfm` for syntax. JFM is GitHub-style markdown,
+    /// `omni-voice://specs/jfm` for syntax. JFM is GitHub-style markdown,
     /// NOT JIRA wiki markup (use `##` not `h2.`, triple-backtick fences not
     /// `{code}`, backtick inline code not `{{...}}`).
     #[serde(default)]
@@ -92,7 +92,7 @@ pub struct JiraWriteParams {
     /// For `format = "jfm"` (the default), this is GitHub-style markdown,
     /// NOT JIRA wiki markup. Use `##` not `h2.`, triple-backtick fences not
     /// `{code}`, backtick inline code not `{{...}}`. Full reference:
-    /// MCP resource `omni-dev://specs/jfm`.
+    /// MCP resource `omni-voice://specs/jfm`.
     #[serde(default)]
     pub content: Option<String>,
     /// Content format — `jfm` (default) parses Markdown/JFM; `adf` accepts
@@ -160,7 +160,7 @@ pub struct JiraCommentParams {
     pub key: String,
     /// `list` to fetch comments; `add` to post a new one.
     pub action: String,
-    /// Comment body (JFM markdown — see resource `omni-dev://specs/jfm`).
+    /// Comment body (JFM markdown — see resource `omni-voice://specs/jfm`).
     /// Required for `action = "add"`.
     #[serde(default)]
     pub body: Option<String>,
@@ -186,7 +186,7 @@ pub struct JiraCommentEditParams {
     pub key: String,
     /// Comment ID to update.
     pub comment_id: String,
-    /// New comment body (JFM markdown — see resource `omni-dev://specs/jfm`).
+    /// New comment body (JFM markdown — see resource `omni-voice://specs/jfm`).
     pub body: String,
     /// Optional visibility restriction. Many JIRA configurations only allow
     /// the comment author to change visibility — JIRA's response is surfaced
@@ -648,7 +648,7 @@ async fn run_jira_user_search(client: &AtlassianClient, query: &str, limit: u32)
 
 #[allow(missing_docs)] // #[tool_router] generates a pub `jira_core_tool_router` fn.
 #[tool_router(router = jira_core_tool_router, vis = "pub")]
-impl OmniDevServer {
+impl OmniVoiceServer {
     /// Tool: fetch a JIRA issue as JFM markdown or raw ADF JSON.
     #[tool(
         description = "Fetch a JIRA issue. Returns JFM markdown (default, AI-friendly) \
@@ -720,7 +720,7 @@ impl OmniDevServer {
         description = "Update a JIRA issue. `content` updates the description (JFM markdown by \
                        default, or raw ADF JSON when `format = \"adf\"`); omit it to leave the \
                        description unchanged. JFM is GitHub-style markdown — see resource \
-                       `omni-dev://specs/jfm` for syntax. `parent` sets the system parent field \
+                       `omni-voice://specs/jfm` for syntax. `parent` sets the system parent field \
                        for hierarchy (Epic → Story, Story → Sub-task) — distinct from \
                        `jira_link` actions, which create relationship links (Blocks, \
                        Composition, etc.) rather than the parent field. `assignee`/`reporter` \
@@ -830,7 +830,7 @@ impl OmniDevServer {
     /// Tool: edit an existing JIRA comment.
     #[tool(
         description = "Edit an existing JIRA comment. `body` is JFM markdown (see resource \
-                       `omni-dev://specs/jfm`) and replaces the current comment text. Optional \
+                       `omni-voice://specs/jfm`) and replaces the current comment text. Optional \
                        `visibility = {type: \"group\"|\"role\", value: <name>}` updates the \
                        restriction. JIRA enforces stricter permissions on edit than on add (often \
                        only the original author can edit) — when JIRA refuses, its error message \
@@ -1506,7 +1506,7 @@ mod tests {
         );
         assert!(msg.contains("To fix:"), "got: {msg}");
         assert!(msg.contains("JFM markdown"), "got: {msg}");
-        assert!(msg.contains("omni-dev://specs/jfm"), "got: {msg}");
+        assert!(msg.contains("omni-voice://specs/jfm"), "got: {msg}");
         assert!(
             msg.contains("Operation value must be an Atlassian Document"),
             "got: {msg}"

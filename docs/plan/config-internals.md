@@ -3,10 +3,10 @@
 **Status:** Built — canonical reference for configuration resolution.
 **ADRs:** [ADR-0005](../adrs/adr-0005.md) · [ADR-0018](../adrs/adr-0018.md) · [ADR-0019](../adrs/adr-0019.md)
 
-How omni-dev's configuration resolution system works, for contributors. For
-the user-facing contract — the inventory of recognised `.omni-dev/` files,
+How omni-voice's configuration resolution system works, for contributors. For
+the user-facing contract — the inventory of recognised `.omni-voice/` files,
 their formats, and validation behaviour — see
-[`omni-dev-directory.md`](../omni-dev-directory.md).
+[`omni-voice-directory.md`](../omni-voice-directory.md).
 
 ## Table of Contents
 
@@ -27,7 +27,7 @@ Configuration loading has two entry points, both in
 The full discovery pipeline used by the twiddle command. Runs four stages
 in sequence:
 
-1. `load_omni_dev_config()` — loads guidelines, PR guidelines, scopes, and
+1. `load_omni_voice_config()` — loads guidelines, PR guidelines, scopes, and
    feature contexts via `resolve_config_file()`.
 2. `load_git_config()` — reserved for future git config integration.
 3. `parse_documentation()` — extracts conventions from `CONTRIBUTING.md` and
@@ -59,14 +59,14 @@ pub use discovery::{load_project_scopes, ProjectDiscovery};
 ## Config Directory Resolution
 
 The `resolve_context_dir_with_source(override_dir)` function determines
-which `.omni-dev/` directory to use. It returns both the resolved path and
+which `.omni-voice/` directory to use. It returns both the resolved path and
 a `ConfigDirSource` enum indicating how it was selected:
 
 ```
 1. --context-dir CLI flag        — explicit override (ConfigDirSource::CliFlag)
-2. OMNI_DEV_CONFIG_DIR env var   — environment override (ConfigDirSource::EnvVar)
-3. Walk-up discovery             — nearest .omni-dev/ from CWD to repo root (ConfigDirSource::WalkUp)
-4. .omni-dev (CWD-relative)      — default fallback (ConfigDirSource::Default)
+2. OMNI_VOICE_CONFIG_DIR env var   — environment override (ConfigDirSource::EnvVar)
+3. Walk-up discovery             — nearest .omni-voice/ from CWD to repo root (ConfigDirSource::WalkUp)
+4. .omni-voice (CWD-relative)      — default fallback (ConfigDirSource::Default)
 ```
 
 The convenience wrapper `resolve_context_dir(override_dir)` returns just
@@ -75,12 +75,12 @@ the path, discarding the source.
 ### Walk-up discovery
 
 The `walk_up_find_config_dir(start)` function walks from `start` upward
-through parent directories. At each level it checks for a `.omni-dev/`
+through parent directories. At each level it checks for a `.omni-voice/`
 subdirectory. It stops at the repository root (identified by `.git`
 directory or `.git` file for worktrees) and never escapes the repo. Returns
-`None` if no `.omni-dev/` is found within the boundary.
+`None` if no `.omni-voice/` is found within the boundary.
 
-Walk-up is disabled when `--context-dir` or `OMNI_DEV_CONFIG_DIR` is set,
+Walk-up is disabled when `--context-dir` or `OMNI_VOICE_CONFIG_DIR` is set,
 ensuring explicit overrides have full control.
 
 ## Config File Resolution Chain
@@ -91,8 +91,8 @@ file priority chain:
 ```
 1. {dir}/local/{filename}                    — local override (highest priority)
 2. {dir}/{filename}                           — shared project config
-3. $XDG_CONFIG_HOME/omni-dev/{filename}       — XDG global config
-4. $HOME/.omni-dev/{filename}                 — legacy global defaults (lowest priority)
+3. $XDG_CONFIG_HOME/omni-voice/{filename}       — XDG global config
+4. $HOME/.omni-voice/{filename}                 — legacy global defaults (lowest priority)
 ```
 
 If no file exists at any tier, the function returns the project path
@@ -100,9 +100,9 @@ If no file exists at any tier, the function returns the project path
 
 ### XDG compliance
 
-The `xdg_config_dir()` helper returns the XDG config path for omni-dev.
-It checks `$XDG_CONFIG_HOME/omni-dev/` first; if the variable is unset or
-empty, it defaults to `$HOME/.config/omni-dev/`. It uses `std::env::var`
+The `xdg_config_dir()` helper returns the XDG config path for omni-voice.
+It checks `$XDG_CONFIG_HOME/omni-voice/` first; if the variable is unset or
+empty, it defaults to `$HOME/.config/omni-voice/`. It uses `std::env::var`
 directly rather than `dirs::config_dir()`, which returns
 `~/Library/Application Support/` on macOS — not the expected location for
 a CLI tool.
@@ -113,11 +113,11 @@ Key design decisions:
   You can override just `scopes.yaml` locally while using the shared
   `commit-guidelines.md`.
 - **No directory existence gate**: The resolution function runs regardless
-  of whether the `.omni-dev/` directory exists (fixed in issue #134). Each
+  of whether the `.omni-voice/` directory exists (fixed in issue #134). Each
   file-loading operation checks existence individually.
 - **Home directory fallback**: Uses the `dirs` crate for cross-platform
   home directory detection.
-- **XDG before legacy**: The XDG path is checked before `$HOME/.omni-dev/`
+- **XDG before legacy**: The XDG path is checked before `$HOME/.omni-voice/`
   to encourage migration to the standard location.
 
 ## Ecosystem Detection and Merge
@@ -158,7 +158,7 @@ This means:
 
 ### Interaction with `ProjectDiscovery::discover()`
 
-The discover pipeline calls `load_omni_dev_config()` first (which loads
+The discover pipeline calls `load_omni_voice_config()` first (which loads
 YAML scopes into `context.valid_scopes`) and then `detect_ecosystem()`
 (which calls `merge_ecosystem_scopes()` on those already-loaded scopes).
 This sequence ensures user config takes precedence.
@@ -299,7 +299,7 @@ error and warning levels. It may receive info-level scope suggestions.
 | Config dir resolution    | `src/claude/context/discovery.rs` | `resolve_context_dir_with_source()`, `resolve_context_dir()`, `walk_up_find_config_dir()`, `ConfigDirSource`       |
 | Config file resolution   | `src/claude/context/discovery.rs` | `resolve_config_file()`, `xdg_config_dir()`, `load_config_content()`, `ConfigSourceLabel`                          |
 | Scope loading            | `src/claude/context/discovery.rs` | `load_project_scopes()`, `merge_ecosystem_scopes()`                                                                |
-| Full discovery pipeline  | `src/claude/context/discovery.rs` | `ProjectDiscovery::discover()`, `load_omni_dev_config()`, `detect_ecosystem()`                                     |
+| Full discovery pipeline  | `src/claude/context/discovery.rs` | `ProjectDiscovery::discover()`, `load_omni_voice_config()`, `detect_ecosystem()`                                     |
 | Module re-exports        | `src/claude/context.rs`           | `pub use discovery::{load_project_scopes, resolve_context_dir_with_source, ConfigDirSource, ConfigSourceLabel, …}` |
 | Pre-validation           | `src/git/commit.rs`               | `CommitInfoForAI::run_pre_validation_checks()`, `pre_validated_checks` field                                       |
 | Pre-validation call site | `src/claude/client.rs`            | Loop calling `run_pre_validation_checks(valid_scopes)`                                                             |
@@ -316,7 +316,7 @@ error and warning levels. It may receive info-level scope suggestions.
 - **#136**: Added pre-validated scope checks and two-tier severity model.
 - **#137**: This documentation (capturing learnings from #134–#136).
 - **#173**: Consolidated duplicated config resolution into `discovery.rs`.
-- **#174**: Added `OMNI_DEV_CONFIG_DIR` environment variable support.
+- **#174**: Added `OMNI_VOICE_CONFIG_DIR` environment variable support.
 - **#175**: Added XDG Base Directory compliance for global config tier.
-- **#176**: Added walk-up discovery for `.omni-dev/` config directory.
+- **#176**: Added walk-up discovery for `.omni-voice/` config directory.
 - **#177**: Added `ConfigDirSource` diagnostic output showing how the config dir was selected.

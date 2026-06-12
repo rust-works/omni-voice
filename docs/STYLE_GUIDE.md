@@ -1,6 +1,6 @@
 # Style Guide
 
-Conventions for code, documentation, and other project artifacts in the omni-dev project.
+Conventions for code, documentation, and other project artifacts in the omni-voice project.
 Each item has a unique ID for easy reference.
 
 ## Tag-based lookup
@@ -367,14 +367,14 @@ Writing a commit message.
 
 ### Guidance
 
-Follow [`.omni-dev/commit-guidelines.md`](../.omni-dev/commit-guidelines.md) for the full
+Follow [`.omni-voice/commit-guidelines.md`](../.omni-voice/commit-guidelines.md) for the full
 specification including types, scopes, subject line rules, body guidelines, and breaking
-change conventions. See [`omni-dev-directory.md`](omni-dev-directory.md#commit-guidelinesmd)
+change conventions. See [`omni-voice-directory.md`](omni-voice-directory.md#commit-guidelinesmd)
 for the file's format contract, validation behaviour, and how it is resolved relative to
 local overrides and the global fallback.
 
 The commit guidelines must themselves follow **Conventional Commits** and remain consistent
-with the scope definitions in `.omni-dev/scopes.yaml`:
+with the scope definitions in `.omni-voice/scopes.yaml`:
 
 1. **Scope list** — the `## Scopes` section in `commit-guidelines.md` must list exactly the
    scopes defined in `scopes.yaml`. When a scope is added, removed, or renamed in
@@ -387,7 +387,7 @@ with the scope definitions in `.omni-dev/scopes.yaml`:
 
 ### Motivation
 
-Keeping the detailed commit specification in `.omni-dev/commit-guidelines.md` allows the AI
+Keeping the detailed commit specification in `.omni-voice/commit-guidelines.md` allows the AI
 context system to consume it directly, avoiding duplication between this style guide and the
 machine-readable guidelines.
 
@@ -689,7 +689,7 @@ If `unsafe` is ever required (e.g., FFI), it must be:
 
 ### Motivation
 
-omni-dev has no need for `unsafe` — it delegates low-level operations to well-audited
+omni-voice has no need for `unsafe` — it delegates low-level operations to well-audited
 dependencies (`git2`, `reqwest`, `tokio`). The `deny` lint makes this a compile-time
 guarantee rather than a convention. Requiring an ADR for any future exception ensures the
 decision is reviewed and documented.
@@ -1156,7 +1156,7 @@ belongs in code comments or docs).
 
 ---
 
-## STYLE-0023: Validate commit messages with omni-dev after creation
+## STYLE-0023: Validate commit messages with omni-voice after creation
 
 **Tags:** `commits`
 
@@ -1168,9 +1168,9 @@ After creating one or more commits and before pushing or opening a pull request.
 
 After every `git commit`, invoke the `commit-twiddle` skill to validate and fix the
 message against the guidelines in
-[`.omni-dev/commit-guidelines.md`](omni-dev-directory.md#commit-guidelinesmd). The skill
-calls `omni-dev git commit message view` to analyse the commit, then
-`omni-dev git commit message amend` to rewrite the message if needed.
+[`.omni-voice/commit-guidelines.md`](omni-voice-directory.md#commit-guidelinesmd). The skill
+calls `omni-voice git commit message view` to analyse the commit, then
+`omni-voice git commit message amend` to rewrite the message if needed.
 
 **Constraints to observe:**
 
@@ -1331,7 +1331,7 @@ Adding or modifying MCP tools, resources, or supporting types under `src/mcp/`.
 
 2. **One tool router per module.** Group related tools in their own submodule
    and expose the router via `#[tool_router(router = name_tool_router, vis = "pub")]`
-   (see [src/mcp/git_tools.rs](../src/mcp/git_tools.rs)). `OmniDevServer::new`
+   (see [src/mcp/git_tools.rs](../src/mcp/git_tools.rs)). `OmniVoiceServer::new`
    combines all routers — add a new module there rather than cramming tools
    into an existing router.
 
@@ -1363,7 +1363,7 @@ Adding or modifying MCP tools, resources, or supporting types under `src/mcp/`.
    - A library-level unit test covering the success path with a fabricated
      input (temp repo, mock API, or hand-built `ContentItem`).
    - An integration test under `tests/mcp_integration_test.rs` that spins
-     up `OmniDevServer` on an in-memory duplex and exercises the MCP
+     up `OmniVoiceServer` on an in-memory duplex and exercises the MCP
      protocol round-trip (list + read/call).
 
 ### Motivation

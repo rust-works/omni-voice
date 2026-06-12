@@ -1,6 +1,6 @@
 //! Integration tests for the MCP server.
 //!
-//! These tests spin up `OmniDevServer` on one end of an in-memory duplex
+//! These tests spin up `OmniVoiceServer` on one end of an in-memory duplex
 //! transport, connect a generic rmcp client on the other end, and exercise
 //! tool dispatch end-to-end.
 
@@ -23,7 +23,7 @@ use rmcp::{
 };
 use tempfile::TempDir;
 
-use omni_dev::mcp::OmniDevServer;
+use omni_voice::mcp::OmniVoiceServer;
 
 struct TestRepo {
     _temp_dir: TempDir,
@@ -95,7 +95,7 @@ async fn spawn_server() -> (
     tokio::task::JoinHandle<Result<()>>,
 ) {
     let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
-    let server = OmniDevServer::new();
+    let server = OmniVoiceServer::new();
     let server_handle = tokio::spawn(async move {
         let service = server.serve(server_transport).await?;
         service.waiting().await?;
@@ -877,7 +877,7 @@ async fn git_view_commits_invalid_repo_path_returns_error() -> Result<()> {
     Ok(())
 }
 
-/// Spawns the `omni-dev-mcp` binary, sends a single MCP `initialize`
+/// Spawns the `omni-voice-mcp` binary, sends a single MCP `initialize`
 /// request on stdin, closes stdin, and expects the process to exit cleanly.
 /// Exercises `src/mcp_server.rs::main` end-to-end so it shows up in coverage.
 #[tokio::test]
@@ -886,7 +886,7 @@ async fn mcp_binary_handshakes_and_exits() -> Result<()> {
     use tokio::io::AsyncWriteExt;
     use tokio::process::Command;
 
-    let bin = env!("CARGO_BIN_EXE_omni-dev-mcp");
+    let bin = env!("CARGO_BIN_EXE_omni-voice-mcp");
     let mut child = Command::new(bin)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -924,7 +924,7 @@ async fn mcp_binary_reports_error_on_bad_handshake() -> Result<()> {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::process::Command;
 
-    let bin = env!("CARGO_BIN_EXE_omni-dev-mcp");
+    let bin = env!("CARGO_BIN_EXE_omni-voice-mcp");
     let mut child = Command::new(bin)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -1146,7 +1146,7 @@ async fn atlassian_auth_status_never_leaks_secrets() -> Result<()> {
     let tmp_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tmp");
     fs::create_dir_all(&tmp_root)?;
     let tmp = tempfile::tempdir_in(&tmp_root)?;
-    let omni_dir = tmp.path().join(".omni-dev");
+    let omni_dir = tmp.path().join(".omni-voice");
     fs::create_dir_all(&omni_dir)?;
     fs::write(
         omni_dir.join("settings.json"),
@@ -1385,7 +1385,7 @@ async fn call_tool_expect_error(tool_name: &'static str, args: serde_json::Value
     Ok(())
 }
 
-/// Pipes the `omni-dev-mcp` binary, drives a full `initialize` →
+/// Pipes the `omni-voice-mcp` binary, drives a full `initialize` →
 /// `tools/list` exchange, and asserts that every line on stdout parses as
 /// valid JSON-RPC (no stray `println!`, progress bars, or debug prints). This
 /// is the regression guard per STYLE-0018 / STYLE-0001: stdout is the MCP
@@ -1396,7 +1396,7 @@ async fn mcp_binary_stdout_is_pure_json_rpc() -> Result<()> {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
     use tokio::process::Command;
 
-    let bin = env!("CARGO_BIN_EXE_omni-dev-mcp");
+    let bin = env!("CARGO_BIN_EXE_omni-voice-mcp");
     let mut child = Command::new(bin)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -1561,7 +1561,7 @@ async fn list_resources_returns_all_uri_templates() -> Result<()> {
     assert!(uris.contains(&"jira://issue/{key}.adf"));
     assert!(uris.contains(&"confluence://page/{id}"));
     assert!(uris.contains(&"confluence://page/{id}.adf"));
-    assert!(uris.contains(&"omni-dev://specs/{name}"));
+    assert!(uris.contains(&"omni-voice://specs/{name}"));
     client.cancel().await?;
     let _ = server_handle.await;
     Ok(())
@@ -1608,10 +1608,10 @@ async fn read_resource_unknown_scheme_is_resource_not_found() -> Result<()> {
 }
 
 #[tokio::test]
-async fn read_resource_omni_dev_specs_jfm_returns_markdown() -> Result<()> {
+async fn read_resource_omni_voice_specs_jfm_returns_markdown() -> Result<()> {
     let (client, server_handle) = spawn_server().await;
     let result = client
-        .read_resource(ReadResourceRequestParams::new("omni-dev://specs/jfm"))
+        .read_resource(ReadResourceRequestParams::new("omni-voice://specs/jfm"))
         .await?;
     assert_eq!(result.contents.len(), 1);
     match &result.contents[0] {
@@ -1622,7 +1622,7 @@ async fn read_resource_omni_dev_specs_jfm_returns_markdown() -> Result<()> {
             ..
         } => {
             assert_eq!(mime_type.as_deref(), Some("text/markdown"));
-            assert_eq!(uri, "omni-dev://specs/jfm");
+            assert_eq!(uri, "omni-voice://specs/jfm");
             assert!(
                 text.contains("# JFM (JIRA-Flavored Markdown) Specification"),
                 "spec body missing heading"
@@ -1638,15 +1638,15 @@ async fn read_resource_omni_dev_specs_jfm_returns_markdown() -> Result<()> {
 }
 
 #[tokio::test]
-async fn read_resource_omni_dev_specs_unknown_name_errors() -> Result<()> {
+async fn read_resource_omni_voice_specs_unknown_name_errors() -> Result<()> {
     let (client, server_handle) = spawn_server().await;
     let err = client
-        .read_resource(ReadResourceRequestParams::new("omni-dev://specs/bogus"))
+        .read_resource(ReadResourceRequestParams::new("omni-voice://specs/bogus"))
         .await
         .expect_err("unknown spec should error");
     let rendered = err.to_string();
     assert!(
-        rendered.contains("omni-dev://specs/bogus"),
+        rendered.contains("omni-voice://specs/bogus"),
         "missing uri in err: {rendered}"
     );
     client.cancel().await?;

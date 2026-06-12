@@ -6,7 +6,7 @@
 //! appends them to `events.jsonl` (or stdout, for one-shot mode).
 //!
 //! Per #799: this is step 1 of the build order — text-in / events-out,
-//! no audio code. See [the umbrella issue](https://github.com/rust-works/omni-dev/issues/799)
+//! no audio code. See [the umbrella issue](https://github.com/rust-works/omni-voice/issues/799)
 //! for the load-bearing event schema and the rationale for event-sourced
 //! reflection.
 
@@ -54,8 +54,8 @@ pub struct ReflectOptions {
     /// AI client to invoke for the reflection prompt.
     pub ai: Box<dyn AiClient>,
     /// Override the session root directory (test hook). When `None` and
-    /// `source = Session(_)`, the standard `~/.omni-dev/voice/` root
-    /// (or `OMNI_DEV_VOICE_ROOT`) is used.
+    /// `source = Session(_)`, the standard `~/.omni-voice/voice/` root
+    /// (or `OMNI_VOICE_VOICE_ROOT`) is used.
     pub session_root_override: Option<PathBuf>,
 }
 

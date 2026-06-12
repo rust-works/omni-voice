@@ -74,7 +74,7 @@ pub fn run_view<P: AsRef<Path>>(commit_range: &str, repo_path: Option<P>) -> Res
     let commits = repo.get_commits_in_range(commit_range)?;
 
     let versions = Some(VersionInfo {
-        omni_dev: env!("CARGO_PKG_VERSION").to_string(),
+        omni_voice: env!("CARGO_PKG_VERSION").to_string(),
     });
 
     let ai_scratch_path = ai_scratch::get_ai_scratch_dir_at(repo_root)

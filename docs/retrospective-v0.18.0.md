@@ -82,7 +82,7 @@ Phase 2: ADR captures target architecture
 
 Phase 3: Systematic implementation (Feb 21)
   #173  Consolidate duplicated config resolution
-  #174  OMNI_DEV_CONFIG_DIR environment variable (depends: #173)
+  #174  OMNI_VOICE_CONFIG_DIR environment variable (depends: #173)
   #175  XDG Base Directory compliance (depends: #173)
   #176  Walk-up discovery for monorepos (depends: #173-#175)
   #177  Config diagnostic output (depends: #174-#176)

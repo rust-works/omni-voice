@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-This directory contains the Architecture Decision Records (ADRs) for the omni-dev project.
+This directory contains the Architecture Decision Records (ADRs) for the omni-voice project.
 
 An ADR is a short document that captures a single significant architectural or design decision
 along with its context and consequences. ADRs give current and future contributors a way to

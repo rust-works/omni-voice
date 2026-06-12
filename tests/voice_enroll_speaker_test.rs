@@ -5,11 +5,11 @@
 //! model file staged on disk. Run locally with:
 //!
 //! ```text
-//! omni-dev voice install-model --variant speaker-wespeaker-en
+//! omni-voice voice install-model --variant speaker-wespeaker-en
 //! cargo test --test voice_enroll_speaker_test -- --ignored
 //! ```
 //!
-//! Or point at a pre-staged install via `OMNI_DEV_VOICE_SPEAKER_MODEL`
+//! Or point at a pre-staged install via `OMNI_VOICE_VOICE_SPEAKER_MODEL`
 //! (the intended hook for the CI cache once the runner-side caching
 //! lands).
 //!
@@ -23,8 +23,8 @@
 
 use std::path::{Path, PathBuf};
 
-use omni_dev::voice::models::SPEAKER_WESPEAKER_EN;
-use omni_dev::voice::{cosine, WespeakerEmbedder};
+use omni_voice::voice::models::SPEAKER_WESPEAKER_EN;
+use omni_voice::voice::{cosine, WespeakerEmbedder};
 
 /// Spike-aligned gates from
 /// `SPIKE.md` on `issue-805-spike-tract-speaker`.
@@ -36,7 +36,7 @@ fn fixture_wav() -> PathBuf {
 }
 
 fn resolve_speaker_model_path() -> Option<PathBuf> {
-    if let Ok(env) = std::env::var("OMNI_DEV_VOICE_SPEAKER_MODEL") {
+    if let Ok(env) = std::env::var("OMNI_VOICE_VOICE_SPEAKER_MODEL") {
         if !env.is_empty() {
             let p = PathBuf::from(env);
             // The env var conventionally points at a directory.
@@ -78,13 +78,13 @@ fn slice(pcm: &[i16], start_s: f64, end_s: f64) -> &[i16] {
 }
 
 #[test]
-#[ignore = "requires wespeaker ONNX on disk; run `omni-dev voice install-model --variant speaker-wespeaker-en` first"]
+#[ignore = "requires wespeaker ONNX on disk; run `omni-voice voice install-model --variant speaker-wespeaker-en` first"]
 fn wespeaker_separates_speakers_in_two_speakers_fixture() {
     let Some(model_path) = resolve_speaker_model_path() else {
         panic!(
             "wespeaker model not found. Run \
-             `omni-dev voice install-model --variant speaker-wespeaker-en` or set \
-             OMNI_DEV_VOICE_SPEAKER_MODEL=<dir> to point at a pre-staged install."
+             `omni-voice voice install-model --variant speaker-wespeaker-en` or set \
+             OMNI_VOICE_VOICE_SPEAKER_MODEL=<dir> to point at a pre-staged install."
         );
     };
 
@@ -128,12 +128,12 @@ fn wespeaker_separates_speakers_in_two_speakers_fixture() {
 }
 
 #[test]
-#[ignore = "requires wespeaker ONNX on disk; run `omni-dev voice install-model --variant speaker-wespeaker-en` first"]
+#[ignore = "requires wespeaker ONNX on disk; run `omni-voice voice install-model --variant speaker-wespeaker-en` first"]
 fn wespeaker_default_threshold_picks_correct_speaker() {
     let Some(model_path) = resolve_speaker_model_path() else {
         panic!(
             "wespeaker model not found. Run \
-             `omni-dev voice install-model --variant speaker-wespeaker-en` first."
+             `omni-voice voice install-model --variant speaker-wespeaker-en` first."
         );
     };
 

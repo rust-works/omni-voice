@@ -1,4 +1,4 @@
-# omni-dev Commit Guidelines
+# omni-voice Commit Guidelines
 
 This project follows conventional commit format with specific requirements.
 
@@ -51,7 +51,7 @@ Required. Must be one of:
 
 ## Scopes
 
-Required. Use scopes defined in `.omni-dev/scopes.yaml`:
+Required. Use scopes defined in `.omni-voice/scopes.yaml`:
 
 - `atlassian` - Atlassian JIRA/Confluence integration and API client
 - `ci` - CI/CD pipelines and GitHub Actions workflows

@@ -11,7 +11,7 @@
 use std::process::Command;
 
 fn bin() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    Command::new(env!("CARGO_BIN_EXE_omni-voice"))
 }
 
 #[test]

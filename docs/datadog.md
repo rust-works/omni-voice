@@ -1,7 +1,7 @@
 # Datadog Integration
 
-omni-dev exposes read-only access to the Datadog v1/v2 APIs through the
-`omni-dev datadog` command tree, with a matching `datadog_*` MCP tool for every
+omni-voice exposes read-only access to the Datadog v1/v2 APIs through the
+`omni-voice datadog` command tree, with a matching `datadog_*` MCP tool for every
 subcommand. Authentication, time-range syntax, rate-limit behaviour, and
 pagination are identical across both surfaces; the MCP tools simply return YAML
 matching the CLI's `-o yaml` output. For the MCP-tool reference (parameters
@@ -39,7 +39,7 @@ only), see [docs/mcp.md](mcp.md#datadog-14-tools).
 ## Authentication
 
 Credentials are read from environment variables first, falling back to
-`~/.omni-dev/settings.json` (written by `omni-dev datadog auth login`).
+`~/.omni-voice/settings.json` (written by `omni-voice datadog auth login`).
 
 ### Environment variables
 
@@ -83,17 +83,17 @@ For genuinely-new regions this is harmless; for on-prem installs prefer
 ### Interactive setup
 
 ```bash
-$ omni-dev datadog auth login
+$ omni-voice datadog auth login
 Configure Datadog API credentials
 
 API key: ***
 Application key: ***
 Site [default: datadoghq.com]:
 
-Credentials saved to ~/.omni-dev/settings.json
+Credentials saved to ~/.omni-voice/settings.json
   Site: datadoghq.com
 
-Run `omni-dev datadog auth status` to verify.
+Run `omni-voice datadog auth status` to verify.
 ```
 
 The site prompt accepts the same shorthand as `DATADOG_SITE` (including full
@@ -102,7 +102,7 @@ URLs, which are normalised).
 ### Verifying credentials
 
 ```bash
-$ omni-dev datadog auth status
+$ omni-voice datadog auth status
 Checking Datadog authentication for site 'datadoghq.com'...
 Authenticated successfully.
 Site: datadoghq.com
@@ -116,8 +116,8 @@ echoes secret values.
 ### Removing credentials
 
 ```bash
-$ omni-dev datadog auth logout
-Datadog credentials removed from ~/.omni-dev/settings.json
+$ omni-voice datadog auth logout
+Datadog credentials removed from ~/.omni-voice/settings.json
 ```
 
 Idempotent: if no credentials are configured, it prints
@@ -138,7 +138,7 @@ Every leaf subcommand accepts `-o <format>`. Defaults to `table`.
 Example:
 
 ```bash
-$ omni-dev datadog monitor list --tags env:prod -o jsonl | \
+$ omni-voice datadog monitor list --tags env:prod -o jsonl | \
     jq -c 'select(.overall_state == "Alert") | {id, name}'
 {"id":12345,"name":"API latency p99"}
 {"id":67890,"name":"Worker queue depth"}
@@ -173,7 +173,7 @@ The metrics family has two distinct subcommands:
 ### Query a timeseries
 
 ```bash
-$ omni-dev datadog metrics query \
+$ omni-voice datadog metrics query \
     --query 'avg:system.cpu.user{host:web-01}' --from 1h
 
 QUERY        avg:system.cpu.user{host:web-01}
@@ -188,7 +188,7 @@ SERIES       1
 Explicit window using RFC 3339:
 
 ```bash
-$ omni-dev datadog metrics query \
+$ omni-voice datadog metrics query \
     --query 'sum:requests.total{env:prod}.as_rate()' \
     --from 2026-04-22T09:00:00Z --to 2026-04-22T10:00:00Z -o yaml
 
@@ -202,7 +202,7 @@ series:
     points: 60
 ```
 
-Query-string syntax is Datadog's, not omni-dev's — see Datadog's
+Query-string syntax is Datadog's, not omni-voice's — see Datadog's
 [metrics query reference]. The common shape is:
 
 ```
@@ -218,7 +218,7 @@ where `<aggregator>` is `avg`, `sum`, `min`, `max`, or `count`, and
 ### List metric names
 
 ```bash
-$ omni-dev datadog metrics catalog list --host web-01
+$ omni-voice datadog metrics catalog list --host web-01
 
 system.cpu.user
 system.cpu.system
@@ -232,7 +232,7 @@ Filter by ingestion cutoff (epoch seconds — relative shorthand is not
 accepted here):
 
 ```bash
-$ omni-dev datadog metrics catalog list --from 1700000000
+$ omni-voice datadog metrics catalog list --from 1700000000
 ```
 
 ### MCP equivalents
@@ -251,7 +251,7 @@ Three subcommands:
 ### List with filters
 
 ```bash
-$ omni-dev datadog monitor list --tags env:prod --limit 50
+$ omni-voice datadog monitor list --tags env:prod --limit 50
 
 ID         NAME                            STATE   TYPE     TAGS
 12345      API latency p99                 OK      metric   env:prod,team:platform
@@ -263,7 +263,7 @@ Substring match on monitor name, with separate filters for resource tags vs
 monitor metadata tags:
 
 ```bash
-$ omni-dev datadog monitor list \
+$ omni-voice datadog monitor list \
     --name 'API latency' --monitor-tags team:platform
 ```
 
@@ -279,7 +279,7 @@ parameters.
 ### Faceted search
 
 ```bash
-$ omni-dev datadog monitor search --query 'status:alert AND env:prod'
+$ omni-voice datadog monitor search --query 'status:alert AND env:prod'
 
 ID         NAME                            STATE   TYPE     TAGS
 12389      Worker queue depth              ALERT   metric   env:prod,team:platform
@@ -295,7 +295,7 @@ Datadog's monitor-search DSL supports faceted keys (`status:`, `type:`,
 ### Get a single monitor
 
 ```bash
-$ omni-dev datadog monitor get 12345 -o yaml
+$ omni-voice datadog monitor get 12345 -o yaml
 
 id: 12345
 name: API latency p99
@@ -327,7 +327,7 @@ The ID is **positional and numeric**.
 ### List dashboards
 
 ```bash
-$ omni-dev datadog dashboard list
+$ omni-voice datadog dashboard list
 
 ID            TITLE                           TYPE              LAYOUT_TYPE  AUTHOR
 abc-123-xyz   Platform overview               custom_timeboard  ordered      alice@example.com
@@ -336,7 +336,7 @@ ghi-789-rst   Database replication            custom_timeboard  ordered      car
 ```
 
 ```bash
-$ omni-dev datadog dashboard list --filter-shared
+$ omni-voice datadog dashboard list --filter-shared
 ```
 
 `--filter-shared` restricts results to dashboards explicitly shared with the
@@ -345,7 +345,7 @@ wider organisation.
 ### Pull a dashboard's full definition
 
 ```bash
-$ omni-dev datadog dashboard get abc-123-xyz -o json | \
+$ omni-voice datadog dashboard get abc-123-xyz -o json | \
     jq '.widgets | length'
 12
 ```
@@ -355,7 +355,7 @@ heterogeneous (each visualisation type — `timeseries`, `query_value`,
 `toplist`, etc. — has its own fields). Inspect a single widget:
 
 ```bash
-$ omni-dev datadog dashboard get abc-123-xyz -o json | \
+$ omni-voice datadog dashboard get abc-123-xyz -o json | \
     jq '.widgets[0].definition'
 {
   "type": "timeseries",
@@ -385,7 +385,7 @@ The ID is **positional and a string**.
 ### Error logs from a service
 
 ```bash
-$ omni-dev datadog logs search --filter 'service:api status:error'
+$ omni-voice datadog logs search --filter 'service:api status:error'
 
 TIMESTAMP                 HOST      SERVICE  STATUS  MESSAGE
 2026-05-11T14:02:31.812Z  web-04    api      error   500 Internal Server Error /v1/checkout
@@ -397,7 +397,7 @@ TIMESTAMP                 HOST      SERVICE  STATUS  MESSAGE
 ### HTTP 5xx, oldest first, paginate up to the cap
 
 ```bash
-$ omni-dev datadog logs search \
+$ omni-voice datadog logs search \
     --filter '@http.status_code:5*' \
     --from 1h --limit 0 --sort timestamp-asc -o jsonl | \
     jq -c '{ts: .attributes.timestamp, msg: .attributes.message}'
@@ -431,7 +431,7 @@ Defaults: `--from 1h`, `--to now`, `--limit 100`.
 ### Deployment events for a service
 
 ```bash
-$ omni-dev datadog events list \
+$ omni-voice datadog events list \
     --filter 'service:api' \
     --sources kubernetes,aws \
     --tags env:prod \
@@ -465,7 +465,7 @@ Two subcommands:
 ### List with filters
 
 ```bash
-$ omni-dev datadog slo list --tags team:platform
+$ omni-voice datadog slo list --tags team:platform
 
 ID                NAME                          TYPE     TARGET  STATUS
 abc123def456      Checkout API availability     metric   99.9    OK
@@ -476,8 +476,8 @@ mno345pqr678      Order pipeline success rate   metric   99.95   OK
 Combine filters (Datadog AND-combines them server-side):
 
 ```bash
-$ omni-dev datadog slo list --query 'checkout' --metrics-query 'requests'
-$ omni-dev datadog slo list --ids abc123def456,ghi789jkl012
+$ omni-voice datadog slo list --query 'checkout' --metrics-query 'requests'
+$ omni-voice datadog slo list --ids abc123def456,ghi789jkl012
 ```
 
 ### "Near burn-rate threshold" — client-side filtering
@@ -486,7 +486,7 @@ Datadog's SLO list endpoint does not filter by burn-rate server-side. List
 the SLOs of interest and filter client-side on the JSON output:
 
 ```bash
-$ omni-dev datadog slo list --tags team:platform -o json | \
+$ omni-voice datadog slo list --tags team:platform -o json | \
     jq '.[] | select(.overall_status[]?.error_budget_remaining < 25)
         | {id, name, remaining: .overall_status[]?.error_budget_remaining}'
 {
@@ -499,7 +499,7 @@ $ omni-dev datadog slo list --tags team:platform -o json | \
 ### Get a single SLO
 
 ```bash
-$ omni-dev datadog slo get abc123def456 -o yaml
+$ omni-voice datadog slo get abc123def456 -o yaml
 
 id: abc123def456
 name: Checkout API availability
@@ -527,7 +527,7 @@ The ID is **positional and a string**.
 ### List scheduled downtimes
 
 ```bash
-$ omni-dev datadog downtime list
+$ omni-voice datadog downtime list
 
 ID         SCOPE                          START                  END                    ACTIVE  MESSAGE
 778899     env:staging                    2026-05-10T20:00:00Z   2026-05-15T08:00:00Z   true    Staging upgrade window
@@ -535,7 +535,7 @@ ID         SCOPE                          START                  END            
 ```
 
 ```bash
-$ omni-dev datadog downtime list --active-only
+$ omni-voice datadog downtime list --active-only
 
 ID         SCOPE                          START                  END                    ACTIVE  MESSAGE
 778899     env:staging                    2026-05-10T20:00:00Z   2026-05-15T08:00:00Z   true    Staging upgrade window
@@ -550,7 +550,7 @@ ID         SCOPE                          START                  END            
 ### List hosts by tag filter
 
 ```bash
-$ omni-dev datadog hosts list --filter env:prod --limit 200
+$ omni-voice datadog hosts list --filter env:prod --limit 200
 
 NAME           AKA                  LAST_REPORT_TS    UP    TAGS
 web-01.prod    i-0abc123            2026-05-11T14:03  true  env:prod,role:web
@@ -563,7 +563,7 @@ Cutoff hosts that haven't reported recently (epoch seconds — no relative
 shorthand):
 
 ```bash
-$ omni-dev datadog hosts list --from 1747000000
+$ omni-voice datadog hosts list --from 1747000000
 ```
 
 Hosts whose `last_reported_time` is older than `--from` are excluded.
@@ -575,7 +575,7 @@ Hosts whose `last_reported_time` is older than `--from` are excluded.
 ## Rate limits and retry behaviour
 
 Datadog enforces per-endpoint rate limits and signals exhaustion with
-HTTP 429. omni-dev's client retries 429 responses automatically:
+HTTP 429. omni-voice's client retries 429 responses automatically:
 
 - Up to **3 retries** per request (4 attempts total).
   See [src/datadog/client.rs:19](../src/datadog/client.rs#L19) (`MAX_RETRIES`).
@@ -608,13 +608,13 @@ and is the easiest way to trip rate-limiting.
 ### Credentials not configured
 
 ```
-Error: Datadog credentials not configured. Run `omni-dev datadog auth login`
+Error: Datadog credentials not configured. Run `omni-voice datadog auth login`
 ```
 
 Means **either** `DATADOG_API_KEY` **or** `DATADOG_APP_KEY` is missing from
 the environment **and** the settings file. Both are required.
 
-Run `omni-dev datadog auth status` — or for the MCP version,
+Run `omni-voice datadog auth status` — or for the MCP version,
 `datadog_auth_status` — to see boolean presence flags for each credential
 without exposing values.
 
@@ -629,7 +629,7 @@ Most common causes:
 - `DATADOG_API_KEY` is revoked, mistyped, or for a different Datadog org.
 - The API key is regional and the configured site does not match. Datadog
   keys created in EU1 do not work against `datadoghq.com`. Set
-  `DATADOG_SITE=datadoghq.eu` (or re-run `omni-dev datadog auth login`).
+  `DATADOG_SITE=datadoghq.eu` (or re-run `omni-voice datadog auth login`).
 
 ### HTTP 403/401 — missing application key
 
@@ -648,7 +648,7 @@ A site mismatch typically surfaces as 403 (wrong-region key) or 404
 (endpoint not present in that region). Verify with:
 
 ```bash
-$ omni-dev datadog auth status
+$ omni-voice datadog auth status
 Checking Datadog authentication for site 'datadoghq.com'...
 ...
 ```
@@ -657,9 +657,9 @@ The first line echoes the site being used; if it doesn't match where the
 key was created, fix with:
 
 ```bash
-$ omni-dev datadog auth login            # interactive, updates settings
+$ omni-voice datadog auth login            # interactive, updates settings
 # or
-$ DATADOG_SITE=datadoghq.eu omni-dev datadog auth status   # one-off
+$ DATADOG_SITE=datadoghq.eu omni-voice datadog auth status   # one-off
 ```
 
 ### Rate-limited, retries exhausted
@@ -695,7 +695,7 @@ the window.
 warning: Datadog site 'foo.example' is not a known region; proceeding anyway
 ```
 
-Not an error — printed on stderr when the site isn't in omni-dev's
+Not an error — printed on stderr when the site isn't in omni-voice's
 hard-coded list (Datadog adds regions occasionally). For new official
 regions it is harmless. For on-prem or proxied Datadog, set
 `DATADOG_API_URL` instead and clear `DATADOG_SITE` to silence the warning.
@@ -707,10 +707,10 @@ variables exported in your interactive shell are **not** inherited unless
 the client launched the MCP server from that same shell. The reliable fix:
 
 ```bash
-$ omni-dev datadog auth login
+$ omni-voice datadog auth login
 ```
 
-This persists credentials to `~/.omni-dev/settings.json`, which is read by
+This persists credentials to `~/.omni-voice/settings.json`, which is read by
 every invocation regardless of how the process was started.
 
 ## See also

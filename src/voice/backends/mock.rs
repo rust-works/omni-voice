@@ -69,7 +69,7 @@ impl MockTranscriber {
     }
 
     /// The script the factory uses when no caller-side script is supplied
-    /// (i.e. when this backend is picked via `OMNI_DEV_VOICE_BACKEND=mock`).
+    /// (i.e. when this backend is picked via `OMNI_VOICE_VOICE_BACKEND=mock`).
     /// Deliberately bland placeholder text so consumers never confuse mock
     /// output with real transcription.
     pub fn default_script() -> Vec<MockSegment> {

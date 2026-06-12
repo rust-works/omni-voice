@@ -92,7 +92,7 @@ impl HelpGenerator {
         let cmd_name = if path.is_empty() {
             cmd.get_name().to_string()
         } else {
-            format!("omni-dev {path}")
+            format!("omni-voice {path}")
         };
 
         let about = cmd.get_about().map_or_else(
@@ -133,18 +133,18 @@ mod tests {
     #[test]
     fn help_generator_default() {
         let gen = HelpGenerator::default();
-        assert_eq!(gen.app.get_name(), "omni-dev");
+        assert_eq!(gen.app.get_name(), "omni-voice");
     }
 
     #[test]
     fn generate_all_help_contains_all_top_level_commands() {
         let gen = HelpGenerator::new();
         let output = gen.generate_all_help().unwrap();
-        assert!(output.contains("omni-dev ai"));
-        assert!(output.contains("omni-dev git"));
-        assert!(output.contains("omni-dev commands"));
-        assert!(output.contains("omni-dev config"));
-        assert!(output.contains("omni-dev help-all"));
+        assert!(output.contains("omni-voice ai"));
+        assert!(output.contains("omni-voice git"));
+        assert!(output.contains("omni-voice commands"));
+        assert!(output.contains("omni-voice config"));
+        assert!(output.contains("omni-voice help-all"));
     }
 
     #[test]
@@ -152,12 +152,12 @@ mod tests {
         let gen = HelpGenerator::new();
         let output = gen.generate_all_help().unwrap();
         // Deeply nested commands should be present
-        assert!(output.contains("omni-dev git commit message view"));
-        assert!(output.contains("omni-dev git commit message amend"));
-        assert!(output.contains("omni-dev git commit message twiddle"));
-        assert!(output.contains("omni-dev git commit message check"));
-        assert!(output.contains("omni-dev git branch info"));
-        assert!(output.contains("omni-dev git branch create pr"));
+        assert!(output.contains("omni-voice git commit message view"));
+        assert!(output.contains("omni-voice git commit message amend"));
+        assert!(output.contains("omni-voice git commit message twiddle"));
+        assert!(output.contains("omni-voice git commit message check"));
+        assert!(output.contains("omni-voice git branch info"));
+        assert!(output.contains("omni-voice git branch create pr"));
     }
 
     #[test]

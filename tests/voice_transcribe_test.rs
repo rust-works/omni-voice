@@ -12,8 +12,8 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use omni_dev::voice::backends::mock::{CountingUlidRng, MockSegment, MockTranscriber};
-use omni_dev::voice::{Transcriber, TranscriptEvent, VecAudioInput};
+use omni_voice::voice::backends::mock::{CountingUlidRng, MockSegment, MockTranscriber};
+use omni_voice::voice::{Transcriber, TranscriptEvent, VecAudioInput};
 
 fn fixture_path() -> PathBuf {
     let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

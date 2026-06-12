@@ -1,6 +1,6 @@
 # Adding an MCP tool
 
-omni-dev's MCP server exposes operations to LLM clients via `rmcp`-generated
+omni-voice's MCP server exposes operations to LLM clients via `rmcp`-generated
 tool routers. The server architecture is recorded in
 [ADR-0021](../adrs/adr-0021.md). This recipe walks you through adding one new
 tool end-to-end, mirroring the existing `git_*` tools in
@@ -11,7 +11,7 @@ tool end-to-end, mirroring the existing `git_*` tools in
 | File | Edit |
 |---|---|
 | [`src/mcp/<area>_tools.rs`](../../src/mcp/) (new or existing) | Add a parameter struct and a tool handler method. |
-| [`src/mcp/server.rs`](../../src/mcp/server.rs) | Wire the new router into `OmniDevServer::new()` (only if the module is new). |
+| [`src/mcp/server.rs`](../../src/mcp/server.rs) | Wire the new router into `OmniVoiceServer::new()` (only if the module is new). |
 | Tests inline or in [`tests/mcp_integration_test.rs`](../../tests/mcp_integration_test.rs) | Exercise the handler. |
 
 ## Walkthrough
@@ -118,14 +118,14 @@ the combined router automatically.
 
 Tools take parameters and return content; **resources** are URI-addressable
 content an MCP client fetches without a tool call (e.g.
-`omni-dev://specs/jfm`, `jira://issue/PROJ-1`). If your extension is
+`omni-voice://specs/jfm`, `jira://issue/PROJ-1`). If your extension is
 better modelled as a resource than a tool:
 
 1. Add a variant to `ResourceUri` and a parse arm in `ResourceUri::parse()`
    in [`src/mcp/resources.rs`](../../src/mcp/resources.rs).
 2. Add a dispatch arm in `read_resource()` in the same file.
 3. Add a `ResourceTemplate` row to `list_resource_templates_result()`.
-4. For embedded reference docs (like `omni-dev://specs/<name>`), add a
+4. For embedded reference docs (like `omni-voice://specs/<name>`), add a
    `pub const SPEC_X: &str = include_str!("...")` and a `lookup` arm in
    [`src/mcp/specs.rs`](../../src/mcp/specs.rs). Specs are embedded at
    compile time so installed builds don't read from disk.
@@ -134,14 +134,14 @@ better modelled as a resource than a tool:
 
 The codebase uses two complementary patterns — pick whichever fits.
 
-**Direct-handler unit tests** are the lightest: construct an `OmniDevServer`
+**Direct-handler unit tests** are the lightest: construct an `OmniVoiceServer`
 and call the handler. See
 [`src/mcp/git_tools.rs:292-470`](../../src/mcp/git_tools.rs#L292-L470):
 
 ```rust
 #[tokio::test]
 async fn git_branch_info_returns_yaml() {
-    let server = OmniDevServer::new();
+    let server = OmniVoiceServer::new();
     let result = server
         .git_branch_info(Parameters(GitBranchInfoParams {
             branch: None,

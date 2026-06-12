@@ -28,7 +28,7 @@
       in
       {
         packages.default = pkgs.rustPlatform.buildRustPackage rec {
-          pname = "omni-dev";
+          pname = "omni-voice";
           version = "0.9.0";
 
           src = ./.;
@@ -44,14 +44,14 @@
 
           meta = with pkgs.lib; {
             description = "A powerful Git commit message analysis and amendment toolkit";
-            homepage = "https://github.com/rust-works/omni-dev";
+            homepage = "https://github.com/rust-works/omni-voice";
             license = licenses.bsd3;
             maintainers = [ ];
-            mainProgram = "omni-dev";
+            mainProgram = "omni-voice";
           };
         };
 
-        packages.omni-dev = self.packages.${system}.default;
+        packages.omni-voice = self.packages.${system}.default;
 
         apps.default = flake-utils.lib.mkApp {
           drv = self.packages.${system}.default;

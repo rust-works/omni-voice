@@ -1,6 +1,6 @@
 # Real-World Examples
 
-Comprehensive examples showing omni-dev in action across different project
+Comprehensive examples showing omni-voice in action across different project
 types and scenarios.
 
 ## Table of Contents
@@ -28,7 +28,7 @@ a1b2c3d fix stuff
 **Command**:
 
 ```bash
-omni-dev git commit message twiddle 'HEAD^..HEAD' --use-context
+omni-voice git commit message twiddle 'HEAD^..HEAD' --use-context
 ```
 
 **After**:
@@ -53,7 +53,7 @@ b9f2a6d initial work
 **Command**:
 
 ```bash
-omni-dev git commit message twiddle 'main..HEAD' --use-context
+omni-voice git commit message twiddle 'main..HEAD' --use-context
 ```
 
 **After**:
@@ -72,7 +72,7 @@ b9f2a6d feat(auth): implement JWT token middleware
 
 ```
 webapp/
-├── .omni-dev/
+├── .omni-voice/
 │   ├── scopes.yaml
 │   └── commit-guidelines.md
 ├── backend/
@@ -86,9 +86,9 @@ webapp/
 └── docs/
 ```
 
-### Configuration (`.omni-dev/scopes.yaml`)
+### Configuration (`.omni-voice/scopes.yaml`)
 
-See [`omni-dev-directory.md`](omni-dev-directory.md#scopesyaml) for the format
+See [`omni-voice-directory.md`](omni-voice-directory.md#scopesyaml) for the format
 contract; the example below shows how it applies in practice.
 
 ```yaml
@@ -155,7 +155,7 @@ b8a7c6d start user work
 **Command**:
 
 ```bash
-omni-dev git commit message twiddle 'HEAD~5..HEAD' --use-context
+omni-voice git commit message twiddle 'HEAD~5..HEAD' --use-context
 ```
 
 **Improved commits**:
@@ -175,7 +175,7 @@ b8a7c6d feat(db): create user profiles table with validation
 
 ```
 rust-cli/
-├── .omni-dev/
+├── .omni-voice/
 │   ├── scopes.yaml
 │   └── commit-guidelines.md
 ├── src/
@@ -236,7 +236,7 @@ e2d3c4b update cli
 **Command**:
 
 ```bash
-omni-dev git commit message twiddle 'HEAD~4..HEAD' --use-context
+omni-voice git commit message twiddle 'HEAD~4..HEAD' --use-context
 ```
 
 **After**:
@@ -255,7 +255,7 @@ e2d3c4b feat(cli): add --export-json flag with format options
 
 ```
 api-server/
-├── .omni-dev/
+├── .omni-voice/
 ├── src/
 │   ├── controllers/
 │   ├── middleware/
@@ -295,7 +295,7 @@ package.json
 **Command with batching**:
 
 ```bash
-omni-dev git commit message twiddle 'HEAD~6..HEAD' --use-context --concurrency 3
+omni-voice git commit message twiddle 'HEAD~6..HEAD' --use-context --concurrency 3
 ```
 
 **Professional result**:
@@ -353,7 +353,7 @@ Update package.json with required dependencies:
 
 ```
 react-app/
-├── .omni-dev/
+├── .omni-voice/
 ├── src/
 │   ├── components/
 │   ├── pages/
@@ -414,7 +414,7 @@ i4h5g6f update components
 h3g4f5e start dashboard
 ```
 
-**After omni-dev processing**:
+**After omni-voice processing**:
 
 ```bash
 $ git log --oneline -7
@@ -433,7 +433,7 @@ h3g4f5e feat(ui): create dashboard layout with grid system
 
 ```
 ml-project/
-├── .omni-dev/
+├── .omni-voice/
 ├── src/
 │   ├── data/
 │   ├── models/
@@ -553,7 +553,7 @@ Implement production-ready Random Forest model:
 
 ```
 enterprise-app/
-├── .omni-dev/
+├── .omni-voice/
 ├── services/
 │   ├── user-service/
 │   ├── order-service/
@@ -956,7 +956,7 @@ scopes:
     file_patterns: ["src/middleware/**"]
 ```
 
-These examples show omni-dev's versatility across different:
+These examples show omni-voice's versatility across different:
 
 - **Project types**: Web apps, CLI tools, APIs, data science, enterprise
 - **Team sizes**: Individual contributors to large enterprises
@@ -967,8 +967,8 @@ The key is proper configuration and understanding your project's context!
 
 ## Tips for Better Results
 
-1. **Set up project context** - Always configure `.omni-dev/scopes.yaml`
-2. **Use descriptive file patterns** - Help omni-dev understand your architecture
+1. **Set up project context** - Always configure `.omni-voice/scopes.yaml`
+2. **Use descriptive file patterns** - Help omni-voice understand your architecture
 3. **Tune concurrency** - Use `--concurrency` for large commit ranges
 4. **Save for review** - use `--save-only <FILE>` to write the proposed amendments to a file without applying them
 5. **Iterate and improve** - Update configuration based on results
@@ -981,15 +981,15 @@ For more detailed guidance, see:
 
 ## Last Verified
 
-*Last audited: 2026-05-11 (omni-dev v0.26.0).*
+*Last audited: 2026-05-11 (omni-voice v0.26.0).*
 
-- All `omni-dev` command examples in this document parse against the current
-  CLI (`omni-dev git commit message twiddle ...` with `--use-context`,
+- All `omni-voice` command examples in this document parse against the current
+  CLI (`omni-voice git commit message twiddle ...` with `--use-context`,
   `--concurrency`, `--save-only`).
-- All `.omni-dev/scopes.yaml` blocks satisfy the `ScopeDefinition` schema
+- All `.omni-voice/scopes.yaml` blocks satisfy the `ScopeDefinition` schema
   defined in [src/data/context.rs](../src/data/context.rs)
   (`name`, `description`, `examples`, `file_patterns` — all required).
 - No AI model identifiers are referenced in this document; for the current
-  model registry run `omni-dev config models show`.
+  model registry run `omni-voice config models show`.
 
 When updating any example block, re-run the audit and refresh the date above.

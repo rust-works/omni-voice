@@ -1,4 +1,4 @@
-//! End-to-end snapshot tests for the `omni-dev voice transcribe` CLI.
+//! End-to-end snapshot tests for the `omni-voice voice transcribe` CLI.
 //!
 //! Spawns the compiled binary against the committed
 //! `tests/fixtures/voice/short_en.wav` fixture and pins both `--format
@@ -19,7 +19,7 @@ fn fixture_path() -> PathBuf {
 }
 
 fn run_transcribe(format: &str) -> String {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args([
             "voice",
             "transcribe",
@@ -28,7 +28,7 @@ fn run_transcribe(format: &str) -> String {
             format,
         ])
         .output()
-        .expect("failed to run omni-dev voice transcribe");
+        .expect("failed to run omni-voice voice transcribe");
     assert!(
         output.status.success(),
         "voice transcribe --format {format} failed:\nstdout: {}\nstderr: {}",
@@ -64,7 +64,7 @@ fn voice_transcribe_rejects_missing_wav() {
     // Exercises the WAV-load error path in TranscribeCommand::execute. The
     // error message comes from VecAudioInput::from_wav_path and points the
     // user back at `voice capture` for normalised audio.
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args([
             "voice",
             "transcribe",
@@ -73,7 +73,7 @@ fn voice_transcribe_rejects_missing_wav() {
             "jsonl",
         ])
         .output()
-        .expect("failed to run omni-dev voice transcribe");
+        .expect("failed to run omni-voice voice transcribe");
     assert!(
         !output.status.success(),
         "missing WAV should exit non-zero; got stdout: {}",

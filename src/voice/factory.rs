@@ -5,7 +5,7 @@
 //! choice flows from, in order:
 //!
 //! 1. `opts.backend` (set by `--backend` from the CLI in #802),
-//! 2. `OMNI_DEV_VOICE_BACKEND` (env var, with project settings.json
+//! 2. `OMNI_VOICE_VOICE_BACKEND` (env var, with project settings.json
 //!    fallback via [`crate::utils::settings::get_env_var`]),
 //! 3. Default — `"mock"` until the real ASR backend has been through a
 //!    release cycle; pick `--backend whisper-candle` (batch) or
@@ -32,7 +32,7 @@ use crate::voice::transcriber::Transcriber;
 /// `model` is plumbed through for future backends; `MockTranscriber`
 /// ignores it. When the real ASR backend lands this field will resolve
 /// the model file path (see #801 spec — `--model` → env
-/// `OMNI_DEV_VOICE_WHISPER_MODEL` → `~/.omni-dev/voice/models/...`).
+/// `OMNI_VOICE_VOICE_WHISPER_MODEL` → `~/.omni-voice/voice/models/...`).
 #[derive(Debug, Default, Clone)]
 pub struct VoiceOpts {
     /// Explicit backend choice from `--backend`. `None` means "fall back
@@ -52,7 +52,7 @@ pub fn create_default_transcriber(opts: &VoiceOpts) -> Result<Box<dyn Transcribe
     let backend = opts
         .backend
         .clone()
-        .or_else(|| crate::utils::settings::get_env_var("OMNI_DEV_VOICE_BACKEND").ok())
+        .or_else(|| crate::utils::settings::get_env_var("OMNI_VOICE_VOICE_BACKEND").ok())
         .unwrap_or_else(|| "mock".to_string());
 
     match backend.as_str() {
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn default_backend_is_mock() {
         let _g = env_guard();
-        std::env::remove_var("OMNI_DEV_VOICE_BACKEND");
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
         let t = create_default_transcriber(&VoiceOpts::default()).unwrap();
         let events = collect(t.as_ref());
         // Default script has 2 Finals; mock always appends 1 Endpoint.
@@ -117,29 +117,29 @@ mod tests {
     #[test]
     fn opts_backend_takes_precedence_over_env() {
         let _g = env_guard();
-        std::env::set_var("OMNI_DEV_VOICE_BACKEND", "this-would-fail-if-read");
+        std::env::set_var("OMNI_VOICE_VOICE_BACKEND", "this-would-fail-if-read");
         let opts = VoiceOpts {
             backend: Some("mock".to_string()),
             model: None,
         };
         let t = create_default_transcriber(&opts).unwrap();
         let _ = collect(t.as_ref());
-        std::env::remove_var("OMNI_DEV_VOICE_BACKEND");
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
     }
 
     #[test]
     fn env_var_selects_backend_when_opts_absent() {
         let _g = env_guard();
-        std::env::set_var("OMNI_DEV_VOICE_BACKEND", "mock");
+        std::env::set_var("OMNI_VOICE_VOICE_BACKEND", "mock");
         let t = create_default_transcriber(&VoiceOpts::default()).unwrap();
         let _ = collect(t.as_ref());
-        std::env::remove_var("OMNI_DEV_VOICE_BACKEND");
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
     }
 
     #[test]
     fn unknown_backend_errors() {
         let _g = env_guard();
-        std::env::remove_var("OMNI_DEV_VOICE_BACKEND");
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
         let opts = VoiceOpts {
             backend: Some("klingon".to_string()),
             model: None,
@@ -161,7 +161,7 @@ mod tests {
         // and verify the install hint reaches the caller without partial
         // initialisation.
         let _g = env_guard();
-        std::env::remove_var("OMNI_DEV_VOICE_BACKEND");
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
         let tmp = tempfile::TempDir::new().unwrap();
         let opts = VoiceOpts {
             backend: Some("whisper-candle".to_string()),
@@ -180,7 +180,7 @@ mod tests {
         // Same install-hint contract as the batch arm: the streaming
         // backend loads the same model files via WhisperEngine::load.
         let _g = env_guard();
-        std::env::remove_var("OMNI_DEV_VOICE_BACKEND");
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
         let tmp = tempfile::TempDir::new().unwrap();
         let opts = VoiceOpts {
             backend: Some("whisper-candle-streaming".to_string()),

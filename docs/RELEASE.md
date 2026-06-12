@@ -1,6 +1,6 @@
 # Release Process
 
-This document outlines the release process for omni-dev, covering version updates, changelog maintenance, and triggering automated release workflows.
+This document outlines the release process for omni-voice, covering version updates, changelog maintenance, and triggering automated release workflows.
 
 ## Overview
 
@@ -26,8 +26,8 @@ Before starting a release, ensure you have:
 - [ ] All tests passing locally
 - [ ] Clean working directory
 - [ ] GitHub repo description and topics still accurately describe the project
-  - Check: `gh repo view rust-works/omni-dev --json description,repositoryTopics`
-  - Update via `gh repo edit` (description) or `gh api -X PUT repos/rust-works/omni-dev/topics` (topics) if the project's scope has shifted since the last release. See [issue #831](https://github.com/rust-works/omni-dev/issues/831) for the original baseline.
+  - Check: `gh repo view rust-works/omni-voice --json description,repositoryTopics`
+  - Update via `gh repo edit` (description) or `gh api -X PUT repos/rust-works/omni-voice/topics` (topics) if the project's scope has shifted since the last release. See [issue #831](https://github.com/rust-works/omni-voice/issues/831) for the original baseline.
 
 ## Release Steps
 
@@ -64,8 +64,8 @@ Update `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/) 
 
 3. Update version links at the bottom of the changelog:
    ```markdown
-   [Unreleased]: https://github.com/rust-works/omni-dev/compare/vX.Y.Z...HEAD
-   [X.Y.Z]: https://github.com/rust-works/omni-dev/compare/vX.Y.Z-1...vX.Y.Z
+   [Unreleased]: https://github.com/rust-works/omni-voice/compare/vX.Y.Z...HEAD
+   [X.Y.Z]: https://github.com/rust-works/omni-voice/compare/vX.Y.Z-1...vX.Y.Z
    ```
 
 ### 3. Code Quality Checks
@@ -147,7 +147,7 @@ Pushing a `v*` tag triggers the following automated workflows:
 
 ### Release Workflow (`.github/workflows/release.yml`)
 - **Creates GitHub Release**: Automatically from the tag
-- **Builds Cross-Platform Binaries** (both `omni-dev` and `omni-dev-mcp` for each target):
+- **Builds Cross-Platform Binaries** (both `omni-voice` and `omni-voice-mcp` for each target):
   - Linux (x86_64-unknown-linux-gnu)
   - macOS (aarch64-apple-darwin)
   - Windows (x86_64-pc-windows-msvc)
@@ -171,9 +171,9 @@ After pushing the tag, monitor the automated release:
 
 3. **Verify crates.io Publication**:
    ```bash
-   cargo search omni-dev
+   cargo search omni-voice
    # Or test installation
-   cargo install omni-dev
+   cargo install omni-voice
    ```
 
 ## Post-Release Tasks
@@ -192,12 +192,12 @@ After the automated release completes:
 
 ## Glama Listing Update
 
-After the GitHub release lands, point the [Glama listing](https://glama.ai/mcp/servers/rust-works/omni-dev) at the new commit so the public listing reflects the release. This is a manual web-UI step — Glama's Docker build is pinned to a specific commit SHA and only rebuilds when that SHA is bumped.
+After the GitHub release lands, point the [Glama listing](https://glama.ai/mcp/servers/rust-works/omni-voice) at the new commit so the public listing reflects the release. This is a manual web-UI step — Glama's Docker build is pinned to a specific commit SHA and only rebuilds when that SHA is bumped.
 
 See [Glama Listing](glama-listing.md) for the full procedure, the canonical admin-form values (Build steps, CMD arguments, env-var schema), and troubleshooting. The short version:
 
 1. Run `git rev-parse --short vX.Y.Z` to get the release SHA.
-2. Paste it into **Pinned commit SHA** at <https://glama.ai/mcp/servers/rust-works/omni-dev/admin/dockerfile> and **Save**.
+2. Paste it into **Pinned commit SHA** at <https://glama.ai/mcp/servers/rust-works/omni-voice/admin/dockerfile> and **Save**.
 3. Trigger a **build**, wait for it to go green, then trigger a **release**.
 
 ## Troubleshooting

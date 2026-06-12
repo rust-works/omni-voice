@@ -1,4 +1,4 @@
-//! `omni-dev voice review` — reconcile a session's `events.jsonl`
+//! `omni-voice voice review` — reconcile a session's `events.jsonl`
 //! into materialised markdown.
 //!
 //! Writes `todos.md` / `decisions.md` and (optionally) renders the
@@ -16,7 +16,7 @@ use crate::voice::review::{run_review, ReviewOptions, What};
 
 /// Reconciles a session's reflection log into materialised markdown.
 ///
-/// Reads `~/.omni-dev/voice/<session-id>/events.jsonl`, computes
+/// Reads `~/.omni-voice/voice/<session-id>/events.jsonl`, computes
 /// projections per #799's reconciliation invariants, applies TTL
 /// expiry against the session's class-default TTLs, and writes
 /// `todos.md` / `decisions.md` under the session directory. Any
@@ -24,7 +24,7 @@ use crate::voice::review::{run_review, ReviewOptions, What};
 /// to `events.jsonl`.
 #[derive(Parser)]
 pub struct ReviewCommand {
-    /// Session id under `~/.omni-dev/voice/<id>/`.
+    /// Session id under `~/.omni-voice/voice/<id>/`.
     #[arg(value_name = "SESSION_ID")]
     pub session_id: String,
 

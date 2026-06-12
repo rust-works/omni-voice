@@ -54,7 +54,7 @@ impl WespeakerEmbedder {
     pub fn new(model_path: &Path) -> Result<Self> {
         if !model_path.is_file() {
             return Err(anyhow!(
-                "wespeaker ONNX not found at {}; run `omni-dev voice install-model \
+                "wespeaker ONNX not found at {}; run `omni-voice voice install-model \
                  --variant speaker-wespeaker-en` or pass --speaker-model <path>",
                 model_path.display()
             ));
@@ -138,7 +138,7 @@ pub fn cosine(a: &[f32], b: &[f32]) -> f32 {
 // ── Enrolled speaker persistence ──────────────────────────────────────────
 
 /// Persisted enrolment record. Lives at
-/// `~/.omni-dev/voice/speakers/<name>.json`.
+/// `~/.omni-voice/voice/speakers/<name>.json`.
 ///
 /// Matches the JSON shape from the original #805 spec; embedding files
 /// are forward-compatible with extra fields via `serde`'s default

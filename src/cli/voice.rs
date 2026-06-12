@@ -35,10 +35,10 @@ pub enum VoiceSubcommands {
     Review(review::ReviewCommand),
     /// Downloads the model files for a chosen variant (Whisper tiny.en
     /// for the `whisper-candle` backend, or wespeaker for speaker
-    /// embedding) into `~/.omni-dev/voice/models/<variant>/`.
+    /// embedding) into `~/.omni-voice/voice/models/<variant>/`.
     InstallModel(install_model::InstallModelCommand),
     /// Captures a microphone sample and persists a speaker embedding to
-    /// `~/.omni-dev/voice/speakers/<name>.json`.
+    /// `~/.omni-voice/voice/speakers/<name>.json`.
     Enroll(enroll::EnrollCommand),
 }
 

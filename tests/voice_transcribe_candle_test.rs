@@ -5,11 +5,11 @@
 //! Run locally with:
 //!
 //! ```text
-//! omni-dev voice install-model
+//! omni-voice voice install-model
 //! cargo test --test voice_transcribe_candle_test -- --ignored
 //! ```
 //!
-//! Or point at a pre-staged install via `OMNI_DEV_VOICE_WHISPER_MODEL` (the
+//! Or point at a pre-staged install via `OMNI_VOICE_VOICE_WHISPER_MODEL` (the
 //! intended hook for the CI cache once the runner-side caching lands).
 //!
 //! Assertion is **case-insensitive substring match** on the seven content
@@ -20,9 +20,9 @@
 
 use std::path::PathBuf;
 
-use omni_dev::voice::backends::candle::CandleTranscriber;
-use omni_dev::voice::models::{default_whisper_model_dir, ensure_model_present};
-use omni_dev::voice::transcriber::{Transcriber, TranscriptEvent, VecAudioInput};
+use omni_voice::voice::backends::candle::CandleTranscriber;
+use omni_voice::voice::models::{default_whisper_model_dir, ensure_model_present};
+use omni_voice::voice::transcriber::{Transcriber, TranscriptEvent, VecAudioInput};
 
 /// Content words captured from the whisper.cpp baseline in #813; the
 /// candle backend must surface every one of them (case-insensitive).
@@ -41,7 +41,7 @@ fn fixture_wav() -> PathBuf {
 }
 
 fn resolve_model_dir() -> Option<PathBuf> {
-    if let Ok(env) = std::env::var("OMNI_DEV_VOICE_WHISPER_MODEL") {
+    if let Ok(env) = std::env::var("OMNI_VOICE_VOICE_WHISPER_MODEL") {
         if !env.is_empty() {
             return Some(PathBuf::from(env));
         }
@@ -50,12 +50,12 @@ fn resolve_model_dir() -> Option<PathBuf> {
 }
 
 #[test]
-#[ignore = "requires Whisper tiny.en model on disk; run `omni-dev voice install-model` first"]
+#[ignore = "requires Whisper tiny.en model on disk; run `omni-voice voice install-model` first"]
 fn whisper_candle_transcribes_short_en_with_content_words() {
     let Some(model_dir) = resolve_model_dir() else {
         panic!(
-            "Whisper model not found. Run `omni-dev voice install-model` or set \
-             OMNI_DEV_VOICE_WHISPER_MODEL=<path> to point at a pre-staged install."
+            "Whisper model not found. Run `omni-voice voice install-model` or set \
+             OMNI_VOICE_VOICE_WHISPER_MODEL=<path> to point at a pre-staged install."
         );
     };
 

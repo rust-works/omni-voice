@@ -1,6 +1,6 @@
 # Extending the ADF schema
 
-omni-dev round-trips between Atlassian Document Format (ADF) and JIRA-
+omni-voice round-trips between Atlassian Document Format (ADF) and JIRA-
 Flavoured Markdown (JFM, see [ADR-0020](../adrs/adr-0020.md)). Three layers
 have to agree for a new ADF node type to work end-to-end:
 
@@ -94,7 +94,7 @@ row names the ADF type, the JFM directive syntax, and any notable
 constraints. If your node has unusual nesting rules, add a short note
 under *Common pitfalls* (around line 244).
 
-The spec is **served as an MCP resource** at `omni-dev://specs/jfm` — see
+The spec is **served as an MCP resource** at `omni-voice://specs/jfm` — see
 [`src/mcp/specs.rs`](../../src/mcp/specs.rs). It's `include_str!`'d at
 compile time, so your change ships in the same binary that supports the
 new node.

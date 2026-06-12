@@ -26,7 +26,7 @@ pub use yaml::*;
 /// (`CommitInfo`) and AI-facing output ([`RepositoryViewForAI`], using `CommitInfoForAI`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RepositoryView<C = CommitInfo> {
-    /// Version information for the omni-dev tool.
+    /// Version information for the omni-voice tool.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub versions: Option<VersionInfo>,
     /// Explanation of field meanings and structure.
@@ -144,8 +144,8 @@ pub struct FileStatusInfo {
 /// `multi_commit_view` projections used for AI dispatch.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VersionInfo {
-    /// Version of the omni-dev tool.
-    pub omni_dev: String,
+    /// Version of the omni-voice tool.
+    pub omni_voice: String,
 }
 
 /// AI integration metadata nested under [`RepositoryView::ai`].
@@ -221,7 +221,7 @@ impl RepositoryView {
                 | "commits[].analysis.file_diffs[].path"
                 | "commits[].analysis.file_diffs[].diff_file"
                 | "commits[].analysis.file_diffs[].byte_len" => !self.commits.is_empty(),
-                "versions.omni_dev" => self.versions.is_some(),
+                "versions.omni_voice" => self.versions.is_some(),
                 "branch_info.branch" => self.branch_info.is_some(),
                 "pr_template" => self.pr_template.is_some(),
                 "pr_template_location" => self.pr_template_location.is_some(),
@@ -456,9 +456,9 @@ impl Default for FieldExplanation {
                     present: false,
                 },
                 FieldDocumentation {
-                    name: "versions.omni_dev".to_string(),
-                    text: "Version of the omni-dev tool".to_string(),
-                    command: Some("omni-dev --version".to_string()),
+                    name: "versions.omni_voice".to_string(),
+                    text: "Version of the omni-voice tool".to_string(),
+                    command: Some("omni-voice --version".to_string()),
                     present: false,
                 },
                 FieldDocumentation {
@@ -730,7 +730,7 @@ mod tests {
         );
 
         // Optional fields
-        assert_eq!(field_present(&view, "versions.omni_dev"), Some(false));
+        assert_eq!(field_present(&view, "versions.omni_voice"), Some(false));
         assert_eq!(field_present(&view, "branch_info.branch"), Some(false));
         assert_eq!(field_present(&view, "pr_template"), Some(false));
         assert_eq!(field_present(&view, "branch_prs"), Some(false));
@@ -740,11 +740,11 @@ mod tests {
     fn field_presence_with_versions() {
         let mut view = make_repo_view(vec![]);
         view.versions = Some(VersionInfo {
-            omni_dev: "1.0.0".to_string(),
+            omni_voice: "1.0.0".to_string(),
         });
         view.update_field_presence();
 
-        assert_eq!(field_present(&view, "versions.omni_dev"), Some(true));
+        assert_eq!(field_present(&view, "versions.omni_voice"), Some(true));
     }
 
     #[test]
@@ -821,7 +821,7 @@ mod tests {
         let commit = make_commit_info("abc123");
         let mut view = make_repo_view(vec![commit]);
         view.versions = Some(VersionInfo {
-            omni_dev: "1.0.0".to_string(),
+            omni_voice: "1.0.0".to_string(),
         });
         view.branch_info = Some(BranchInfo {
             branch: "main".to_string(),
@@ -877,7 +877,7 @@ mod tests {
     fn single_commit_view_strips_metadata() {
         let mut view = make_repo_view(vec![make_commit_info("aaa"), make_commit_info("bbb")]);
         view.versions = Some(VersionInfo {
-            omni_dev: "1.0.0".to_string(),
+            omni_voice: "1.0.0".to_string(),
         });
         view.branch_info = Some(BranchInfo {
             branch: "feature/test".to_string(),
@@ -947,7 +947,7 @@ mod tests {
 
         let ai_view = RepositoryViewForAI {
             versions: Some(VersionInfo {
-                omni_dev: "1.0.0".to_string(),
+                omni_voice: "1.0.0".to_string(),
             }),
             explanation: FieldExplanation::default(),
             working_directory: WorkingDirectoryInfo {
@@ -1048,7 +1048,7 @@ mod tests {
         assert!(field_names.contains(&"commits[].analysis.detected_type"));
         assert!(field_names.contains(&"commits[].analysis.diff_file"));
         assert!(field_names.contains(&"ai.scratch"));
-        assert!(field_names.contains(&"versions.omni_dev"));
+        assert!(field_names.contains(&"versions.omni_voice"));
         assert!(field_names.contains(&"branch_info.branch"));
         assert!(field_names.contains(&"pr_template"));
         assert!(field_names.contains(&"branch_prs"));

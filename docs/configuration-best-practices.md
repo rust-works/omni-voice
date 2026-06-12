@@ -1,6 +1,6 @@
 # Configuration Best Practices
 
-Practical guidance for writing effective omni-dev configuration, grounded in
+Practical guidance for writing effective omni-voice configuration, grounded in
 real lessons learned from the project's own development.
 
 ## Table of Contents
@@ -17,18 +17,18 @@ real lessons learned from the project's own development.
 
 ### Config directory selection
 
-omni-dev first determines *which* `.omni-dev/` directory to use:
+omni-voice first determines *which* `.omni-voice/` directory to use:
 
 | Priority | Source                        | Description                                |
 |----------|-------------------------------|--------------------------------------------|
 | 1        | `--context-dir` CLI flag      | Explicit override; disables walk-up        |
-| 2        | `OMNI_DEV_CONFIG_DIR` env var | Environment override; disables walk-up     |
-| 3        | Walk-up discovery             | Nearest `.omni-dev/` from CWD to repo root |
-| 4        | `.omni-dev` (CWD-relative)    | Default fallback                           |
+| 2        | `OMNI_VOICE_CONFIG_DIR` env var | Environment override; disables walk-up     |
+| 3        | Walk-up discovery             | Nearest `.omni-voice/` from CWD to repo root |
+| 4        | `.omni-voice` (CWD-relative)    | Default fallback                           |
 
 Walk-up discovery searches from the current working directory upward,
 stopping at the repository root (`.git` boundary). The first directory
-containing `.omni-dev/` wins. This makes monorepo subdirectories
+containing `.omni-voice/` wins. This makes monorepo subdirectories
 automatically pick up their nearest config without needing `--context-dir`.
 
 ### Config file resolution
@@ -40,46 +40,46 @@ through a four-tier priority chain. The first file that exists wins:
 |-------------|------------------------------------------|---------------------------------|
 | 1 (highest) | `{dir}/local/{filename}`                 | Personal overrides (gitignored) |
 | 2           | `{dir}/{filename}`                       | Shared project configuration    |
-| 3           | `$XDG_CONFIG_HOME/omni-dev/{filename}`   | XDG global config               |
-| 4 (lowest)  | `$HOME/.omni-dev/{filename}`             | Legacy global defaults          |
+| 3           | `$XDG_CONFIG_HOME/omni-voice/{filename}`   | XDG global config               |
+| 4 (lowest)  | `$HOME/.omni-voice/{filename}`             | Legacy global defaults          |
 
 ### How global config works
 
 Global config applies to **all repositories** that don't have their own
-config files. omni-dev checks two global locations:
+config files. omni-voice checks two global locations:
 
-1. **XDG path** (recommended): `$XDG_CONFIG_HOME/omni-dev/` — defaults to
-   `$HOME/.config/omni-dev/` when `$XDG_CONFIG_HOME` is unset.
-2. **Legacy path**: `$HOME/.omni-dev/` — still supported for backwards
+1. **XDG path** (recommended): `$XDG_CONFIG_HOME/omni-voice/` — defaults to
+   `$HOME/.config/omni-voice/` when `$XDG_CONFIG_HOME` is unset.
+2. **Legacy path**: `$HOME/.omni-voice/` — still supported for backwards
    compatibility.
 
 The XDG path is checked first. For new installations, use the XDG location.
 
-A project does **not** need a `.omni-dev/` directory for omni-dev to work.
+A project does **not** need a `.omni-voice/` directory for omni-voice to work.
 If none exists, the tool falls back to your global config. If neither exists,
 ecosystem defaults are still applied (see below).
 
 ### When to use each tier
 
-- **XDG global** (`$XDG_CONFIG_HOME/omni-dev/`): Generic defaults that work
+- **XDG global** (`$XDG_CONFIG_HOME/omni-voice/`): Generic defaults that work
   across most projects. Recommended for new installations. Keep these
   lightweight and broadly applicable.
-- **Legacy global** (`$HOME/.omni-dev/`): Same purpose as XDG global.
+- **Legacy global** (`$HOME/.omni-voice/`): Same purpose as XDG global.
   Existing setups continue to work.
-- **Project** (`.omni-dev/`): Project-specific scopes, guidelines, and
+- **Project** (`.omni-voice/`): Project-specific scopes, guidelines, and
   conventions. Commit this to version control so all team members share the
   same configuration.
-- **Local** (`.omni-dev/local/`): Personal preferences that shouldn't be
-  shared. Add `.omni-dev/local/` to `.gitignore`.
-- **Env var** (`OMNI_DEV_CONFIG_DIR`): Useful for CI/CD or scripting when
+- **Local** (`.omni-voice/local/`): Personal preferences that shouldn't be
+  shared. Add `.omni-voice/local/` to `.gitignore`.
+- **Env var** (`OMNI_VOICE_CONFIG_DIR`): Useful for CI/CD or scripting when
   you need to point at a specific config directory without modifying
   command-line arguments.
-- **Walk-up**: Automatic monorepo support — place `.omni-dev/` directories
+- **Walk-up**: Automatic monorepo support — place `.omni-voice/` directories
   at package boundaries and run from within the package.
 
 ## Ecosystem Defaults
 
-omni-dev auto-detects your project ecosystem by looking for marker files
+omni-voice auto-detects your project ecosystem by looking for marker files
 (`Cargo.toml`, `package.json`, `pyproject.toml`, `go.mod`, `pom.xml`,
 `build.gradle`) and provides default scopes tailored to that ecosystem.
 
@@ -125,7 +125,7 @@ scopes will be used for both commit generation and validation.
 
 ### Ordering does not affect resolution
 
-The order of scopes in `scopes.yaml` does not change how omni-dev resolves
+The order of scopes in `scopes.yaml` does not change how omni-voice resolves
 or validates them. Scopes are matched by **name**, not position. The only
 effect of ordering is the sequence in which scopes appear in the prompt
 sent to the AI. Ecosystem defaults are always appended after your
@@ -133,7 +133,7 @@ user-defined scopes.
 
 ### When multiple scopes match the same files
 
-There is no deterministic "most specific pattern wins" logic. omni-dev sends
+There is no deterministic "most specific pattern wins" logic. omni-voice sends
 the full scope list (names, descriptions, file patterns) to the AI along
 with the diff, and the AI decides which scope fits best. This means that
 when two scopes both match the changed files, the result depends on the AI's
@@ -144,7 +144,7 @@ only one scope clearly matches.
 
 ### Minimise file pattern overlap
 
-When multiple scopes match the same files, omni-dev (and its AI) must guess
+When multiple scopes match the same files, omni-voice (and its AI) must guess
 which scope is most appropriate. Overlapping patterns lead to inconsistent
 scope suggestions.
 
@@ -336,7 +336,7 @@ The check command distinguishes between two kinds of scope issues:
 ### Scope validity (error severity)
 
 A scope is **invalid** if it doesn't appear in the valid scopes list at all.
-This is a deterministic check — omni-dev verifies it before the AI runs and
+This is a deterministic check — omni-voice verifies it before the AI runs and
 records it as an authoritative fact.
 
 Example: if your valid scopes are `core`, `cli`, `api`, and someone uses
@@ -353,7 +353,7 @@ info-level suggestion, not an error.
 
 ### How pre-validated checks prevent contradictions
 
-omni-dev runs deterministic scope validation before sending data to the AI.
+omni-voice runs deterministic scope validation before sending data to the AI.
 If a scope passes validation, the result is recorded in a `pre_validated_checks`
 field that the AI treats as authoritative. This prevents the AI from
 contradicting a known-good result (e.g., flagging a valid scope as invalid
@@ -380,7 +380,7 @@ appropriate. The commit still passes all checks.
 
 ### Enforcing check in CI
 
-If you require `omni-dev git commit message check` to pass on every commit
+If you require `omni-voice git commit message check` to pass on every commit
 (e.g., in a CI pipeline), understand the exit code semantics:
 
 | Exit code | Meaning                        | When                       |
@@ -421,8 +421,8 @@ confusion. Define one clear rule for the total subject line length.
 
 ### 4. Stale global config
 
-If you set up global config (at `$XDG_CONFIG_HOME/omni-dev/` or
-`$HOME/.omni-dev/`) once and forget about it, it becomes a stale template
+If you set up global config (at `$XDG_CONFIG_HOME/omni-voice/` or
+`$HOME/.omni-voice/`) once and forget about it, it becomes a stale template
 that doesn't reflect your current conventions. Periodically review your
 global config, especially after updating project-level configurations.
 
@@ -464,8 +464,8 @@ Use this checklist to assess your configuration quality:
 
 ### Overall configuration
 
-- [ ] `.omni-dev/local/` is in `.gitignore`
-- [ ] Global config (`$XDG_CONFIG_HOME/omni-dev/` or `$HOME/.omni-dev/`) is reviewed periodically
+- [ ] `.omni-voice/local/` is in `.gitignore`
+- [ ] Global config (`$XDG_CONFIG_HOME/omni-voice/` or `$HOME/.omni-voice/`) is reviewed periodically
 - [ ] Project config is committed to version control
 - [ ] Team members know where to find and how to update configuration
-- [ ] Monorepo packages have `.omni-dev/` at the right directory level (if using walk-up)
+- [ ] Monorepo packages have `.omni-voice/` at the right directory level (if using walk-up)

@@ -1,4 +1,4 @@
-//! `omni-dev coverage diff` — diff/patch coverage analysis.
+//! `omni-voice coverage diff` — diff/patch coverage analysis.
 
 use std::path::{Path, PathBuf};
 

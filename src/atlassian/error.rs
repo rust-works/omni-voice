@@ -9,7 +9,7 @@ use crate::atlassian::adf_validated::AdfValidationError;
 #[derive(Error, Debug)]
 pub enum AtlassianError {
     /// Atlassian credentials are not configured.
-    #[error("Atlassian credentials not configured. Run `omni-dev atlassian auth login`")]
+    #[error("Atlassian credentials not configured. Run `omni-voice atlassian auth login`")]
     CredentialsNotFound,
 
     /// An Atlassian API request failed.
@@ -139,7 +139,7 @@ fn format_jira_adf_field_required(fields: &[String], original_message: &str) -> 
     };
     let hint = "\n\nTo fix: pass the value as a JFM markdown string \
                 (it will be auto-converted to ADF), or pass a raw ADF \
-                document object. See `omni-dev://specs/jfm` for JFM syntax.";
+                document object. See `omni-voice://specs/jfm` for JFM syntax.";
     let original = if original_message.is_empty() {
         String::new()
     } else {
@@ -353,7 +353,7 @@ mod tests {
         );
         assert!(msg.contains("To fix:"), "got: {msg}");
         assert!(msg.contains("JFM markdown"), "got: {msg}");
-        assert!(msg.contains("omni-dev://specs/jfm"), "got: {msg}");
+        assert!(msg.contains("omni-voice://specs/jfm"), "got: {msg}");
         assert!(msg.contains("Original API error:"), "got: {msg}");
         assert!(
             msg.contains("Operation value must be an Atlassian Document"),

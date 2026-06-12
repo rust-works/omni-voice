@@ -51,7 +51,7 @@ const USER_AGENT: &str = "com.google.android.apps.youtube.vr.oculus/1.62.27 \
 
 /// Whether `input` is recognised as a YouTube locator (URL or bare ID).
 ///
-/// Used by the future `omni-dev transcript fetch <url>` auto-detection
+/// Used by the future `omni-voice transcript fetch <url>` auto-detection
 /// path and by [`TranscriptSource::matches`].
 pub fn matches_url(input: &str) -> bool {
     extract_video_id(input).is_ok()

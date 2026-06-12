@@ -1,4 +1,4 @@
-allowed-tools: [Bash(mkdir *), Read, Write, Edit, "omni-dev *"]
+allowed-tools: [Bash(mkdir *), Read, Write, Edit, "omni-voice *"]
 argument-hint: [range]
 description: Twiddle git commit messages
 model: claude-opus-4.1
@@ -9,7 +9,7 @@ model: claude-opus-4.1
 Run this command:
 
 ```bash
-omni-dev git commit message view $ARGUMENTS
+omni-voice git commit message view $ARGUMENTS
 ```
 
 ## Step 2
@@ -38,8 +38,8 @@ amendments:                    # required, non-empty array
 Run this command:
 
 ```bash
-omni-dev git commit message amend .ai/scratch/amendments-<random-hash>.yaml
+omni-voice git commit message amend .ai/scratch/amendments-<random-hash>.yaml
 ```
 
 # Troubleshooting
-If the `omni-dev` tool is not installed, then install this: https://crates.io/crates/omni-dev (at least `v0.3.0`).
+If the `omni-voice` tool is not installed, then install this: https://crates.io/crates/omni-voice (at least `v0.3.0`).

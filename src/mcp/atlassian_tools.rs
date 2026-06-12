@@ -17,7 +17,7 @@ use crate::atlassian::adf::AdfDocument;
 use crate::atlassian::convert::{adf_to_markdown_with_options, markdown_to_adf, RenderOptions};
 
 use super::error::tool_error;
-use super::server::OmniDevServer;
+use super::server::OmniVoiceServer;
 
 /// Parameters for the `atlassian_convert` tool.
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -39,10 +39,10 @@ pub struct AtlassianConvertParams {
 
 #[allow(missing_docs)] // #[tool_router] generates a pub `atlassian_tool_router` fn.
 #[tool_router(router = atlassian_tool_router, vis = "pub")]
-impl OmniDevServer {
+impl OmniVoiceServer {
     /// Tool: convert between JFM markdown and ADF JSON without touching the API.
     #[tool(description = "Convert between JFM markdown and ADF JSON. \
-                       Mirrors `omni-dev atlassian convert to-adf` / `from-adf`. \
+                       Mirrors `omni-voice atlassian convert to-adf` / `from-adf`. \
                        `direction` must be either \"to-adf\" or \"from-adf\".")]
     pub async fn atlassian_convert(
         &self,
@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn tool_router_registers_atlassian_convert() {
-        let router = OmniDevServer::atlassian_tool_router();
+        let router = OmniVoiceServer::atlassian_tool_router();
         assert!(router.has_route("atlassian_convert"));
     }
 
@@ -182,7 +182,7 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn atlassian_convert_handler_to_adf_success() {
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .atlassian_convert(Parameters(AtlassianConvertParams {
                 content: "# Title\n\nBody.".to_string(),
@@ -197,7 +197,7 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn atlassian_convert_handler_invalid_direction_returns_tool_error() {
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .atlassian_convert(Parameters(AtlassianConvertParams {
                 content: "x".to_string(),

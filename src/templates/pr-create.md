@@ -1,4 +1,4 @@
-allowed-tools: [Bash(mkdir *), Read, Write, Edit, "omni-dev *"]
+allowed-tools: [Bash(mkdir *), Read, Write, Edit, "omni-voice *"]
 argument-hint: [range]
 description: Twiddle git commit messages
 model: claude-opus-4.1
@@ -9,7 +9,7 @@ model: claude-opus-4.1
 Run this command:
 
 ```bash
-omni-dev git branch info
+omni-voice git branch info
 ```
 
 ## Step 2
@@ -37,4 +37,4 @@ If according to the result the PR needs to be rebased on the remote main branch,
 If a PR for this branch doesn't yet exist, then create a PR with a PR description based on the PR template in the result.
 
 # Troubleshooting
-If the `omni-dev` tool is not installed, then install this: https://crates.io/crates/omni-dev (at least `v0.3.0`).
+If the `omni-voice` tool is not installed, then install this: https://crates.io/crates/omni-voice (at least `v0.3.0`).

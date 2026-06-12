@@ -1,4 +1,4 @@
-//! CLI command for `omni-dev datadog monitor search`.
+//! CLI command for `omni-voice datadog monitor search`.
 
 use anyhow::Result;
 use clap::Parser;
@@ -192,7 +192,7 @@ mod tests {
 
         let guard = EnvGuard::take();
         let dir = with_empty_home(&guard);
-        let omni_dir = dir.path().join(".omni-dev");
+        let omni_dir = dir.path().join(".omni-voice");
         fs::create_dir_all(&omni_dir).unwrap();
         fs::write(
             omni_dir.join("settings.json"),

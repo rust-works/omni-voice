@@ -36,7 +36,7 @@ pub struct TwiddleCommand {
     #[arg(long, default_value = "true")]
     pub use_context: bool,
 
-    /// Path to custom context directory (defaults to .omni-dev/).
+    /// Path to custom context directory (defaults to .omni-voice/).
     #[arg(long)]
     pub context_dir: Option<std::path::PathBuf>,
 
@@ -651,7 +651,7 @@ impl TwiddleCommand {
 
         // Create version information
         let versions = Some(VersionInfo {
-            omni_dev: env!("CARGO_PKG_VERSION").to_string(),
+            omni_voice: env!("CARGO_PKG_VERSION").to_string(),
         });
 
         // Get AI scratch directory
@@ -760,11 +760,11 @@ impl TwiddleCommand {
         use std::process::Command;
 
         // Try to get editor from environment variables
-        let editor = if let Ok(e) = env::var("OMNI_DEV_EDITOR").or_else(|_| env::var("EDITOR")) {
+        let editor = if let Ok(e) = env::var("OMNI_VOICE_EDITOR").or_else(|_| env::var("EDITOR")) {
             e
         } else {
             // Prompt user for editor if neither environment variable is set
-            println!("🔧 Neither OMNI_DEV_EDITOR nor EDITOR environment variables are defined.");
+            println!("🔧 Neither OMNI_VOICE_EDITOR nor EDITOR environment variables are defined.");
             print!("Please enter the command to use as your editor: ");
             io::stdout().flush().context("Failed to flush stdout")?;
 
@@ -1782,7 +1782,7 @@ pub struct TwiddleOutcome {
     pub amendment_count: usize,
 }
 
-/// Non-interactive core for `omni-dev git commit message twiddle`.
+/// Non-interactive core for `omni-voice git commit message twiddle`.
 ///
 /// Shared by the CLI (wrapped by [`TwiddleCommand::execute`] for the
 /// interactive flow) and the MCP server. The MCP tool boundary is
@@ -1880,7 +1880,7 @@ pub(crate) async fn run_twiddle_with_client(
 
     let mut repo_view = RepositoryView {
         versions: Some(VersionInfo {
-            omni_dev: env!("CARGO_PKG_VERSION").to_string(),
+            omni_voice: env!("CARGO_PKG_VERSION").to_string(),
         }),
         explanation: FieldExplanation::default(),
         working_directory,
@@ -2113,8 +2113,8 @@ mod run_twiddle_tests {
     }
 
     /// "No silent mix" guard: `run_twiddle_with_client` must amend the INJECTED
-    /// repo, not the process CWD (the omni-dev checkout). We build a temp repo
-    /// with a rewritable HEAD, leave the process CWD pointed at the omni-dev
+    /// repo, not the process CWD (the omni-voice checkout). We build a temp repo
+    /// with a rewritable HEAD, leave the process CWD pointed at the omni-voice
     /// checkout, and assert the temp repo's HEAD was rewritten — proving the
     /// amendment anchored to the injected path rather than ambient CWD.
     #[tokio::test]
@@ -2122,7 +2122,7 @@ mod run_twiddle_tests {
         let (temp_dir, hash) = init_test_repo_with_commit();
 
         // Sanity-check: the process CWD is NOT the temp repo, so an amendment
-        // that leaked to the ambient CWD would target the omni-dev checkout.
+        // that leaked to the ambient CWD would target the omni-voice checkout.
         let cwd = std::env::current_dir().unwrap();
         assert_ne!(
             cwd.canonicalize().unwrap(),
@@ -2725,10 +2725,10 @@ mod tests {
     #[test]
     fn context_dir_default() {
         let result = crate::claude::context::resolve_context_dir(None);
-        // Walk-up may find .omni-dev in the real repo, or fall back to ".omni-dev"
+        // Walk-up may find .omni-voice in the real repo, or fall back to ".omni-voice"
         assert!(
-            result.ends_with(".omni-dev"),
-            "expected path ending in .omni-dev, got {result:?}"
+            result.ends_with(".omni-voice"),
+            "expected path ending in .omni-voice, got {result:?}"
         );
     }
 

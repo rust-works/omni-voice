@@ -7,8 +7,8 @@ use anyhow::Result;
 use git2::{Repository, Signature};
 use tempfile::TempDir;
 
-use omni_dev::cli::git::AmendCommand;
-use omni_dev::data::amendments::{Amendment, AmendmentFile};
+use omni_voice::cli::git::AmendCommand;
+use omni_voice::data::amendments::{Amendment, AmendmentFile};
 
 /// Test setup that creates a temporary git repository with test commits
 struct TestRepo {
@@ -167,7 +167,7 @@ fn amend_command_with_temporary_repo() -> Result<()> {
 /// "No silent mix" guard: the clean-worktree preflight checks the INJECTED
 /// repository, not the process CWD. Repo A has a dirty worktree, so amend must
 /// bail citing A's uncommitted changes even though the process CWD (the
-/// omni-dev checkout) is a different repository.
+/// omni-voice checkout) is a different repository.
 #[test]
 fn amend_preflight_checks_injected_repo_worktree() -> Result<()> {
     let mut repo_a = TestRepo::new()?;
@@ -253,7 +253,7 @@ amendments:
 #[test]
 fn help_all_golden() -> Result<()> {
     // Capture the help-all output using the help generator directly
-    use omni_dev::cli::help::HelpGenerator;
+    use omni_voice::cli::help::HelpGenerator;
 
     let generator = HelpGenerator::new();
     let help_output = generator.generate_all_help()?;
@@ -269,7 +269,7 @@ fn help_all_golden() -> Result<()> {
 
 #[test]
 fn binary_help_flag_succeeds() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .arg("--help")
         .output()
         .expect("failed to run binary");
@@ -280,18 +280,18 @@ fn binary_help_flag_succeeds() {
 
 #[test]
 fn binary_version_flag_succeeds() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .arg("--version")
         .output()
         .expect("failed to run binary");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("omni-dev"));
+    assert!(stdout.contains("omni-voice"));
 }
 
 #[test]
 fn binary_unknown_command_fails() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .arg("nonexistent")
         .output()
         .expect("failed to run binary");
@@ -300,7 +300,7 @@ fn binary_unknown_command_fails() {
 
 #[test]
 fn binary_config_models_show_succeeds() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args(["config", "models", "show"])
         .output()
         .expect("failed to run binary");
@@ -312,7 +312,7 @@ fn binary_config_models_show_succeeds() {
 
 #[test]
 fn binary_resources_show_jfm_succeeds() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args(["resources", "show", "specs/jfm"])
         .output()
         .expect("failed to run binary");
@@ -320,23 +320,23 @@ fn binary_resources_show_jfm_succeeds() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     // Byte-equality with the embedded const: catches any header drift or
     // accidental trailing newline added by `println!` vs `print!`.
-    assert_eq!(stdout.as_ref(), omni_dev::resources::SPEC_JFM);
+    assert_eq!(stdout.as_ref(), omni_voice::resources::SPEC_JFM);
 }
 
 #[test]
-fn binary_resources_show_accepts_omni_dev_uri_form() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
-        .args(["resources", "show", "omni-dev://specs/jfm"])
+fn binary_resources_show_accepts_omni_voice_uri_form() {
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
+        .args(["resources", "show", "omni-voice://specs/jfm"])
         .output()
         .expect("failed to run binary");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert_eq!(stdout.as_ref(), omni_dev::resources::SPEC_JFM);
+    assert_eq!(stdout.as_ref(), omni_voice::resources::SPEC_JFM);
 }
 
 #[test]
 fn binary_resources_list_includes_specs_jfm() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args(["resources", "list"])
         .output()
         .expect("failed to run binary");
@@ -347,7 +347,7 @@ fn binary_resources_list_includes_specs_jfm() {
 
 #[test]
 fn binary_resources_show_unknown_id_fails() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args(["resources", "show", "specs/does-not-exist"])
         .output()
         .expect("failed to run binary");
@@ -359,61 +359,61 @@ fn binary_resources_show_unknown_id_fails() {
 
 #[test]
 fn binary_help_all_succeeds() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .arg("help-all")
         .output()
         .expect("failed to run binary");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("omni-dev git"));
-    assert!(stdout.contains("omni-dev ai"));
+    assert!(stdout.contains("omni-voice git"));
+    assert!(stdout.contains("omni-voice ai"));
 }
 
 #[test]
 fn binary_completions_bash_succeeds() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args(["completions", "bash"])
         .output()
         .expect("failed to run binary");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("complete -F _omni-dev"),
+        stdout.contains("complete -F _omni-voice"),
         "missing bash completion marker; stdout: {stdout}"
     );
 }
 
 #[test]
 fn binary_completions_zsh_succeeds() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args(["completions", "zsh"])
         .output()
         .expect("failed to run binary");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("#compdef omni-dev"),
+        stdout.contains("#compdef omni-voice"),
         "missing zsh compdef marker; stdout: {stdout}"
     );
 }
 
 #[test]
 fn binary_completions_fish_succeeds() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args(["completions", "fish"])
         .output()
         .expect("failed to run binary");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("complete -c omni-dev"),
+        stdout.contains("complete -c omni-voice"),
         "missing fish completion marker; stdout: {stdout}"
     );
 }
 
 #[test]
 fn binary_completions_powershell_succeeds() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args(["completions", "powershell"])
         .output()
         .expect("failed to run binary");
@@ -427,7 +427,7 @@ fn binary_completions_powershell_succeeds() {
 
 #[test]
 fn binary_completions_unknown_shell_fails() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args(["completions", "banana"])
         .output()
         .expect("failed to run binary");
@@ -436,7 +436,7 @@ fn binary_completions_unknown_shell_fails() {
 
 #[test]
 fn binary_git_help_succeeds() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args(["git", "--help"])
         .output()
         .expect("failed to run binary");
@@ -453,7 +453,7 @@ fn binary_commands_generate_in_temp_dir() {
         std::fs::create_dir_all(&tmp_root).ok();
         tempfile::tempdir_in(&tmp_root).unwrap()
     };
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
         .args(["commands", "generate", "all"])
         .current_dir(temp_dir.path())
         .output()
@@ -540,16 +540,16 @@ fn test_repo_create_amendment_file_roundtrip() -> Result<()> {
 // ── Async dispatch coverage ──────────────────────────────────────
 //
 // These tests exercise the async execute() dispatch chain introduced in #222.
-// They run in the omni-dev repo itself (a valid git repository), so commands
+// They run in the omni-voice repo itself (a valid git repository), so commands
 // that require a git repo succeed without needing a temporary repo setup.
 
 #[tokio::test]
 async fn cli_execute_dispatches_git_commit_message_view() {
-    use omni_dev::cli::git::{
+    use omni_voice::cli::git::{
         CommitCommand, CommitSubcommands, GitCommand, GitSubcommands, MessageCommand,
         MessageSubcommands, ViewCommand,
     };
-    use omni_dev::cli::{Cli, Commands};
+    use omni_voice::cli::{Cli, Commands};
 
     let cli = Cli {
         ai_backend: None,
@@ -573,10 +573,10 @@ async fn cli_execute_dispatches_git_commit_message_view() {
 
 #[tokio::test]
 async fn cli_execute_dispatches_git_branch_info() {
-    use omni_dev::cli::git::{
+    use omni_voice::cli::git::{
         BranchCommand, BranchSubcommands, GitCommand, GitSubcommands, InfoCommand,
     };
-    use omni_dev::cli::{Cli, Commands};
+    use omni_voice::cli::{Cli, Commands};
 
     let cli = Cli {
         ai_backend: None,
@@ -596,8 +596,8 @@ async fn cli_execute_dispatches_git_branch_info() {
 
 #[tokio::test]
 async fn cli_execute_dispatches_ai_chat() {
-    use omni_dev::cli::ai::{AiCommand, AiSubcommands, ChatCommand};
-    use omni_dev::cli::{Cli, Commands};
+    use omni_voice::cli::ai::{AiCommand, AiSubcommands, ChatCommand};
+    use omni_voice::cli::{Cli, Commands};
 
     let cli = Cli {
         ai_backend: None,

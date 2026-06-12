@@ -463,10 +463,10 @@ fn open_editor(file: &std::path::Path) -> Result<()> {
     use std::env;
     use std::process::Command;
 
-    let editor = if let Ok(e) = env::var("OMNI_DEV_EDITOR").or_else(|_| env::var("EDITOR")) {
+    let editor = if let Ok(e) = env::var("OMNI_VOICE_EDITOR").or_else(|_| env::var("EDITOR")) {
         e
     } else {
-        print!("Neither OMNI_DEV_EDITOR nor EDITOR is set. Enter editor command: ");
+        print!("Neither OMNI_VOICE_EDITOR nor EDITOR is set. Enter editor command: ");
         io::stdout().flush().context("Failed to flush stdout")?;
         let mut input = String::new();
         io::stdin()
@@ -649,11 +649,11 @@ mod tests {
     #[test]
     fn open_editor_with_true_command() {
         // Serialise on the one canonical env mutex (issue #950) so this
-        // `OMNI_DEV_EDITOR` mutation can't race other env-touching tests.
+        // `OMNI_VOICE_EDITOR` mutation can't race other env-touching tests.
         let _lock = crate::atlassian::auth::test_util::AUTH_ENV_MUTEX
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        std::env::set_var("OMNI_DEV_EDITOR", "true");
+        std::env::set_var("OMNI_VOICE_EDITOR", "true");
 
         let temp_dir = tempfile::tempdir().unwrap();
         let file = temp_dir.path().join("test.md");
@@ -661,7 +661,7 @@ mod tests {
 
         let result = open_editor(&file);
 
-        std::env::remove_var("OMNI_DEV_EDITOR");
+        std::env::remove_var("OMNI_VOICE_EDITOR");
 
         assert!(result.is_ok());
     }
@@ -672,7 +672,7 @@ mod tests {
         let _lock = crate::atlassian::auth::test_util::AUTH_ENV_MUTEX
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        std::env::set_var("OMNI_DEV_EDITOR", "nonexistent_editor_binary_12345");
+        std::env::set_var("OMNI_VOICE_EDITOR", "nonexistent_editor_binary_12345");
 
         let temp_dir = tempfile::tempdir().unwrap();
         let file = temp_dir.path().join("test.md");
@@ -680,7 +680,7 @@ mod tests {
 
         let result = open_editor(&file);
 
-        std::env::remove_var("OMNI_DEV_EDITOR");
+        std::env::remove_var("OMNI_VOICE_EDITOR");
 
         assert!(result.is_ok());
     }

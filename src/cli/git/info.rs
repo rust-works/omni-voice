@@ -192,7 +192,7 @@ pub fn run_info<P: AsRef<Path>>(base_branch: Option<&str>, repo_path: Option<P>)
         .filter(|prs| !prs.is_empty());
 
     let versions = Some(VersionInfo {
-        omni_dev: env!("CARGO_PKG_VERSION").to_string(),
+        omni_voice: env!("CARGO_PKG_VERSION").to_string(),
     });
 
     let ai_scratch_path = ai_scratch::get_ai_scratch_dir_at(repo_root)
@@ -415,7 +415,7 @@ mod tests {
     /// "No silent mix" guard: `read_pr_template` resolves only against its
     /// `repo_root` argument and has **no** fallback to the ambient CWD. A repo
     /// root with a template returns it; a different root without one errors —
-    /// even though the process CWD (the omni-dev checkout) *does* ship a
+    /// even though the process CWD (the omni-voice checkout) *does* ship a
     /// `.github/pull_request_template.md`. This is the regression guard for the
     /// silent-mix bug the injection closes.
     #[test]

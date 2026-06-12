@@ -24,6 +24,6 @@ jobs:
       - uses: action-works/omni-dev-commit-check@v1
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          guidelines: .omni-dev/commit-guidelines.md
+          guidelines: .omni-voice/commit-guidelines.md
           model: claude-haiku-4-5
           verbose: true

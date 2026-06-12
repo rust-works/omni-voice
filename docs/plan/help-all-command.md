@@ -3,7 +3,7 @@
 **Status:** Built
 
 ## Overview
-Implement a `help all` subcommand that displays the complete CLI help hierarchy for omni-dev in a single output, eliminating the need to run multiple help commands.
+Implement a `help all` subcommand that displays the complete CLI help hierarchy for omni-voice in a single output, eliminating the need to run multiple help commands.
 
 ## Goals
 - Provide complete CLI documentation in one command
@@ -13,7 +13,7 @@ Implement a `help all` subcommand that displays the complete CLI help hierarchy 
 
 ## Current CLI Structure
 ```
-omni-dev
+omni-voice
 ├── git
 │   ├── commit
 │   │   ├── message
@@ -45,10 +45,10 @@ omni-dev
 
 2. **Output Format**
    ```
-   omni-dev - A comprehensive development toolkit
+   omni-voice - A comprehensive development toolkit
    
    USAGE:
-       omni-dev <COMMAND>
+       omni-voice <COMMAND>
    
    COMMANDS:
        git                    Git-related operations
@@ -56,10 +56,10 @@ omni-dev
    
    ---
    
-   omni-dev git - Git-related operations
+   omni-voice git - Git-related operations
    
    USAGE:
-       omni-dev git <COMMAND>
+       omni-voice git <COMMAND>
    
    COMMANDS:
        commit                 Commit-related operations  
@@ -153,7 +153,7 @@ omni-dev
 - Allow help filtering/search in future
 
 ## Success Criteria
-1. ✅ `omni-dev help all` shows complete CLI hierarchy
+1. ✅ `omni-voice help all` shows complete CLI hierarchy
 2. ✅ Output is well-formatted and readable
 3. ✅ All existing help functionality preserved
 4. ✅ Golden tests validate output consistency

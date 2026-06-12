@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use clap::{Parser, ValueEnum};
-use omni_dev::atlassian::adf_schema::drift::{fetch_latest_drift_report, DriftReport};
+use omni_voice::atlassian::adf_schema::drift::{fetch_latest_drift_report, DriftReport};
 
 #[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
 enum Format {
@@ -110,7 +110,7 @@ mod tests {
         if with_content_drift {
             per_parent.insert(
                 "blockquote".to_string(),
-                omni_dev::atlassian::adf_schema::drift::ParentDrift {
+                omni_voice::atlassian::adf_schema::drift::ParentDrift {
                     added_children: std::iter::once("madeUp").map(String::from).collect(),
                     removed_children: BTreeSet::new(),
                 },

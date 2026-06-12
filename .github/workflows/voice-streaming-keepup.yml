@@ -38,15 +38,15 @@ jobs:
       - name: Build (release)
         run: cargo build --release
       - name: Install whisper-tiny.en model
-        # --bin is required: the workspace has two binaries (omni-dev and
-        # omni-dev-mcp), so a bare `cargo run` is ambiguous.
-        run: cargo run --release --bin omni-dev -- voice install-model
+        # --bin is required: the workspace has two binaries (omni-voice and
+        # omni-voice-mcp), so a bare `cargo run` is ambiguous.
+        run: cargo run --release --bin omni-voice -- voice install-model
       - name: Run streaming envelope tests
         env:
           # The paced test runs in isolation (--test-threads=1, single test
           # binary), so the process RSS high-water mark belongs to one
           # pipeline — safe to gate (Linux-only metric; no-op on Windows).
-          OMNI_DEV_STREAMING_RSS_GATE: "1"
+          OMNI_VOICE_STREAMING_RSS_GATE: "1"
           # This lane checks the true KEEP-UP criterion, not the strict
           # Apple-Silicon envelope (RTF 0.5 / ttf 2.5 s): during-speech
           # RTF < 1 with bounded lag. Measured on hosted runners:
@@ -54,8 +54,8 @@ jobs:
           # runner hardware — RTF 0.84 (kept up, bounded lag) and 1.20
           # (did not) across consecutive runs, i.e. hosted Windows sits
           # near the boundary. See docs/asr-backends.md.
-          OMNI_DEV_STREAMING_RTF_GATE: "1.0"
-          OMNI_DEV_STREAMING_TTF_GATE: "5.0"
+          OMNI_VOICE_STREAMING_RTF_GATE: "1.0"
+          OMNI_VOICE_STREAMING_TTF_GATE: "5.0"
         run: >-
           cargo test --release --test voice_streaming_candle_test --
           --ignored --nocapture --test-threads=1

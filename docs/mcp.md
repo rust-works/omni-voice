@@ -1,23 +1,23 @@
 # MCP Server Reference
 
-omni-dev ships an optional **Model Context Protocol** server, `omni-dev-mcp`,
+omni-voice ships an optional **Model Context Protocol** server, `omni-voice-mcp`,
 that lets AI assistants (Claude Desktop, Claude Code, Cursor, the MCP
-Inspector, custom agents) call omni-dev over stdio instead of shelling out to
+Inspector, custom agents) call omni-voice over stdio instead of shelling out to
 the CLI. Tools and resources mirror the CLI surface so anything you can do
-with `omni-dev` you can also do over MCP.
+with `omni-voice` you can also do over MCP.
 
 The server is delivered as a **second binary** alongside the regular
-`omni-dev` CLI. See [ADR-0021](adrs/adr-0021.md) for the architectural
-rationale. The default `cargo install omni-dev` build is unchanged — no MCP
+`omni-voice` CLI. See [ADR-0021](adrs/adr-0021.md) for the architectural
+rationale. The default `cargo install omni-voice` build is unchanged — no MCP
 dependencies are linked unless the `mcp` Cargo feature is enabled.
 
 ## Install
 
 ```bash
-cargo install omni-dev --features mcp
+cargo install omni-voice --features mcp
 ```
 
-This produces both `omni-dev` (the CLI) and `omni-dev-mcp` (the MCP server).
+This produces both `omni-voice` (the CLI) and `omni-voice-mcp` (the MCP server).
 
 ## Setup
 
@@ -29,8 +29,8 @@ macOS (or `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
 ```json
 {
   "mcpServers": {
-    "omni-dev": {
-      "command": "omni-dev-mcp"
+    "omni-voice": {
+      "command": "omni-voice-mcp"
     }
   }
 }
@@ -43,8 +43,8 @@ Per-project — create `.mcp.json` at the repo root:
 ```json
 {
   "mcpServers": {
-    "omni-dev": {
-      "command": "omni-dev-mcp"
+    "omni-voice": {
+      "command": "omni-voice-mcp"
     }
   }
 }
@@ -53,13 +53,13 @@ Per-project — create `.mcp.json` at the repo root:
 Or register globally with the Claude Code CLI:
 
 ```bash
-claude mcp add omni-dev omni-dev-mcp
+claude mcp add omni-voice omni-voice-mcp
 ```
 
 ### Smoke-test with the MCP Inspector
 
 ```bash
-npx @modelcontextprotocol/inspector omni-dev-mcp
+npx @modelcontextprotocol/inspector omni-voice-mcp
 ```
 
 The Inspector opens a browser UI where you can list tools and resources, call
@@ -76,11 +76,11 @@ explicit `confirm: true`.
 
 | Tool | Purpose | CLI equivalent |
 |------|---------|----------------|
-| `git_branch_info` | Branch + remote + PR information | `omni-dev git branch info` |
-| `git_check_commits` | Validate commit messages against guidelines | `omni-dev git commit message check` |
-| `git_view_commits` | YAML commit analysis for a range | `omni-dev git commit message view` |
-| `git_twiddle_commits` | AI-powered commit message improvement | `omni-dev git commit message twiddle` |
-| `git_create_pr` | AI-drafted PR title + body, optionally pushed | `omni-dev git branch create pr` |
+| `git_branch_info` | Branch + remote + PR information | `omni-voice git branch info` |
+| `git_check_commits` | Validate commit messages against guidelines | `omni-voice git commit message check` |
+| `git_view_commits` | YAML commit analysis for a range | `omni-voice git commit message view` |
+| `git_twiddle_commits` | AI-powered commit message improvement | `omni-voice git commit message twiddle` |
+| `git_create_pr` | AI-drafted PR title + body, optionally pushed | `omni-voice git branch create pr` |
 
 ### JIRA — core (10 tools)
 
@@ -144,7 +144,7 @@ listing, and changelog history.
 
 Read-only access to Datadog v1/v2 endpoints. Authentication uses
 `DATADOG_API_KEY` + `DATADOG_APP_KEY` + `DATADOG_SITE` (or values stored via
-`omni-dev datadog auth login`).
+`omni-voice datadog auth login`).
 
 | Tool | Purpose |
 |------|---------|
@@ -168,9 +168,9 @@ Read-only access to Datadog v1/v2 endpoints. Authentication uses
 | Tool | Purpose |
 |------|---------|
 | `ai_chat` | One-shot chat with the configured Claude model. Supports `system_prompt` override (CLI doesn't). See [user guide](user-guide.md#ai-chat--conversational-ai) |
-| `claude_skills_sync` | Push omni-dev skills into the project's `.claude/skills/` via symlinks. See [user guide](user-guide.md#ai-claude-skills--distribute-skills-across-repositories) |
-| `claude_skills_clean` | Remove omni-dev-managed skill symlinks and exclude-block entries |
-| `claude_skills_status` | Report which omni-dev skill symlinks are present and current |
+| `claude_skills_sync` | Push omni-voice skills into the project's `.claude/skills/` via symlinks. See [user guide](user-guide.md#ai-claude-skills--distribute-skills-across-repositories) |
+| `claude_skills_clean` | Remove omni-voice-managed skill symlinks and exclude-block entries |
+| `claude_skills_status` | Report which omni-voice skill symlinks are present and current |
 | `config_models_show` | List supported AI models and token limits |
 
 ## Resources
@@ -183,9 +183,9 @@ The server exposes URI-addressable content alongside tools.
 | `jira://issue/{key}.adf` | JIRA issue body as ADF JSON |
 | `confluence://page/{id}` | Confluence page as JFM markdown |
 | `confluence://page/{id}.adf` | Confluence page body as ADF JSON |
-| `omni-dev://specs/{name}` | Reference specifications embedded in the binary |
+| `omni-voice://specs/{name}` | Reference specifications embedded in the binary |
 
-The currently shipped spec resource is `omni-dev://specs/jfm`, the
+The currently shipped spec resource is `omni-voice://specs/jfm`, the
 JIRA-Flavoured Markdown reference. AI clients should fetch this before
 writing content for `jira_write`, `jira_create`, `jira_comment`,
 `confluence_write`, or `confluence_create`.
@@ -222,7 +222,7 @@ in the user guide and [ADR-0027](adrs/adr-0027.md) for the design rationale.
 ### Per-call client construction
 
 JIRA, Confluence, and Datadog tools build a fresh client per invocation, so
-credential changes (e.g. `omni-dev datadog auth login`) take effect without
+credential changes (e.g. `omni-voice datadog auth login`) take effect without
 restarting the MCP server.
 
 ## Troubleshooting
@@ -230,15 +230,15 @@ restarting the MCP server.
 - **Logs go to stderr.** MCP uses stdin/stdout for protocol framing, so
   tracing output is routed to stderr — tail your client's MCP log pane or
   run the binary in a terminal to see it.
-- **Verbose tracing:** `RUST_LOG=debug omni-dev-mcp` turns on debug-level
+- **Verbose tracing:** `RUST_LOG=debug omni-voice-mcp` turns on debug-level
   logs. Module-scoped filters work too, e.g.
-  `RUST_LOG=omni_dev::mcp=trace`.
-- **"Failed to open git repository":** the assistant runs `omni-dev-mcp` with
+  `RUST_LOG=omni_voice::mcp=trace`.
+- **"Failed to open git repository":** the assistant runs `omni-voice-mcp` with
   its own working directory. Tools that open a git repository use that
   directory unless an explicit `repo_path` parameter overrides it. Confirm the
   assistant launched the server from inside the repo you expected.
 - **Tool not found:** confirm the binary was built with `--features mcp`.
-  `omni-dev-mcp --help` should print without error if the build succeeded.
+  `omni-voice-mcp --help` should print without error if the build succeeded.
 - **Atlassian / Datadog tools return auth errors:** run the matching
   `*_auth_status` tool first to confirm credentials are visible to the
   process. Environment variables exported in your shell are not inherited
@@ -248,6 +248,6 @@ restarting the MCP server.
 
 - [ADR-0021](adrs/adr-0021.md) — MCP server via second binary
 - [JIRA-Flavoured Markdown spec](specs/jfm.md) — also served as
-  `omni-dev://specs/jfm`
+  `omni-voice://specs/jfm`
 - [User Guide — Atlassian Integration](user-guide.md#atlassian---jira-and-confluence-integration)
 - [User Guide — Datadog Integration](user-guide.md#datadog-integration)

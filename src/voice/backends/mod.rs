@@ -3,7 +3,7 @@
 //! Each backend is a concrete implementation of
 //! [`crate::voice::Transcriber`] dispatched through
 //! [`crate::voice::factory::create_default_transcriber`]. Backend choice
-//! is steered by `--backend` / `OMNI_DEV_VOICE_BACKEND`.
+//! is steered by `--backend` / `OMNI_VOICE_VOICE_BACKEND`.
 //!
 //! Three backends are wired up:
 //!

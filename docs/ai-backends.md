@@ -1,6 +1,6 @@
 # AI Backends
 
-omni-dev's AI features — `twiddle`, PR creation, JIRA/Confluence drafting,
+omni-voice's AI features — `twiddle`, PR creation, JIRA/Confluence drafting,
 `ai chat` — call out to a large language model through a pluggable
 **backend**. Five backends are supported and selected at runtime by environment
 variables or a CLI flag.
@@ -27,7 +27,7 @@ between them. For dev-facing notes on the dispatch implementation, see the
 
 | Backend       | Selector                                                                         | Required credentials                                                                       | Default model                | Best when                                                            |
 |---------------|----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|------------------------------|----------------------------------------------------------------------|
-| Claude CLI    | `--ai-backend claude-cli` or `OMNI_DEV_AI_BACKEND=claude-cli`                    | An authenticated `claude` CLI session                                                      | `claude-sonnet-4-6`          | You already use Claude Code and want to reuse its auth and billing.  |
+| Claude CLI    | `--ai-backend claude-cli` or `OMNI_VOICE_AI_BACKEND=claude-cli`                    | An authenticated `claude` CLI session                                                      | `claude-sonnet-4-6`          | You already use Claude Code and want to reuse its auth and billing.  |
 | Ollama        | `USE_OLLAMA=true`                                                                | None (local server)                                                                        | `llama2`                     | Offline / local-only inference, experimenting with open models.      |
 | OpenAI        | `USE_OPENAI=true`                                                                | `OPENAI_API_KEY` or `OPENAI_AUTH_TOKEN`                                                    | `gpt-5-mini` (registry)      | You're an OpenAI customer or want non-Claude models via OpenAI.      |
 | AWS Bedrock   | `CLAUDE_CODE_USE_BEDROCK=true`                                                   | `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BEDROCK_BASE_URL`                                       | `claude-sonnet-4-6`          | Your org runs Anthropic models through AWS Bedrock.                  |
@@ -41,7 +41,7 @@ later rows are ignored once an earlier one matches.
 
 | Priority | Selector                                                | Backend       |
 |----------|---------------------------------------------------------|---------------|
-| 1        | `OMNI_DEV_AI_BACKEND=claude-cli` / `--ai-backend claude-cli` | Claude CLI |
+| 1        | `OMNI_VOICE_AI_BACKEND=claude-cli` / `--ai-backend claude-cli` | Claude CLI |
 | 2        | `USE_OLLAMA=true`                                       | Ollama        |
 | 3        | `USE_OPENAI=true`                                       | OpenAI        |
 | 4        | `CLAUDE_CODE_USE_BEDROCK=true`                          | AWS Bedrock   |
@@ -84,14 +84,14 @@ Get a key from [console.anthropic.com](https://console.anthropic.com/).
 `claude-sonnet-4-6`. Override per-invocation with `--model`:
 
 ```bash
-omni-dev --model claude-opus-4-6 git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice --model claude-opus-4-6 git commit message twiddle 'origin/main..HEAD' --use-context
 ```
 
 **Verification.**
 
 ```bash
 export CLAUDE_API_KEY="sk-ant-..."
-omni-dev git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice git commit message twiddle 'origin/main..HEAD' --use-context
 ```
 
 ## Claude CLI (sandboxed subprocess)
@@ -104,12 +104,12 @@ separate API key when you already have Claude Code installed and signed in.
 **Selection.** Either flag or env var works; the flag wins if both are set:
 
 ```bash
-omni-dev --ai-backend claude-cli git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice --ai-backend claude-cli git commit message twiddle 'origin/main..HEAD' --use-context
 # or persistently:
-export OMNI_DEV_AI_BACKEND=claude-cli
+export OMNI_VOICE_AI_BACKEND=claude-cli
 ```
 
-**Credentials.** None passed by omni-dev — the nested `claude -p` process
+**Credentials.** None passed by omni-voice — the nested `claude -p` process
 uses whatever auth your `claude` CLI is configured with. Run `claude` once
 interactively first to confirm it works on its own.
 
@@ -128,7 +128,7 @@ escape hatches, and the spending cap.
 
 ```bash
 claude --version          # confirm the CLI is installed and authenticated
-omni-dev --ai-backend claude-cli git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice --ai-backend claude-cli git commit message twiddle 'origin/main..HEAD' --use-context
 ```
 
 ## OpenAI
@@ -155,7 +155,7 @@ export OPENAI_AUTH_TOKEN="sk-..."
 ```bash
 export OPENAI_MODEL="gpt-5"
 # or
-omni-dev --model gpt-5 git commit message twiddle ...
+omni-voice --model gpt-5 git commit message twiddle ...
 ```
 
 **Endpoint.** Fixed to `https://api.openai.com/v1/chat/completions`. To point
@@ -164,18 +164,18 @@ use the [Ollama](#ollama) backend (which exposes `OLLAMA_BASE_URL`).
 
 **Limitations.**
 
-- omni-dev requests structured output via JSON Schema (`response_format:
+- omni-voice requests structured output via JSON Schema (`response_format:
   json_schema`). Older OpenAI models that don't support `json_schema` will
   fail.
 - GPT-5 series models use `max_completion_tokens` rather than `max_tokens` —
-  omni-dev handles this automatically based on the model identifier.
+  omni-voice handles this automatically based on the model identifier.
 
 **Verification.**
 
 ```bash
 export USE_OPENAI=true
 export OPENAI_API_KEY="sk-..."
-omni-dev git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice git commit message twiddle 'origin/main..HEAD' --use-context
 ```
 
 ## Ollama
@@ -204,9 +204,9 @@ export OLLAMA_MODEL="llama3.1:70b"
 ```
 
 The model must already be pulled into the local server (`ollama pull
-llama3.1:70b`). omni-dev does not pull on demand.
+llama3.1:70b`). omni-voice does not pull on demand.
 
-**Context-length probing.** At startup, omni-dev queries the server for the
+**Context-length probing.** At startup, omni-voice queries the server for the
 actually-loaded context window — LM Studio's `/api/v0/models` first, then
 Ollama's `/api/show` as a fallback. The probed length is used for token
 budgeting; if probing fails (older Ollama versions, custom servers), the
@@ -227,7 +227,7 @@ ollama serve &              # if not already running
 ollama pull llama3.1
 export USE_OLLAMA=true
 export OLLAMA_MODEL="llama3.1"
-omni-dev git commit message twiddle 'HEAD~1..HEAD' --use-context
+omni-voice git commit message twiddle 'HEAD~1..HEAD' --use-context
 ```
 
 ## AWS Bedrock
@@ -275,13 +275,13 @@ export ANTHROPIC_MODEL="us.anthropic.claude-sonnet-4-6-v1:0"
 export CLAUDE_CODE_USE_BEDROCK=true
 export ANTHROPIC_AUTH_TOKEN="..."
 export ANTHROPIC_BEDROCK_BASE_URL="https://bedrock-runtime.us-east-1.amazonaws.com"
-omni-dev git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice git commit message twiddle 'origin/main..HEAD' --use-context
 ```
 
 ## Claude CLI Deep-dive
 
 The `claude-cli` backend is the only one with sandbox semantics — it spawns
-a real subprocess with elevated capabilities by default, so omni-dev locks
+a real subprocess with elevated capabilities by default, so omni-voice locks
 it down explicitly. This section documents what's blocked and how to relax
 the sandbox when you need to.
 
@@ -300,8 +300,8 @@ environment treatment:
 | Permission prompts disabled             | `--permission-mode default`                                            |
 | Fresh working directory                 | Subprocess runs in a unique temp dir, not your repo root               |
 | Environment scrubbed                    | `CLAUDE_PROJECT_DIR`, `CLAUDE_CODE_*`, `CLAUDE_PROJECT_*` removed      |
-| Output capped                           | `OMNI_DEV_CLAUDE_CLI_STDOUT_MAX_BYTES` (default 4 MiB)                 |
-| Wall-clock timeout                      | `OMNI_DEV_CLAUDE_CLI_TIMEOUT_SECS` (default 600)                       |
+| Output capped                           | `OMNI_VOICE_CLAUDE_CLI_STDOUT_MAX_BYTES` (default 4 MiB)                 |
+| Wall-clock timeout                      | `OMNI_VOICE_CLAUDE_CLI_TIMEOUT_SECS` (default 600)                       |
 
 A defence-in-depth suffix is also appended to the system prompt instructing
 the model not to emit `function_calls` XML.
@@ -310,18 +310,18 @@ the model not to emit `function_calls` XML.
 
 | Variable                                  | Default        | Effect                                                              |
 |-------------------------------------------|----------------|---------------------------------------------------------------------|
-| `OMNI_DEV_CLAUDE_CLI_BIN`                 | `claude` (PATH) | Path to the `claude` binary.                                       |
-| `OMNI_DEV_CLAUDE_CLI_TIMEOUT_SECS`        | `600`          | Wall-clock timeout for one subprocess invocation.                   |
-| `OMNI_DEV_CLAUDE_CLI_STDOUT_MAX_BYTES`    | `4194304`      | Stdout cap; output beyond this aborts the invocation.               |
+| `OMNI_VOICE_CLAUDE_CLI_BIN`                 | `claude` (PATH) | Path to the `claude` binary.                                       |
+| `OMNI_VOICE_CLAUDE_CLI_TIMEOUT_SECS`        | `600`          | Wall-clock timeout for one subprocess invocation.                   |
+| `OMNI_VOICE_CLAUDE_CLI_STDOUT_MAX_BYTES`    | `4194304`      | Stdout cap; output beyond this aborts the invocation.               |
 
 ### Escape hatch: tool access
 
 When the nested session needs filesystem or shell access:
 
 ```bash
-omni-dev --ai-backend claude-cli --claude-cli-allow-tools git branch create pr
+omni-voice --ai-backend claude-cli --claude-cli-allow-tools git branch create pr
 # or persistently:
-export OMNI_DEV_CLAUDE_CLI_ALLOW_TOOLS=true
+export OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS=true
 ```
 
 With this flag the `--tools ""` argument is removed from the subprocess argv,
@@ -331,7 +331,7 @@ sandbox flags still apply unless you also enable
 [MCP access](#escape-hatch-mcp-access).
 
 A `WARN` log is emitted on every invocation while this is active. Grep for
-it with `RUST_LOG=omni_dev=warn`:
+it with `RUST_LOG=omni_voice=warn`:
 
 ```
 claude -p sandbox weakened: tool-access escape hatch is enabled ...
@@ -342,9 +342,9 @@ claude -p sandbox weakened: tool-access escape hatch is enabled ...
 When the nested session needs MCP servers from your `~/.claude/settings.json`:
 
 ```bash
-omni-dev --ai-backend claude-cli --claude-cli-allow-mcp git branch create pr
+omni-voice --ai-backend claude-cli --claude-cli-allow-mcp git branch create pr
 # or:
-export OMNI_DEV_CLAUDE_CLI_ALLOW_MCP=true
+export OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP=true
 ```
 
 With this flag the `--strict-mcp-config` argument is removed, so the nested
@@ -367,10 +367,10 @@ without tools, both, or neither.
 Pass a per-invocation cap in USD:
 
 ```bash
-omni-dev --ai-backend claude-cli --claude-cli-max-budget-usd 0.50 \
+omni-voice --ai-backend claude-cli --claude-cli-max-budget-usd 0.50 \
   git commit message twiddle 'HEAD~3..HEAD'
 # or:
-export OMNI_DEV_CLAUDE_CLI_MAX_BUDGET_USD=0.50
+export OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD=0.50
 ```
 
 The value is forwarded to `claude -p --max-budget-usd`. If the nested
@@ -379,7 +379,7 @@ with cost. Non-positive, non-finite, or non-numeric values are silently
 treated as no cap. The cap is ignored on backends other than `claude-cli`.
 
 Regardless of whether a cap is set, every invocation's `total_cost_usd` is
-logged at `INFO` level — run with `RUST_LOG=omni_dev=info` to see it:
+logged at `INFO` level — run with `RUST_LOG=omni_voice=info` to see it:
 
 ```
 claude -p invocation cost total_cost_usd=0.0341 max_budget_usd=Some(0.5) model="claude-sonnet-4-6"
@@ -407,20 +407,20 @@ Prefer the direct [Claude API](#claude-api-default) when:
 
 ## Model Registry
 
-omni-dev ships with a built-in catalogue of model identifiers and their
+omni-voice ships with a built-in catalogue of model identifiers and their
 token limits. Inspect it with:
 
 ```bash
-omni-dev config models show              # merged catalogue with source annotations
-omni-dev config models show --embedded-only   # just the built-in entries
+omni-voice config models show              # merged catalogue with source annotations
+omni-voice config models show --embedded-only   # just the built-in entries
 ```
 
 **Catalogue precedence** — entries from later files override earlier ones:
 
 1. Built-in [src/templates/models.yaml](../src/templates/models.yaml)
-2. `~/.omni-dev/models.yaml` (user-level)
-3. `./.omni-dev/models.yaml` (project-local)
-4. The path in `OMNI_DEV_MODELS_YAML` (if set — short-circuits user/project)
+2. `~/.omni-voice/models.yaml` (user-level)
+3. `./.omni-voice/models.yaml` (project-local)
+4. The path in `OMNI_VOICE_MODELS_YAML` (if set — short-circuits user/project)
 
 **Bedrock identifiers** are normalised before lookup: regional prefixes
 (`us.anthropic.…`), provider prefixes (`anthropic.…`), and version suffixes
@@ -467,5 +467,5 @@ errors. The most common cases:
 Enable verbose logging when reporting issues:
 
 ```bash
-RUST_LOG=omni_dev=debug omni-dev git commit message twiddle 'HEAD~1..HEAD' --use-context
+RUST_LOG=omni_voice=debug omni-voice git commit message twiddle 'HEAD~1..HEAD' --use-context
 ```

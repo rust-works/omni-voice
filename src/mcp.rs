@@ -1,6 +1,6 @@
 //! MCP (Model Context Protocol) server implementation.
 //!
-//! Exposes omni-dev's business logic to AI assistants via the MCP protocol.
+//! Exposes omni-voice's business logic to AI assistants via the MCP protocol.
 //! See [ADR-0021](../../docs/adrs/adr-0021.md) for the architectural decision
 //! behind the second-binary approach.
 
@@ -29,5 +29,5 @@ pub use resources::{ResourceFormat, ResourceUri, UriParseError};
 pub use runtime::{
     feature_flags, log_startup_event, serve_with, try_init_tracing, write_error_chain,
 };
-pub use server::OmniDevServer;
+pub use server::OmniVoiceServer;
 pub use truncate::{truncate_response, DEFAULT_MAX_RESPONSE_BYTES};

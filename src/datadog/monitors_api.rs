@@ -5,7 +5,7 @@
 //! auto-paginate when called with `limit == 0`, capped at [`HARD_CAP`]
 //! per the Phase 1 decisions on [#619].
 //!
-//! [#619]: https://github.com/rust-works/omni-dev/issues/619
+//! [#619]: https://github.com/rust-works/omni-voice/issues/619
 
 use anyhow::{Context, Result};
 use url::Url;

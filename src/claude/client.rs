@@ -1274,7 +1274,7 @@ impl ClaudeClient {
 
     /// Generates AI-powered PR content from commit messages only (no diff).
     ///
-    /// Used by `omni-dev git branch create pr --from-commits`. Builds a
+    /// Used by `omni-voice git branch create pr --from-commits`. Builds a
     /// payload that contains commit messages and metadata (hash, author,
     /// date, detected type/scope) but **no diff content** — the full diff
     /// files are never read from disk for this path. Falls back to a
@@ -1755,7 +1755,7 @@ pub async fn create_default_claude_client(
     // reuses an existing Claude Code auth session and is the only backend
     // that accepts short model aliases (sonnet/opus/haiku), so it must
     // short-circuit before `validate_beta_header` runs below.
-    let ai_backend = get_env_var("OMNI_DEV_AI_BACKEND").ok();
+    let ai_backend = get_env_var("OMNI_VOICE_AI_BACKEND").ok();
     let use_claude_cli = ai_backend
         .as_deref()
         .is_some_and(|v| matches!(v, "claude-cli" | "claude_cli"));
@@ -1763,7 +1763,7 @@ pub async fn create_default_claude_client(
     if use_claude_cli {
         if beta_header.is_some() {
             warn!(
-                "--beta-header is ignored when OMNI_DEV_AI_BACKEND=claude-cli \
+                "--beta-header is ignored when OMNI_VOICE_AI_BACKEND=claude-cli \
                  (the CLI's --betas flag has different semantics and is not forwarded)"
             );
         }
@@ -4519,7 +4519,7 @@ mod tests {
     #[tokio::test]
     async fn factory_claude_cli_backend_dispatches_to_claude_cli_client() {
         let guard = FactoryEnvGuard::new(&[
-            "OMNI_DEV_AI_BACKEND",
+            "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
             "CLAUDE_CODE_USE_BEDROCK",
@@ -4527,7 +4527,7 @@ mod tests {
             "CLAUDE_CODE_MODEL",
             "ANTHROPIC_MODEL",
         ]);
-        guard.set("OMNI_DEV_AI_BACKEND", "claude-cli");
+        guard.set("OMNI_VOICE_AI_BACKEND", "claude-cli");
 
         let client = create_default_claude_client(None, None)
             .await
@@ -4541,7 +4541,7 @@ mod tests {
     #[tokio::test]
     async fn factory_claude_cli_backend_honours_model_precedence() {
         let guard = FactoryEnvGuard::new(&[
-            "OMNI_DEV_AI_BACKEND",
+            "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
             "CLAUDE_CODE_USE_BEDROCK",
@@ -4549,7 +4549,7 @@ mod tests {
             "CLAUDE_CODE_MODEL",
             "ANTHROPIC_MODEL",
         ]);
-        guard.set("OMNI_DEV_AI_BACKEND", "claude-cli");
+        guard.set("OMNI_VOICE_AI_BACKEND", "claude-cli");
         guard.set("CLAUDE_CODE_MODEL", "opus");
         // CLAUDE_MODEL has higher precedence than CLAUDE_CODE_MODEL.
         guard.set("CLAUDE_MODEL", "haiku");
@@ -4565,7 +4565,7 @@ mod tests {
     #[tokio::test]
     async fn factory_claude_cli_backend_explicit_model_wins_over_env() {
         let guard = FactoryEnvGuard::new(&[
-            "OMNI_DEV_AI_BACKEND",
+            "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
             "CLAUDE_CODE_USE_BEDROCK",
@@ -4573,7 +4573,7 @@ mod tests {
             "CLAUDE_CODE_MODEL",
             "ANTHROPIC_MODEL",
         ]);
-        guard.set("OMNI_DEV_AI_BACKEND", "claude-cli");
+        guard.set("OMNI_VOICE_AI_BACKEND", "claude-cli");
         guard.set("CLAUDE_MODEL", "haiku");
 
         let client = create_default_claude_client(Some("opus".to_string()), None)
@@ -4586,7 +4586,7 @@ mod tests {
     #[tokio::test]
     async fn factory_claude_cli_backend_accepts_underscore_alias() {
         let guard = FactoryEnvGuard::new(&[
-            "OMNI_DEV_AI_BACKEND",
+            "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
             "CLAUDE_CODE_USE_BEDROCK",
@@ -4594,7 +4594,7 @@ mod tests {
             "CLAUDE_CODE_MODEL",
             "ANTHROPIC_MODEL",
         ]);
-        guard.set("OMNI_DEV_AI_BACKEND", "claude_cli");
+        guard.set("OMNI_VOICE_AI_BACKEND", "claude_cli");
 
         let client = create_default_claude_client(None, None)
             .await
@@ -4620,7 +4620,7 @@ mod tests {
             .await;
 
         let guard = FactoryEnvGuard::new(&[
-            "OMNI_DEV_AI_BACKEND",
+            "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
             "CLAUDE_CODE_USE_BEDROCK",
@@ -4659,7 +4659,7 @@ mod tests {
             .await;
 
         let guard = FactoryEnvGuard::new(&[
-            "OMNI_DEV_AI_BACKEND",
+            "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
             "CLAUDE_CODE_USE_BEDROCK",
@@ -4704,7 +4704,7 @@ mod tests {
             .await;
 
         let guard = FactoryEnvGuard::new(&[
-            "OMNI_DEV_AI_BACKEND",
+            "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
             "CLAUDE_CODE_USE_BEDROCK",

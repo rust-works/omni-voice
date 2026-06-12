@@ -1,4 +1,4 @@
-//! `omni-dev transcript youtube fetch` — download a transcript and render it
+//! `omni-voice transcript youtube fetch` — download a transcript and render it
 //! in the requested format.
 
 use std::fs;
