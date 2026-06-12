@@ -137,8 +137,6 @@ Backends are selected inside `src/claude/client.rs::create_default_claude_client
 4. `CLAUDE_CODE_USE_BEDROCK=true` → `BedrockAiClient` in `src/claude/ai/bedrock.rs`.
 5. Default → `ClaudeAiClient` in `src/claude/ai/claude.rs` (direct Anthropic API).
 
-Preflight (`src/utils/preflight.rs`) mirrors this switch and must change in lock-step when adding backends.
-
 User-facing details — required env vars, model selection, Claude CLI sandbox semantics, the `--claude-cli-allow-tools` / `--claude-cli-allow-mcp` escape hatches, the `--claude-cli-max-budget-usd` spending cap, and per-backend troubleshooting — live in [docs/ai-backends.md](docs/ai-backends.md). Keep it in sync when changing any of those surfaces.
 
 Architectural rationale for the sandboxed `claude-cli` subprocess backend — threat model, sandbox flag choices, escape-hatch design, budget-cap enforcement — lives in [ADR-0028](docs/adrs/adr-0028.md).

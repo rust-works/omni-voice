@@ -1,13 +1,10 @@
 //! Git operations and repository management.
 
-pub mod amendment;
 pub mod commit;
 pub mod diff_split;
 pub mod pr;
 pub mod remote;
-pub mod repository;
 
-pub use amendment::AmendmentHandler;
 pub use commit::{
     refine_message_scope, resolve_scope, CommitAnalysis, CommitAnalysisForAI, CommitInfo,
     CommitInfoForAI, FileDiffRef,
@@ -15,7 +12,6 @@ pub use commit::{
 pub use diff_split::{split_by_file, split_file_by_hunk, FileDiff, HunkDiff};
 pub use pr::PrContent;
 pub use remote::RemoteInfo;
-pub use repository::GitRepository;
 
 /// Number of hex characters to show in abbreviated commit hashes.
 pub const SHORT_HASH_LEN: usize = 8;

@@ -5,39 +5,6 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-pub(crate) mod failing_io {
-    //! Writer fixture that always returns `ErrorKind::Other` from
-    //! `write` and `flush`. Used to drive `?`-propagation Err branches
-    //! in destructive-command tests where the prompt/preview write or
-    //! the post-API-success writeln is expected to fail.
-    pub(crate) struct FailingWriter;
-
-    impl std::io::Write for FailingWriter {
-        fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
-            Err(std::io::Error::other("simulated write failure"))
-        }
-        fn flush(&mut self) -> std::io::Result<()> {
-            Err(std::io::Error::other("simulated flush failure"))
-        }
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use std::io::Write;
-
-        /// Direct cover for `FailingWriter::flush`. The destructive-command
-        /// tests fail at the prior `write!` so flush never fires; this
-        /// asserts its body still returns the expected error.
-        #[test]
-        fn flush_returns_error() {
-            let mut w = FailingWriter;
-            let err = w.flush().unwrap_err();
-            assert!(err.to_string().contains("simulated flush failure"));
-        }
-    }
-}
-
 #[cfg(unix)]
 pub(crate) mod shim {
     use std::path::Path;
