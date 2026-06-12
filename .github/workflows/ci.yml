@@ -130,7 +130,7 @@ jobs:
       # The model is pinned (HF Hub openai/whisper-tiny.en@refs/pr/15), so a
       # constant cache key is correct; bump the key if the pin ever changes.
       id: whisper-cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.omni-dev/voice/models/whisper-tiny.en
         key: whisper-tiny-en-refs-pr-15
