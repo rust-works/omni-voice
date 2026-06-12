@@ -53,3 +53,4 @@ cinema/
 
 # Git worktrees
 /.work/
+/*.jsonl
