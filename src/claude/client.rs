@@ -2518,6 +2518,35 @@ mod tests {
         assert!(result.is_err());
     }
 
+    #[tokio::test]
+    async fn check_commits_fills_message_by_hash_prefix() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo_view = make_test_repo_view(&dir);
+        // The AI reports the first commit by an abbreviated hash, exercising
+        // the prefix-match fallback when filling in the original message. The
+        // second check's hash matches no commit, exercising the no-match path
+        // through the same fallback loop.
+        let yaml = "checks:\n\
+                    \x20 - commit: \"00000000\"\n\
+                    \x20   passes: true\n\
+                    \x20   issues: []\n\
+                    \x20 - commit: \"ffffffff\"\n\
+                    \x20   passes: true\n\
+                    \x20   issues: []\n"
+            .to_string();
+        let client = make_configurable_client(vec![Ok(yaml)]);
+        let report = client
+            .check_commits_with_scopes(&repo_view, None, &[], false)
+            .await
+            .unwrap();
+        assert_eq!(report.commits.len(), 2);
+        assert_eq!(report.commits[0].message, "feat(test): add something");
+        assert_eq!(
+            report.commits[1].message, "",
+            "unknown hash leaves the message unfilled"
+        );
+    }
+
     // ── split dispatch tests ─────────────────────────────────────
 
     /// Creates a mock client with a constrained context window.
@@ -4432,6 +4461,32 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn amendment_retry_request_failures_exhausted() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo_view = make_test_repo_view(&dir);
+
+        // Every attempt fails at the request level (no parseable response),
+        // driving the final-attempt path where the retry warning is skipped.
+        let (client, response_handle, prompt_handle) = make_configurable_client_with_prompts(vec![
+            Err(anyhow::anyhow!("network error 1")),
+            Err(anyhow::anyhow!("network error 2")),
+            Err(anyhow::anyhow!("network error 3")),
+        ]);
+
+        let result = client
+            .generate_amendments_with_options(&repo_view, false)
+            .await;
+
+        assert!(result.is_err(), "should fail after all request attempts");
+        assert_eq!(response_handle.remaining(), 0, "all 3 responses consumed");
+        assert_eq!(
+            prompt_handle.request_count(),
+            3,
+            "exactly 3 AI requests (1 + 2 retries)"
+        );
+    }
+
+    #[tokio::test]
     async fn amendment_retry_success_first_attempt() {
         let dir = tempfile::tempdir().unwrap();
         let repo_view = make_test_repo_view(&dir);
@@ -4454,6 +4509,14 @@ mod tests {
 
     #[tokio::test]
     async fn amendment_retry_mixed_request_and_parse_failures() {
+        // Ignore the result: another test may have already installed a
+        // subscriber. Either way is fine; we only need *some* subscriber so
+        // the retry-path debug! macros' expressions execute deterministically
+        // rather than depending on which test initialised tracing first.
+        let _ = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::DEBUG)
+            .with_test_writer()
+            .try_init();
         let dir = tempfile::tempdir().unwrap();
         let repo_view = make_test_repo_view(&dir);
         let hash = format!("{:0>40}", 0);
