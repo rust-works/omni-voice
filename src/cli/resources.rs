@@ -1,5 +1,5 @@
-//! `omni-dev resources` — embedded reference content (specs, etc.) shared
-//! with the MCP `omni-dev://specs/{name}` resource family.
+//! `omni-voice resources` — embedded reference content (specs, etc.) shared
+//! with the MCP `omni-voice://specs/{name}` resource family.
 
 use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
@@ -23,15 +23,15 @@ pub enum ResourcesSubcommands {
     List(ListCommand),
 }
 
-/// `omni-dev resources show <id>`.
+/// `omni-voice resources show <id>`.
 #[derive(Parser)]
 pub struct ShowCommand {
-    /// Resource id. Accepts `specs/jfm` or `omni-dev://specs/jfm` (the
-    /// `omni-dev://` scheme is stripped before lookup).
+    /// Resource id. Accepts `specs/jfm` or `omni-voice://specs/jfm` (the
+    /// `omni-voice://` scheme is stripped before lookup).
     pub id: String,
 }
 
-/// `omni-dev resources list`.
+/// `omni-voice resources list`.
 #[derive(Parser)]
 pub struct ListCommand {}
 
@@ -76,10 +76,10 @@ impl ListCommand {
     }
 }
 
-/// Strips a single leading `omni-dev://` scheme if present, returning the
+/// Strips a single leading `omni-voice://` scheme if present, returning the
 /// canonical path-style id.
 fn normalize_id(input: &str) -> &str {
-    input.strip_prefix("omni-dev://").unwrap_or(input)
+    input.strip_prefix("omni-voice://").unwrap_or(input)
 }
 
 #[cfg(test)]
@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn normalize_id_strips_scheme() {
-        assert_eq!(normalize_id("omni-dev://specs/jfm"), "specs/jfm");
+        assert_eq!(normalize_id("omni-voice://specs/jfm"), "specs/jfm");
     }
 
     #[test]
@@ -102,8 +102,8 @@ mod tests {
     fn normalize_id_strips_only_one_scheme() {
         // `strip_prefix` removes at most one occurrence.
         assert_eq!(
-            normalize_id("omni-dev://omni-dev://specs/jfm"),
-            "omni-dev://specs/jfm"
+            normalize_id("omni-voice://omni-voice://specs/jfm"),
+            "omni-voice://specs/jfm"
         );
     }
 
@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn clap_parses_show_command() {
-        let cli = Cli::try_parse_from(["omni-dev", "resources", "show", "specs/jfm"]).unwrap();
+        let cli = Cli::try_parse_from(["omni-voice", "resources", "show", "specs/jfm"]).unwrap();
         match cli.command {
             Commands::Resources(ResourcesCommand {
                 command: ResourcesSubcommands::Show(c),
@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     fn clap_parses_list_command() {
-        let cli = Cli::try_parse_from(["omni-dev", "resources", "list"]).unwrap();
+        let cli = Cli::try_parse_from(["omni-voice", "resources", "list"]).unwrap();
         assert!(matches!(
             cli.command,
             Commands::Resources(ResourcesCommand {
@@ -153,13 +153,14 @@ mod tests {
     }
 
     #[test]
-    fn clap_parses_show_with_omni_dev_uri() {
+    fn clap_parses_show_with_omni_voice_uri() {
         let cli =
-            Cli::try_parse_from(["omni-dev", "resources", "show", "omni-dev://specs/jfm"]).unwrap();
+            Cli::try_parse_from(["omni-voice", "resources", "show", "omni-voice://specs/jfm"])
+                .unwrap();
         match cli.command {
             Commands::Resources(ResourcesCommand {
                 command: ResourcesSubcommands::Show(c),
-            }) => assert_eq!(c.id, "omni-dev://specs/jfm"),
+            }) => assert_eq!(c.id, "omni-voice://specs/jfm"),
             _ => panic!("expected resources show"),
         }
     }

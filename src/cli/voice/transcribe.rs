@@ -1,4 +1,4 @@
-//! `omni-dev voice transcribe` — feed a 16 kHz mono WAV file through the
+//! `omni-voice voice transcribe` — feed a 16 kHz mono WAV file through the
 //! configured [`crate::voice::Transcriber`] and emit JSONL events to stdout
 //! (markdown when stdout is a tty).
 //!
@@ -41,7 +41,7 @@ pub const DEFAULT_SPEAKER_THRESHOLD: f32 = 0.5;
 ///
 /// Output format defaults to `md` on a tty and `jsonl` when stdout is
 /// piped; pass `--format` to override. The transcriber backend is chosen
-/// by `--backend`, then `OMNI_DEV_VOICE_BACKEND`, then the default
+/// by `--backend`, then `OMNI_VOICE_VOICE_BACKEND`, then the default
 /// (`"mock"` until a real ASR backend lands — see ADR-0032).
 #[derive(Parser)]
 pub struct TranscribeCommand {
@@ -58,8 +58,8 @@ pub struct TranscribeCommand {
 
     /// Path to a backend-specific model directory. For `whisper-candle`
     /// and `whisper-candle-streaming`, this overrides
-    /// `OMNI_DEV_VOICE_WHISPER_MODEL` and the default at
-    /// `~/.omni-dev/voice/models/whisper-tiny.en/`. Ignored by `mock`.
+    /// `OMNI_VOICE_VOICE_WHISPER_MODEL` and the default at
+    /// `~/.omni-voice/voice/models/whisper-tiny.en/`. Ignored by `mock`.
     #[arg(long)]
     pub model: Option<PathBuf>,
 
@@ -79,8 +79,8 @@ pub struct TranscribeCommand {
     pub threshold: Option<f32>,
 
     /// Path to the wespeaker ONNX model. Overrides the default at
-    /// `~/.omni-dev/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and
-    /// `OMNI_DEV_VOICE_SPEAKER_MODEL`. Ignored unless `--speaker` is
+    /// `~/.omni-voice/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and
+    /// `OMNI_VOICE_VOICE_SPEAKER_MODEL`. Ignored unless `--speaker` is
     /// set.
     #[arg(long)]
     pub speaker_model: Option<PathBuf>,

@@ -2,11 +2,11 @@
 source: tests/integration_test.rs
 expression: help_output
 ---
-omni-dev - A comprehensive development toolkit
+omni-voice - A comprehensive development toolkit
 
 A comprehensive development toolkit
 
-Usage: omni-dev [OPTIONS] <COMMAND>
+Usage: omni-voice [OPTIONS] <COMMAND>
 
 Commands:
   ai          AI operations
@@ -33,9 +33,9 @@ Options:
       --claude-cli-max-budget-usd <AMOUNT>
           Per-invocation spending cap in USD for the `claude-cli` backend
       --models-yaml <PATH>
-          Path to a single user-side `models.yaml` that short-circuits the standard `./.omni-dev/models.yaml` and `~/.omni-dev/models.yaml` lookup. The file is still merged over the embedded catalog. Equivalent to setting `OMNI_DEV_MODELS_YAML`
+          Path to a single user-side `models.yaml` that short-circuits the standard `./.omni-voice/models.yaml` and `~/.omni-voice/models.yaml` lookup. The file is still merged over the embedded catalog. Equivalent to setting `OMNI_VOICE_MODELS_YAML`
   -C, --repo <PATH>
-          Run as if omni-dev was started in `<PATH>` instead of the current working directory
+          Run as if omni-voice was started in `<PATH>` instead of the current working directory
   -h, --help
           Print help (see more with '--help')
   -V, --version
@@ -44,7 +44,7 @@ Options:
 
 ================================================================================
 
-omni-dev ai - AI operations
+omni-voice ai - AI operations
 
 AI operations
 
@@ -61,7 +61,7 @@ Options:
 
 ================================================================================
 
-omni-dev ai chat - Interactive AI chat session
+omni-voice ai chat - Interactive AI chat session
 
 Interactive AI chat session
 
@@ -74,7 +74,7 @@ Options:
 
 ================================================================================
 
-omni-dev ai claude - Claude Code diagnostics and inspection
+omni-voice ai claude - Claude Code diagnostics and inspection
 
 Claude Code diagnostics and inspection
 
@@ -92,7 +92,7 @@ Options:
 
 ================================================================================
 
-omni-dev ai claude cli - Claude Code CLI inspection
+omni-voice ai claude cli - Claude Code CLI inspection
 
 Claude Code CLI inspection
 
@@ -108,7 +108,7 @@ Options:
 
 ================================================================================
 
-omni-dev ai claude cli model - Model selection diagnostics
+omni-voice ai claude cli model - Model selection diagnostics
 
 Model selection diagnostics
 
@@ -124,7 +124,7 @@ Options:
 
 ================================================================================
 
-omni-dev ai claude cli model resolve - Show how Claude Code resolves the active model in the current directory
+omni-voice ai claude cli model resolve - Show how Claude Code resolves the active model in the current directory
 
 Show how Claude Code resolves the active model in the current directory
 
@@ -136,7 +136,7 @@ Options:
 
 ================================================================================
 
-omni-dev ai claude history - Exports Claude Code conversation history
+omni-voice ai claude history - Exports Claude Code conversation history
 
 Exports Claude Code conversation history
 
@@ -152,7 +152,7 @@ Options:
 
 ================================================================================
 
-omni-dev ai claude history sync - Exports Claude Code conversation history to a target directory
+omni-voice ai claude history sync - Exports Claude Code conversation history to a target directory
 
 Exports Claude Code conversation history to a target directory
 
@@ -183,7 +183,7 @@ Options:
 
 ================================================================================
 
-omni-dev ai claude skills - Manages Claude Code skills across repositories and worktrees
+omni-voice ai claude skills - Manages Claude Code skills across repositories and worktrees
 
 Manages Claude Code skills across repositories and worktrees
 
@@ -201,7 +201,7 @@ Options:
 
 ================================================================================
 
-omni-dev ai claude skills clean - Removes skill symlinks and managed exclude block previously created by `sync`
+omni-voice ai claude skills clean - Removes skill symlinks and managed exclude block previously created by `sync`
 
 Removes skill symlinks and managed exclude block previously created by `sync`
 
@@ -217,7 +217,7 @@ Options:
 
 ================================================================================
 
-omni-dev ai claude skills status - Reports residue left by `sync` — symlinks and managed exclude-block entries
+omni-voice ai claude skills status - Reports residue left by `sync` — symlinks and managed exclude-block entries
 
 Reports residue left by `sync` — symlinks and managed exclude-block entries
 
@@ -232,7 +232,7 @@ Options:
 
 ================================================================================
 
-omni-dev ai claude skills sync - Syncs skills from a source repository into one or more targets
+omni-voice ai claude skills sync - Syncs skills from a source repository into one or more targets
 
 Syncs skills from a source repository into one or more targets
 
@@ -249,7 +249,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian - Atlassian: JIRA and Confluence operations
+omni-voice atlassian - Atlassian: JIRA and Confluence operations
 
 Atlassian: JIRA and Confluence operations
 
@@ -268,7 +268,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian auth - Manages Atlassian Cloud credentials
+omni-voice atlassian auth - Manages Atlassian Cloud credentials
 
 Manages Atlassian Cloud credentials
 
@@ -285,7 +285,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian auth login - Configures Atlassian Cloud credentials interactively
+omni-voice atlassian auth login - Configures Atlassian Cloud credentials interactively
 
 Configures Atlassian Cloud credentials interactively
 
@@ -297,7 +297,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian auth status - Shows the current authentication status
+omni-voice atlassian auth status - Shows the current authentication status
 
 Shows the current authentication status
 
@@ -309,7 +309,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence - Confluence page management, search, and more
+omni-voice atlassian confluence - Confluence page management, search, and more
 
 Confluence page management, search, and more
 
@@ -340,7 +340,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence attachment - Manages attachments on Confluence pages
+omni-voice atlassian confluence attachment - Manages attachments on Confluence pages
 
 Manages attachments on Confluence pages
 
@@ -358,7 +358,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence attachment delete - Deletes an attachment by ID
+omni-voice atlassian confluence attachment delete - Deletes an attachment by ID
 
 Deletes an attachment by ID
 
@@ -375,7 +375,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence attachment list - Lists attachments on a Confluence page
+omni-voice atlassian confluence attachment list - Lists attachments on a Confluence page
 
 Lists attachments on a Confluence page
 
@@ -393,7 +393,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence attachment upload - Uploads a file as an attachment to a Confluence page
+omni-voice atlassian confluence attachment upload - Uploads a file as an attachment to a Confluence page
 
 Uploads a file as an attachment to a Confluence page
 
@@ -412,7 +412,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence children - Lists child pages of a Confluence page or top-level pages in a space
+omni-voice atlassian confluence children - Lists child pages of a Confluence page or top-level pages in a space
 
 Lists child pages of a Confluence page or top-level pages in a space
 
@@ -431,7 +431,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence comment - Manages comments on a Confluence page
+omni-voice atlassian confluence comment - Manages comments on a Confluence page
 
 Manages comments on a Confluence page
 
@@ -450,7 +450,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence comment add - Adds a footer comment to a Confluence page
+omni-voice atlassian confluence comment add - Adds a footer comment to a Confluence page
 
 Adds a footer comment to a Confluence page
 
@@ -467,7 +467,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence comment add-inline - Adds an inline (anchored) comment to a Confluence page
+omni-voice atlassian confluence comment add-inline - Adds an inline (anchored) comment to a Confluence page
 
 Adds an inline (anchored) comment to a Confluence page
 
@@ -486,7 +486,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence comment list - Lists comments on a Confluence page
+omni-voice atlassian confluence comment list - Lists comments on a Confluence page
 
 Lists comments on a Confluence page
 
@@ -504,7 +504,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence comment replies - Lists the replies of a comment
+omni-voice atlassian confluence comment replies - Lists the replies of a comment
 
 Lists the replies of a comment
 
@@ -522,7 +522,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence compare - Compares two versions of a Confluence page (structural diff)
+omni-voice atlassian confluence compare - Compares two versions of a Confluence page (structural diff)
 
 Compares two versions of a Confluence page (structural diff)
 
@@ -539,7 +539,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence compare run - Diff two versions of a Confluence page
+omni-voice atlassian confluence compare run - Diff two versions of a Confluence page
 
 Diff two versions of a Confluence page
 
@@ -573,7 +573,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence compare section - Drill in to a section diff using a cursor from a prior `run`
+omni-voice atlassian confluence compare section - Drill in to a section diff using a cursor from a prior `run`
 
 Drill in to a section diff using a cursor from a prior `run`
 
@@ -587,7 +587,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence create - Creates a new Confluence page
+omni-voice atlassian confluence create - Creates a new Confluence page
 
 Creates a new Confluence page
 
@@ -607,7 +607,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence delete - Deletes a Confluence page
+omni-voice atlassian confluence delete - Deletes a Confluence page
 
 Deletes a Confluence page
 
@@ -625,7 +625,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence download - Recursively downloads a Confluence page tree
+omni-voice atlassian confluence download - Recursively downloads a Confluence page tree
 
 Recursively downloads a Confluence page tree
 
@@ -648,7 +648,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence edit - Interactive fetch-edit-push cycle for a Confluence page
+omni-voice atlassian confluence edit - Interactive fetch-edit-push cycle for a Confluence page
 
 Interactive fetch-edit-push cycle for a Confluence page
 
@@ -663,7 +663,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence history - Lists version history (metadata) for a Confluence page
+omni-voice atlassian confluence history - Lists version history (metadata) for a Confluence page
 
 Lists version history (metadata) for a Confluence page
 
@@ -681,7 +681,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence label - Manages labels on Confluence pages
+omni-voice atlassian confluence label - Manages labels on Confluence pages
 
 Manages labels on Confluence pages
 
@@ -699,7 +699,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence label add - Adds labels to a Confluence page
+omni-voice atlassian confluence label add - Adds labels to a Confluence page
 
 Adds labels to a Confluence page
 
@@ -715,7 +715,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence label list - Lists labels on a Confluence page
+omni-voice atlassian confluence label list - Lists labels on a Confluence page
 
 Lists labels on a Confluence page
 
@@ -731,7 +731,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence label remove - Removes labels from a Confluence page
+omni-voice atlassian confluence label remove - Removes labels from a Confluence page
 
 Removes labels from a Confluence page
 
@@ -749,7 +749,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence move - Moves or reparents a Confluence page (same-space only)
+omni-voice atlassian confluence move - Moves or reparents a Confluence page (same-space only)
 
 Moves or reparents a Confluence page (same-space only)
 
@@ -766,7 +766,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence read - Fetches a Confluence page and outputs it as JFM markdown or ADF JSON
+omni-voice atlassian confluence read - Fetches a Confluence page and outputs it as JFM markdown or ADF JSON
 
 Fetches a Confluence page and outputs it as JFM markdown or ADF JSON
 
@@ -783,7 +783,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence search - Searches Confluence pages using CQL
+omni-voice atlassian confluence search - Searches Confluence pages using CQL
 
 Searches Confluence pages using CQL
 
@@ -800,7 +800,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence space - Confluence space operations
+omni-voice atlassian confluence space - Confluence space operations
 
 Confluence space operations
 
@@ -817,7 +817,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence space list - Lists Confluence spaces
+omni-voice atlassian confluence space list - Lists Confluence spaces
 
 Lists Confluence spaces
 
@@ -835,7 +835,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence space pages - Enumerates pages within a Confluence space
+omni-voice atlassian confluence space pages - Enumerates pages within a Confluence space
 
 Enumerates pages within a Confluence space
 
@@ -855,7 +855,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence user - Confluence user operations
+omni-voice atlassian confluence user - Confluence user operations
 
 Confluence user operations
 
@@ -871,7 +871,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence user search - Searches Confluence users by display name or email
+omni-voice atlassian confluence user search - Searches Confluence users by display name or email
 
 Searches Confluence users by display name or email
 
@@ -886,7 +886,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian confluence write - Pushes content to a Confluence page
+omni-voice atlassian confluence write - Pushes content to a Confluence page
 
 Pushes content to a Confluence page
 
@@ -905,7 +905,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian convert - Converts between JFM markdown and ADF JSON
+omni-voice atlassian convert - Converts between JFM markdown and ADF JSON
 
 Converts between JFM markdown and ADF JSON
 
@@ -922,7 +922,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian convert from-adf - Converts ADF JSON to JFM markdown
+omni-voice atlassian convert from-adf - Converts ADF JSON to JFM markdown
 
 Converts ADF JSON to JFM markdown
 
@@ -938,7 +938,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian convert to-adf - Converts JFM markdown to ADF JSON
+omni-voice atlassian convert to-adf - Converts JFM markdown to ADF JSON
 
 Converts JFM markdown to ADF JSON
 
@@ -955,7 +955,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira - JIRA issue management, search, agile boards, and more
+omni-voice atlassian jira - JIRA issue management, search, agile boards, and more
 
 JIRA issue management, search, agile boards, and more
 
@@ -990,7 +990,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira attachment - Downloads JIRA issue attachments
+omni-voice atlassian jira attachment - Downloads JIRA issue attachments
 
 Downloads JIRA issue attachments
 
@@ -1007,7 +1007,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira attachment download - Downloads all attachments (or filtered by pattern)
+omni-voice atlassian jira attachment download - Downloads all attachments (or filtered by pattern)
 
 Downloads all attachments (or filtered by pattern)
 
@@ -1024,7 +1024,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira attachment images - Downloads only image attachments
+omni-voice atlassian jira attachment images - Downloads only image attachments
 
 Downloads only image attachments
 
@@ -1040,7 +1040,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira board - Manages JIRA agile boards
+omni-voice atlassian jira board - Manages JIRA agile boards
 
 Manages JIRA agile boards
 
@@ -1057,7 +1057,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira board issues - Lists issues on a board
+omni-voice atlassian jira board issues - Lists issues on a board
 
 Lists issues on a board
 
@@ -1073,7 +1073,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira board list - Lists agile boards
+omni-voice atlassian jira board list - Lists agile boards
 
 Lists agile boards
 
@@ -1089,7 +1089,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira changelog - Shows change history for JIRA issues
+omni-voice atlassian jira changelog - Shows change history for JIRA issues
 
 Shows change history for JIRA issues
 
@@ -1106,7 +1106,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira comment - Manages comments on a JIRA issue
+omni-voice atlassian jira comment - Manages comments on a JIRA issue
 
 Manages comments on a JIRA issue
 
@@ -1124,7 +1124,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira comment add - Adds a comment to a JIRA issue
+omni-voice atlassian jira comment add - Adds a comment to a JIRA issue
 
 Adds a comment to a JIRA issue
 
@@ -1141,7 +1141,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira comment edit - Edits an existing comment on a JIRA issue
+omni-voice atlassian jira comment edit - Edits an existing comment on a JIRA issue
 
 Edits an existing comment on a JIRA issue
 
@@ -1165,7 +1165,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira comment list - Lists comments on a JIRA issue
+omni-voice atlassian jira comment list - Lists comments on a JIRA issue
 
 Lists comments on a JIRA issue
 
@@ -1182,7 +1182,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira create - Creates a new JIRA issue
+omni-voice atlassian jira create - Creates a new JIRA issue
 
 Creates a new JIRA issue
 
@@ -1203,7 +1203,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira delete - Deletes a JIRA issue
+omni-voice atlassian jira delete - Deletes a JIRA issue
 
 Deletes a JIRA issue
 
@@ -1220,7 +1220,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira dev - Shows development status (linked PRs, branches, repositories) for a JIRA issue
+omni-voice atlassian jira dev - Shows development status (linked PRs, branches, repositories) for a JIRA issue
 
 Shows development status (linked PRs, branches, repositories) for a JIRA issue
 
@@ -1239,7 +1239,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira edit - Interactive fetch-edit-push cycle for a JIRA issue
+omni-voice atlassian jira edit - Interactive fetch-edit-push cycle for a JIRA issue
 
 Interactive fetch-edit-push cycle for a JIRA issue
 
@@ -1254,7 +1254,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira field - Manages JIRA field definitions and options
+omni-voice atlassian jira field - Manages JIRA field definitions and options
 
 Manages JIRA field definitions and options
 
@@ -1271,7 +1271,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira field list - Lists all field definitions
+omni-voice atlassian jira field list - Lists all field definitions
 
 Lists all field definitions
 
@@ -1285,7 +1285,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira field options - Shows options for a custom field
+omni-voice atlassian jira field options - Shows options for a custom field
 
 Shows options for a custom field
 
@@ -1300,7 +1300,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira link - Manages JIRA issue links
+omni-voice atlassian jira link - Manages JIRA issue links
 
 Manages JIRA issue links
 
@@ -1321,7 +1321,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira link create - Creates a link between two issues
+omni-voice atlassian jira link create - Creates a link between two issues
 
 Creates a link between two issues
 
@@ -1336,7 +1336,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira link epic - Links an issue to an epic (sets parent)
+omni-voice atlassian jira link epic - Links an issue to an epic (sets parent)
 
 Links an issue to an epic (sets parent)
 
@@ -1350,7 +1350,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira link list - Lists links on a JIRA issue
+omni-voice atlassian jira link list - Lists links on a JIRA issue
 
 Lists links on a JIRA issue
 
@@ -1366,7 +1366,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira link remote - Manages remote (external URL) issue links
+omni-voice atlassian jira link remote - Manages remote (external URL) issue links
 
 Manages remote (external URL) issue links
 
@@ -1382,7 +1382,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira link remote list - Lists remote (external URL) links on a JIRA issue
+omni-voice atlassian jira link remote list - Lists remote (external URL) links on a JIRA issue
 
 Lists remote (external URL) links on a JIRA issue
 
@@ -1398,7 +1398,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira link remove - Removes an issue link by ID
+omni-voice atlassian jira link remove - Removes an issue link by ID
 
 Removes an issue link by ID
 
@@ -1413,7 +1413,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira link types - Lists available issue link types
+omni-voice atlassian jira link types - Lists available issue link types
 
 Lists available issue link types
 
@@ -1426,7 +1426,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira project - Lists JIRA projects
+omni-voice atlassian jira project - Lists JIRA projects
 
 Lists JIRA projects
 
@@ -1442,7 +1442,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira project list - Lists all accessible JIRA projects
+omni-voice atlassian jira project list - Lists all accessible JIRA projects
 
 Lists all accessible JIRA projects
 
@@ -1456,7 +1456,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira read - Fetches a JIRA issue and outputs it as JFM markdown or ADF JSON
+omni-voice atlassian jira read - Fetches a JIRA issue and outputs it as JFM markdown or ADF JSON
 
 Fetches a JIRA issue and outputs it as JFM markdown or ADF JSON
 
@@ -1475,7 +1475,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira search - Searches JIRA issues using JQL
+omni-voice atlassian jira search - Searches JIRA issues using JQL
 
 Searches JIRA issues using JQL
 
@@ -1493,7 +1493,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira sprint - Manages JIRA agile sprints
+omni-voice atlassian jira sprint - Manages JIRA agile sprints
 
 Manages JIRA agile sprints
 
@@ -1513,7 +1513,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira sprint add - Adds issues to a sprint
+omni-voice atlassian jira sprint add - Adds issues to a sprint
 
 Adds issues to a sprint
 
@@ -1527,7 +1527,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira sprint create - Creates a new sprint
+omni-voice atlassian jira sprint create - Creates a new sprint
 
 Creates a new sprint
 
@@ -1544,7 +1544,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira sprint issues - Lists issues in a sprint
+omni-voice atlassian jira sprint issues - Lists issues in a sprint
 
 Lists issues in a sprint
 
@@ -1560,7 +1560,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira sprint list - Lists sprints for a board
+omni-voice atlassian jira sprint list - Lists sprints for a board
 
 Lists sprints for a board
 
@@ -1576,7 +1576,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira sprint update - Updates an existing sprint
+omni-voice atlassian jira sprint update - Updates an existing sprint
 
 Updates an existing sprint
 
@@ -1594,7 +1594,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira transition - Lists or executes workflow transitions on a JIRA issue
+omni-voice atlassian jira transition - Lists or executes workflow transitions on a JIRA issue
 
 Lists or executes workflow transitions on a JIRA issue
 
@@ -1611,7 +1611,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira transition execute - Executes a workflow transition on a JIRA issue
+omni-voice atlassian jira transition execute - Executes a workflow transition on a JIRA issue
 
 Executes a workflow transition on a JIRA issue
 
@@ -1627,7 +1627,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira transition list - Lists workflow transitions available from the issue's current status
+omni-voice atlassian jira transition list - Lists workflow transitions available from the issue's current status
 
 Lists workflow transitions available from the issue's current status
 
@@ -1643,7 +1643,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira user - JIRA user operations (search by name or email)
+omni-voice atlassian jira user - JIRA user operations (search by name or email)
 
 JIRA user operations (search by name or email)
 
@@ -1659,7 +1659,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira user search - Searches JIRA users by display name or email substring
+omni-voice atlassian jira user search - Searches JIRA users by display name or email substring
 
 Searches JIRA users by display name or email substring
 
@@ -1674,7 +1674,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira version - Manages JIRA project versions (release versions)
+omni-voice atlassian jira version - Manages JIRA project versions (release versions)
 
 Manages JIRA project versions (release versions)
 
@@ -1691,7 +1691,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira version create - Creates a new project version
+omni-voice atlassian jira version create - Creates a new project version
 
 Creates a new project version
 
@@ -1710,7 +1710,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira version list - Lists versions for a project
+omni-voice atlassian jira version list - Lists versions for a project
 
 Lists versions for a project
 
@@ -1728,7 +1728,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira watcher - Manages watchers on a JIRA issue
+omni-voice atlassian jira watcher - Manages watchers on a JIRA issue
 
 Manages watchers on a JIRA issue
 
@@ -1746,7 +1746,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira watcher add - Adds a user as a watcher on an issue
+omni-voice atlassian jira watcher add - Adds a user as a watcher on an issue
 
 Adds a user as a watcher on an issue
 
@@ -1762,7 +1762,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira watcher list - Lists current watchers on an issue
+omni-voice atlassian jira watcher list - Lists current watchers on an issue
 
 Lists current watchers on an issue
 
@@ -1778,7 +1778,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira watcher remove - Removes a user from watchers on an issue
+omni-voice atlassian jira watcher remove - Removes a user from watchers on an issue
 
 Removes a user from watchers on an issue
 
@@ -1796,7 +1796,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira worklog - Manages worklogs (time tracking) on a JIRA issue
+omni-voice atlassian jira worklog - Manages worklogs (time tracking) on a JIRA issue
 
 Manages worklogs (time tracking) on a JIRA issue
 
@@ -1813,7 +1813,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira worklog add - Adds a worklog entry to a JIRA issue
+omni-voice atlassian jira worklog add - Adds a worklog entry to a JIRA issue
 
 Adds a worklog entry to a JIRA issue
 
@@ -1831,7 +1831,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira worklog list - Lists worklogs on a JIRA issue
+omni-voice atlassian jira worklog list - Lists worklogs on a JIRA issue
 
 Lists worklogs on a JIRA issue
 
@@ -1848,7 +1848,7 @@ Options:
 
 ================================================================================
 
-omni-dev atlassian jira write - Pushes content to a JIRA issue
+omni-voice atlassian jira write - Pushes content to a JIRA issue
 
 Pushes content to a JIRA issue
 
@@ -1861,10 +1861,10 @@ Arguments:
 Options:
       --format <FORMAT>         Input format [default: jfm] [possible values: jfm, adf]
       --no-content              Skips reading the description and leaves it untouched. Use with `--assignee`, `--reporter`, or `--set-field` to update other fields without rewriting the body
-      --assignee <ACCOUNT_ID>   Sets the assignee `accountId`. The empty string `""` clears the assignee; `"-1"` triggers JIRA automatic assignment. Use `omni-dev atlassian jira user search` to resolve a name or email to an `accountId`
+      --assignee <ACCOUNT_ID>   Sets the assignee `accountId`. The empty string `""` clears the assignee; `"-1"` triggers JIRA automatic assignment. Use `omni-voice atlassian jira user search` to resolve a name or email to an `accountId`
       --reporter <ACCOUNT_ID>   Sets the reporter `accountId`. Same conventions as `--assignee`
       --set-field <NAME=VALUE>  Set a custom field inline: `--set-field "NAME=VALUE"`. Can be used multiple times. Values are parsed as YAML scalars (numbers, bools) when possible, falling back to strings. Overrides values from the frontmatter `custom_fields:` map for the same name
-      --parent <KEY>            Sets the parent issue key (e.g., establishes Epic → Story or Story → Sub-task hierarchy). Maps to JIRA's `parent` system field; distinct from "Composition" links created via `omni-dev jira link`
+      --parent <KEY>            Sets the parent issue key (e.g., establishes Epic → Story or Story → Sub-task hierarchy). Maps to JIRA's `parent` system field; distinct from "Composition" links created via `omni-voice jira link`
       --force                   Skips the confirmation prompt
       --dry-run                 Shows what would change without writing
   -h, --help                    Print help (see more with '--help')
@@ -1872,7 +1872,7 @@ Options:
 
 ================================================================================
 
-omni-dev browser - Browser bridge: drive authenticated requests through a browser tab
+omni-voice browser - Browser bridge: drive authenticated requests through a browser tab
 
 Browser bridge: drive authenticated requests through a browser tab
 
@@ -1888,7 +1888,7 @@ Options:
 
 ================================================================================
 
-omni-dev browser bridge - Bridge: run the server (`serve`) or send a request through it (`request`)
+omni-voice browser bridge - Bridge: run the server (`serve`) or send a request through it (`request`)
 
 Bridge: run the server (`serve`) or send a request through it (`request`)
 
@@ -1906,7 +1906,7 @@ Options:
 
 ================================================================================
 
-omni-dev browser bridge harvest - Harvests your own data from a logged-in tab (best-effort)
+omni-voice browser bridge harvest - Harvests your own data from a logged-in tab (best-effort)
 
 Harvests your own data from a logged-in tab (best-effort)
 
@@ -1922,7 +1922,7 @@ Options:
 
 ================================================================================
 
-omni-dev browser bridge harvest facebook - Harvest your own data from Facebook
+omni-voice browser bridge harvest facebook - Harvest your own data from Facebook
 
 Harvest your own data from Facebook
 
@@ -1938,7 +1938,7 @@ Options:
 
 ================================================================================
 
-omni-dev browser bridge harvest facebook posts - Download your own timeline posts
+omni-voice browser bridge harvest facebook posts - Download your own timeline posts
 
 Download your own timeline posts
 
@@ -1958,7 +1958,7 @@ Options:
 
 ================================================================================
 
-omni-dev browser bridge request - Sends a request through a running bridge (thin client)
+omni-voice browser bridge request - Sends a request through a running bridge (thin client)
 
 Sends a request through a running bridge (thin client)
 
@@ -1980,7 +1980,7 @@ Options:
 
 ================================================================================
 
-omni-dev browser bridge serve - Runs the local bridge server (WebSocket + HTTP control planes)
+omni-voice browser bridge serve - Runs the local bridge server (WebSocket + HTTP control planes)
 
 Runs the local bridge server (WebSocket + HTTP control planes)
 
@@ -2007,7 +2007,7 @@ Options:
 
 ================================================================================
 
-omni-dev commands - Command template management
+omni-voice commands - Command template management
 
 Command template management
 
@@ -2023,7 +2023,7 @@ Options:
 
 ================================================================================
 
-omni-dev commands generate - Generates command templates
+omni-voice commands generate - Generates command templates
 
 Generates command templates
 
@@ -2042,7 +2042,7 @@ Options:
 
 ================================================================================
 
-omni-dev commands generate all - Generates all command templates
+omni-voice commands generate all - Generates all command templates
 
 Generates all command templates
 
@@ -2054,7 +2054,7 @@ Options:
 
 ================================================================================
 
-omni-dev commands generate commit-twiddle - Generates commit-twiddle command template
+omni-voice commands generate commit-twiddle - Generates commit-twiddle command template
 
 Generates commit-twiddle command template
 
@@ -2066,7 +2066,7 @@ Options:
 
 ================================================================================
 
-omni-dev commands generate pr-create - Generates pr-create command template
+omni-voice commands generate pr-create - Generates pr-create command template
 
 Generates pr-create command template
 
@@ -2078,7 +2078,7 @@ Options:
 
 ================================================================================
 
-omni-dev commands generate pr-update - Generates pr-update command template
+omni-voice commands generate pr-update - Generates pr-update command template
 
 Generates pr-update command template
 
@@ -2090,7 +2090,7 @@ Options:
 
 ================================================================================
 
-omni-dev completions - Generates shell completion scripts
+omni-voice completions - Generates shell completion scripts
 
 Generates shell completion scripts
 
@@ -2105,7 +2105,7 @@ Options:
 
 ================================================================================
 
-omni-dev config - Configuration and model information
+omni-voice config - Configuration and model information
 
 Configuration and model information
 
@@ -2121,7 +2121,7 @@ Options:
 
 ================================================================================
 
-omni-dev config models - AI model configuration and information
+omni-voice config models - AI model configuration and information
 
 AI model configuration and information
 
@@ -2137,7 +2137,7 @@ Options:
 
 ================================================================================
 
-omni-dev config models show - Shows the model catalog (merged user/project layers over the embedded `models.yaml`), annotating each entry with its source layer
+omni-voice config models show - Shows the model catalog (merged user/project layers over the embedded `models.yaml`), annotating each entry with its source layer
 
 Shows the model catalog (merged user/project layers over the embedded `models.yaml`), annotating each entry with its source layer
 
@@ -2150,7 +2150,7 @@ Options:
 
 ================================================================================
 
-omni-dev coverage - Coverage: diff/patch coverage analysis for PR comments
+omni-voice coverage - Coverage: diff/patch coverage analysis for PR comments
 
 Coverage: diff/patch coverage analysis for PR comments
 
@@ -2166,7 +2166,7 @@ Options:
 
 ================================================================================
 
-omni-dev coverage diff - Analyses diff/patch coverage from a per-line report and a git diff
+omni-voice coverage diff - Analyses diff/patch coverage from a per-line report and a git diff
 
 Analyses diff/patch coverage from a per-line report and a git diff
 
@@ -2211,7 +2211,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog - Datadog: read-only API operations
+omni-voice datadog - Datadog: read-only API operations
 
 Datadog: read-only API operations
 
@@ -2235,7 +2235,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog auth - Manages Datadog API credentials
+omni-voice datadog auth - Manages Datadog API credentials
 
 Manages Datadog API credentials
 
@@ -2253,7 +2253,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog auth login - Configures Datadog API credentials interactively
+omni-voice datadog auth login - Configures Datadog API credentials interactively
 
 Configures Datadog API credentials interactively
 
@@ -2265,7 +2265,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog auth logout - Removes Datadog API credentials from settings.json
+omni-voice datadog auth logout - Removes Datadog API credentials from settings.json
 
 Removes Datadog API credentials from settings.json
 
@@ -2277,7 +2277,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog auth status - Shows the current authentication status
+omni-voice datadog auth status - Shows the current authentication status
 
 Shows the current authentication status
 
@@ -2289,7 +2289,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog dashboard - Inspects Datadog dashboards
+omni-voice datadog dashboard - Inspects Datadog dashboards
 
 Inspects Datadog dashboards
 
@@ -2306,7 +2306,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog dashboard get - Fetches a single dashboard definition by id
+omni-voice datadog dashboard get - Fetches a single dashboard definition by id
 
 Fetches a single dashboard definition by id
 
@@ -2322,7 +2322,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog dashboard list - Lists dashboards, optionally filtered to shared dashboards
+omni-voice datadog dashboard list - Lists dashboards, optionally filtered to shared dashboards
 
 Lists dashboards, optionally filtered to shared dashboards
 
@@ -2336,7 +2336,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog downtime - Inspects Datadog scheduled downtimes
+omni-voice datadog downtime - Inspects Datadog scheduled downtimes
 
 Inspects Datadog scheduled downtimes
 
@@ -2352,7 +2352,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog downtime list - Lists scheduled downtimes via `GET /api/v1/downtime`
+omni-voice datadog downtime list - Lists scheduled downtimes via `GET /api/v1/downtime`
 
 Lists scheduled downtimes via `GET /api/v1/downtime`
 
@@ -2366,7 +2366,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog events - Inspects the Datadog events stream
+omni-voice datadog events - Inspects the Datadog events stream
 
 Inspects the Datadog events stream
 
@@ -2382,7 +2382,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog events list - Lists events via `GET /api/v2/events`
+omni-voice datadog events list - Lists events via `GET /api/v2/events`
 
 Lists events via `GET /api/v2/events`
 
@@ -2401,7 +2401,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog hosts - Inspects Datadog reporting hosts
+omni-voice datadog hosts - Inspects Datadog reporting hosts
 
 Inspects Datadog reporting hosts
 
@@ -2417,7 +2417,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog hosts list - Lists hosts via `GET /api/v1/hosts`
+omni-voice datadog hosts list - Lists hosts via `GET /api/v1/hosts`
 
 Lists hosts via `GET /api/v1/hosts`
 
@@ -2433,7 +2433,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog logs - Searches Datadog logs
+omni-voice datadog logs - Searches Datadog logs
 
 Searches Datadog logs
 
@@ -2449,7 +2449,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog logs search - Searches log events via `POST /api/v2/logs/events/search`
+omni-voice datadog logs search - Searches log events via `POST /api/v2/logs/events/search`
 
 Searches log events via `POST /api/v2/logs/events/search`
 
@@ -2467,7 +2467,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog metrics - Queries Datadog metrics
+omni-voice datadog metrics - Queries Datadog metrics
 
 Queries Datadog metrics
 
@@ -2484,7 +2484,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog metrics catalog - Inspects the metric catalog (`/api/v1/metrics`)
+omni-voice datadog metrics catalog - Inspects the metric catalog (`/api/v1/metrics`)
 
 Inspects the metric catalog (`/api/v1/metrics`)
 
@@ -2500,7 +2500,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog metrics catalog list - Lists metrics in the catalog
+omni-voice datadog metrics catalog list - Lists metrics in the catalog
 
 Lists metrics in the catalog
 
@@ -2515,7 +2515,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog metrics query - Executes a point-in-time metrics timeseries query
+omni-voice datadog metrics query - Executes a point-in-time metrics timeseries query
 
 Executes a point-in-time metrics timeseries query
 
@@ -2531,7 +2531,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog monitor - Inspects Datadog monitors
+omni-voice datadog monitor - Inspects Datadog monitors
 
 Inspects Datadog monitors
 
@@ -2549,7 +2549,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog monitor get - Fetches a single monitor by id
+omni-voice datadog monitor get - Fetches a single monitor by id
 
 Fetches a single monitor by id
 
@@ -2565,7 +2565,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog monitor list - Lists monitors with optional name / tag filters
+omni-voice datadog monitor list - Lists monitors with optional name / tag filters
 
 Lists monitors with optional name / tag filters
 
@@ -2582,7 +2582,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog monitor search - Searches monitors by free-text / faceted query
+omni-voice datadog monitor search - Searches monitors by free-text / faceted query
 
 Searches monitors by free-text / faceted query
 
@@ -2597,7 +2597,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog slo - Inspects Datadog Service Level Objectives
+omni-voice datadog slo - Inspects Datadog Service Level Objectives
 
 Inspects Datadog Service Level Objectives
 
@@ -2614,7 +2614,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog slo get - Fetches a single SLO definition by id
+omni-voice datadog slo get - Fetches a single SLO definition by id
 
 Fetches a single SLO definition by id
 
@@ -2630,7 +2630,7 @@ Options:
 
 ================================================================================
 
-omni-dev datadog slo list - Lists SLOs with optional tag filter
+omni-voice datadog slo list - Lists SLOs with optional tag filter
 
 Lists SLOs with optional tag filter
 
@@ -2648,7 +2648,7 @@ Options:
 
 ================================================================================
 
-omni-dev git - Git-related operations
+omni-voice git - Git-related operations
 
 Git-related operations
 
@@ -2665,7 +2665,7 @@ Options:
 
 ================================================================================
 
-omni-dev git branch - Branch-related operations
+omni-voice git branch - Branch-related operations
 
 Branch-related operations
 
@@ -2682,7 +2682,7 @@ Options:
 
 ================================================================================
 
-omni-dev git branch create - Create operations
+omni-voice git branch create - Create operations
 
 Create operations
 
@@ -2698,7 +2698,7 @@ Options:
 
 ================================================================================
 
-omni-dev git branch create pr - Creates a pull request with AI-generated description
+omni-voice git branch create pr - Creates a pull request with AI-generated description
 
 Creates a pull request with AI-generated description
 
@@ -2711,7 +2711,7 @@ Options:
       --save-only <FILE>           Saves generated PR details to file without creating PR
       --ready                      Creates PR as ready for review (overrides default)
       --draft                      Creates PR as draft (overrides default)
-      --context-dir <CONTEXT_DIR>  Path to custom context directory (defaults to .omni-dev/)
+      --context-dir <CONTEXT_DIR>  Path to custom context directory (defaults to .omni-voice/)
       --no-push                    Skip pushing the branch to remote before creating the PR
       --from-commits               Use commit messages (not the diff) as the primary input for PR generation
   -h, --help                       Print help
@@ -2719,7 +2719,7 @@ Options:
 
 ================================================================================
 
-omni-dev git branch info - Analyzes branch commits and outputs repository information in YAML format
+omni-voice git branch info - Analyzes branch commits and outputs repository information in YAML format
 
 Analyzes branch commits and outputs repository information in YAML format
 
@@ -2734,7 +2734,7 @@ Options:
 
 ================================================================================
 
-omni-dev git commit - Commit-related operations
+omni-voice git commit - Commit-related operations
 
 Commit-related operations
 
@@ -2750,7 +2750,7 @@ Options:
 
 ================================================================================
 
-omni-dev git commit message - Commit message operations
+omni-voice git commit message - Commit message operations
 
 Commit message operations
 
@@ -2770,7 +2770,7 @@ Options:
 
 ================================================================================
 
-omni-dev git commit message amend - Amends commit messages based on a YAML configuration file
+omni-voice git commit message amend - Amends commit messages based on a YAML configuration file
 
 Amends commit messages based on a YAML configuration file
 
@@ -2785,7 +2785,7 @@ Options:
 
 ================================================================================
 
-omni-dev git commit message check - Checks commit messages against guidelines without modifying them
+omni-voice git commit message check - Checks commit messages against guidelines without modifying them
 
 Checks commit messages against guidelines without modifying them
 
@@ -2797,7 +2797,7 @@ Arguments:
 Options:
       --model <MODEL>              Claude API model to use (if not specified, uses settings or default)
       --beta-header <KEY:VALUE>    Beta header to send with API requests (format: key:value). Only sent if the model supports it in the registry
-      --context-dir <CONTEXT_DIR>  Path to custom context directory (defaults to .omni-dev/)
+      --context-dir <CONTEXT_DIR>  Path to custom context directory (defaults to .omni-voice/)
       --guidelines <GUIDELINES>    Explicit path to guidelines file
       --format <FORMAT>            Output format: text (default), json, yaml [default: text]
       --strict                     Exits with error code if any issues found (including warnings)
@@ -2813,7 +2813,7 @@ Options:
 
 ================================================================================
 
-omni-dev git commit message staged - Generates a commit message from staged changes and commits them
+omni-voice git commit message staged - Generates a commit message from staged changes and commits them
 
 Generates a commit message from staged changes and commits them
 
@@ -2829,7 +2829,7 @@ Options:
 
 ================================================================================
 
-omni-dev git commit message twiddle - AI-powered commit message improvement using Claude
+omni-voice git commit message twiddle - AI-powered commit message improvement using Claude
 
 AI-powered commit message improvement using Claude
 
@@ -2850,7 +2850,7 @@ Options:
       --use-context
           Uses additional project context for better suggestions (Phase 3)
       --context-dir <CONTEXT_DIR>
-          Path to custom context directory (defaults to .omni-dev/)
+          Path to custom context directory (defaults to .omni-voice/)
       --work-context <WORK_CONTEXT>
           Specifies work context (e.g., "feature: user authentication")
       --branch-context <BRANCH_CONTEXT>
@@ -2877,7 +2877,7 @@ Options:
 
 ================================================================================
 
-omni-dev git commit message view - Analyzes commits and outputs repository information in YAML format
+omni-voice git commit message view - Analyzes commits and outputs repository information in YAML format
 
 Analyzes commits and outputs repository information in YAML format
 
@@ -2892,7 +2892,7 @@ Options:
 
 ================================================================================
 
-omni-dev help-all - Displays comprehensive help for all commands
+omni-voice help-all - Displays comprehensive help for all commands
 
 Displays comprehensive help for all commands
 
@@ -2904,7 +2904,7 @@ Options:
 
 ================================================================================
 
-omni-dev resources - Embedded reference resources (specs, etc.)
+omni-voice resources - Embedded reference resources (specs, etc.)
 
 Embedded reference resources (specs, etc.)
 
@@ -2921,7 +2921,7 @@ Options:
 
 ================================================================================
 
-omni-dev resources list - List every embedded resource id, one per line
+omni-voice resources list - List every embedded resource id, one per line
 
 List every embedded resource id, one per line
 
@@ -2933,14 +2933,14 @@ Options:
 
 ================================================================================
 
-omni-dev resources show - Print the raw content of an embedded resource to stdout
+omni-voice resources show - Print the raw content of an embedded resource to stdout
 
 Print the raw content of an embedded resource to stdout
 
 Usage: show <ID>
 
 Arguments:
-  <ID>  Resource id. Accepts `specs/jfm` or `omni-dev://specs/jfm` (the `omni-dev://` scheme is stripped before lookup)
+  <ID>  Resource id. Accepts `specs/jfm` or `omni-voice://specs/jfm` (the `omni-voice://` scheme is stripped before lookup)
 
 Options:
   -h, --help  Print help
@@ -2948,7 +2948,7 @@ Options:
 
 ================================================================================
 
-omni-dev transcript - Transcript and caption fetching from media platforms
+omni-voice transcript - Transcript and caption fetching from media platforms
 
 Transcript and caption fetching from media platforms
 
@@ -2964,7 +2964,7 @@ Options:
 
 ================================================================================
 
-omni-dev transcript youtube - YouTube: fetch captions, list available languages, and inspect video metadata
+omni-voice transcript youtube - YouTube: fetch captions, list available languages, and inspect video metadata
 
 YouTube: fetch captions, list available languages, and inspect video metadata
 
@@ -2983,7 +2983,7 @@ Options:
 
 ================================================================================
 
-omni-dev transcript youtube fetch - Fetches the transcript for a YouTube video
+omni-voice transcript youtube fetch - Fetches the transcript for a YouTube video
 
 Fetches the transcript for a YouTube video
 
@@ -3003,7 +3003,7 @@ Options:
 
 ================================================================================
 
-omni-dev transcript youtube info - Shows top-level metadata (title, channel, duration, languages) for a YouTube video
+omni-voice transcript youtube info - Shows top-level metadata (title, channel, duration, languages) for a YouTube video
 
 Shows top-level metadata (title, channel, duration, languages) for a YouTube video
 
@@ -3019,7 +3019,7 @@ Options:
 
 ================================================================================
 
-omni-dev transcript youtube list-langs - Lists the caption tracks available on a YouTube video
+omni-voice transcript youtube list-langs - Lists the caption tracks available on a YouTube video
 
 Lists the caption tracks available on a YouTube video
 
@@ -3035,7 +3035,7 @@ Options:
 
 ================================================================================
 
-omni-dev transcript youtube sync - Syncs transcripts for all videos in one or more channels to the filesystem
+omni-voice transcript youtube sync - Syncs transcripts for all videos in one or more channels to the filesystem
 
 Syncs transcripts for all videos in one or more channels to the filesystem
 
@@ -3058,7 +3058,7 @@ Options:
 
 ================================================================================
 
-omni-dev voice - Voice capture and processing operations
+omni-voice voice - Voice capture and processing operations
 
 Voice capture and processing operations
 
@@ -3069,8 +3069,8 @@ Commands:
   transcribe     Transcribes a 16 kHz mono WAV file to JSONL or markdown
   reflect        Reflects on a transcript and emits reflection events
   review         Reconciles a session's events.jsonl into materialized markdown
-  install-model  Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-dev/voice/models/<variant>/`
-  enroll         Captures a microphone sample and persists a speaker embedding to `~/.omni-dev/voice/speakers/<name>.json`
+  install-model  Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-voice/voice/models/<variant>/`
+  enroll         Captures a microphone sample and persists a speaker embedding to `~/.omni-voice/voice/speakers/<name>.json`
   help           Print this message or the help of the given subcommand(s)
 
 Options:
@@ -3079,7 +3079,7 @@ Options:
 
 ================================================================================
 
-omni-dev voice capture - Captures audio from a microphone to a 16 kHz mono WAV file
+omni-voice voice capture - Captures audio from a microphone to a 16 kHz mono WAV file
 
 Captures audio from a microphone to a 16 kHz mono WAV file
 
@@ -3087,16 +3087,16 @@ Usage: capture [OPTIONS]
 
 Options:
       --idle-after <IDLE_AFTER>  Stop after this many seconds of trailing silence. `0` disables auto-stop — capture runs until Ctrl-C [default: 5]
-      --output <OUTPUT>          Destination WAV path. Defaults to `~/.omni-dev/voice/captures/<UTC-timestamp>.wav`
+      --output <OUTPUT>          Destination WAV path. Defaults to `~/.omni-voice/voice/captures/<UTC-timestamp>.wav`
       --device <DEVICE>          Audio input device name. Defaults to the system default input. Matching is exact against the platform-reported device name; an unknown name errors with a list of detected devices
   -h, --help                     Print help
 
 
 ================================================================================
 
-omni-dev voice enroll - Captures a microphone sample and persists a speaker embedding to `~/.omni-dev/voice/speakers/<name>.json`
+omni-voice voice enroll - Captures a microphone sample and persists a speaker embedding to `~/.omni-voice/voice/speakers/<name>.json`
 
-Captures a microphone sample and persists a speaker embedding to `~/.omni-dev/voice/speakers/<name>.json`
+Captures a microphone sample and persists a speaker embedding to `~/.omni-voice/voice/speakers/<name>.json`
 
 Usage: enroll [OPTIONS]
 
@@ -3105,21 +3105,21 @@ Options:
       --idle-after <IDLE_AFTER>        Stop after this many seconds of trailing silence [default: 2]
       --max-secs <MAX_SECS>            Hard upper bound on capture duration in seconds. Capture stops as soon as this many seconds have elapsed, even if speech continues. `0` disables the cap (only idle/Ctrl-C will stop the capture) [default: 30]
       --device <DEVICE>                Audio input device name. Defaults to the system default input
-      --speaker-model <SPEAKER_MODEL>  Path to the wespeaker ONNX model. Overrides the default at `~/.omni-dev/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and the `OMNI_DEV_VOICE_SPEAKER_MODEL` env var
+      --speaker-model <SPEAKER_MODEL>  Path to the wespeaker ONNX model. Overrides the default at `~/.omni-voice/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and the `OMNI_VOICE_VOICE_SPEAKER_MODEL` env var
       --force                          Overwrite an existing `<name>.json` enrolment instead of refusing
   -h, --help                           Print help
 
 
 ================================================================================
 
-omni-dev voice install-model - Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-dev/voice/models/<variant>/`
+omni-voice voice install-model - Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-voice/voice/models/<variant>/`
 
-Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-dev/voice/models/<variant>/`
+Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-voice/voice/models/<variant>/`
 
 Usage: install-model [OPTIONS]
 
 Options:
-      --dest <DEST>        Override the install directory. Defaults to the variant's canonical location under `~/.omni-dev/voice/models/`
+      --dest <DEST>        Override the install directory. Defaults to the variant's canonical location under `~/.omni-voice/voice/models/`
       --force              Re-download even if all required files are already present
       --variant <VARIANT>  Which model variant to install. Defaults to `whisper-tiny.en` [default: whisper-tiny.en] [possible values: whisper-tiny.en, speaker-wespeaker-en]
   -h, --help               Print help (see more with '--help')
@@ -3127,7 +3127,7 @@ Options:
 
 ================================================================================
 
-omni-dev voice reflect - Reflects on a transcript and emits reflection events
+omni-voice voice reflect - Reflects on a transcript and emits reflection events
 
 Reflects on a transcript and emits reflection events
 
@@ -3137,20 +3137,20 @@ Arguments:
   [TRANSCRIPT]  Path to a `transcript.jsonl` file. Pass `-` for stdin. Omit to fall back to `--session` or stdin
 
 Options:
-      --session <SESSION>  Reflect against a named voice session under `~/.omni-dev/voice/<id>/`. Mutually exclusive with a positional transcript path
+      --session <SESSION>  Reflect against a named voice session under `~/.omni-voice/voice/<id>/`. Mutually exclusive with a positional transcript path
   -h, --help               Print help
 
 
 ================================================================================
 
-omni-dev voice review - Reconciles a session's events.jsonl into materialized markdown
+omni-voice voice review - Reconciles a session's events.jsonl into materialized markdown
 
 Reconciles a session's events.jsonl into materialized markdown
 
 Usage: review [OPTIONS] <SESSION_ID>
 
 Arguments:
-  <SESSION_ID>  Session id under `~/.omni-dev/voice/<id>/`
+  <SESSION_ID>  Session id under `~/.omni-voice/voice/<id>/`
 
 Options:
       --what <WHAT>  Which artefact to materialise. `all` (default) writes both markdown files and applies the TTL pass. `transcript` renders `transcript.jsonl` to stdout instead [default: all] [possible values: transcript, todos, decisions, all]
@@ -3159,7 +3159,7 @@ Options:
 
 ================================================================================
 
-omni-dev voice transcribe - Transcribes a 16 kHz mono WAV file to JSONL or markdown
+omni-voice voice transcribe - Transcribes a 16 kHz mono WAV file to JSONL or markdown
 
 Transcribes a 16 kHz mono WAV file to JSONL or markdown
 
@@ -3170,9 +3170,9 @@ Arguments:
 
 Options:
       --backend <BACKEND>              Transcriber backend (`mock`, `whisper-candle`, `whisper-candle-streaming`). Defaults to `mock`; see ADR-0033 for the `whisper-candle` runtime choice and ADR-0040 for the latency-tolerant streaming variant
-      --model <MODEL>                  Path to a backend-specific model directory. For `whisper-candle` and `whisper-candle-streaming`, this overrides `OMNI_DEV_VOICE_WHISPER_MODEL` and the default at `~/.omni-dev/voice/models/whisper-tiny.en/`. Ignored by `mock`
+      --model <MODEL>                  Path to a backend-specific model directory. For `whisper-candle` and `whisper-candle-streaming`, this overrides `OMNI_VOICE_VOICE_WHISPER_MODEL` and the default at `~/.omni-voice/voice/models/whisper-tiny.en/`. Ignored by `mock`
       --format <FORMAT>                Output format. Defaults to `md` on a tty, `jsonl` when piped [possible values: jsonl, md]
       --speaker <SPEAKER>              Enrolled speaker to filter on. Drops any `Final` event whose segment doesn't match the enrolled embedding by cosine similarity at or above `--threshold`
       --threshold <THRESHOLD>          Cosine-similarity threshold for `--speaker`. Defaults to 0.5; see [`DEFAULT_SPEAKER_THRESHOLD`]
-      --speaker-model <SPEAKER_MODEL>  Path to the wespeaker ONNX model. Overrides the default at `~/.omni-dev/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and `OMNI_DEV_VOICE_SPEAKER_MODEL`. Ignored unless `--speaker` is set
+      --speaker-model <SPEAKER_MODEL>  Path to the wespeaker ONNX model. Overrides the default at `~/.omni-voice/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and `OMNI_VOICE_VOICE_SPEAKER_MODEL`. Ignored unless `--speaker` is set
   -h, --help                           Print help (see more with '--help')

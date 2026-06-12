@@ -1,6 +1,6 @@
 # Transcript subcommand
 
-`omni-dev transcript` fetches captions and transcripts from external media
+`omni-voice transcript` fetches captions and transcripts from external media
 platforms. YouTube is the only source today; the CLI namespace and the
 underlying library are designed so additional sources (Vimeo, podcast RSS,
 generic VTT/SRT URLs, …) can be added without restructuring.
@@ -12,24 +12,24 @@ output stay clean:
 
 ```bash
 # Fetch captions for an unrestricted, captioned video.
-omni-dev transcript youtube fetch https://www.youtube.com/watch?v=jNQXAC9IVRw
+omni-voice transcript youtube fetch https://www.youtube.com/watch?v=jNQXAC9IVRw
 
 # Same video, written to disk as WebVTT.
-omni-dev transcript youtube fetch jNQXAC9IVRw \
+omni-voice transcript youtube fetch jNQXAC9IVRw \
   --format vtt --output me-at-the-zoo.vtt
 
 # Fall through to auto-generated captions when no manual track exists.
-omni-dev transcript youtube fetch <url> --auto
+omni-voice transcript youtube fetch <url> --auto
 
 # Synthesise a translated track when no native track matches the language.
-omni-dev transcript youtube fetch <url> --lang fr --translate fr
+omni-voice transcript youtube fetch <url> --lang fr --translate fr
 
 # List every caption track on a video, with `kind` distinguishing manual
 # from auto-generated.
-omni-dev transcript youtube list-langs <url>
+omni-voice transcript youtube list-langs <url>
 
 # Show top-level metadata (title, channel, duration, available languages).
-omni-dev transcript youtube info <url> --output json
+omni-voice transcript youtube info <url> --output json
 ```
 
 ### `fetch` flags
@@ -55,7 +55,7 @@ omni-dev transcript youtube info <url> --output json
 ### Errors
 
 Failures surface as typed variants of
-[`TranscriptError`](https://docs.rs/omni-dev/latest/omni_dev/transcript/enum.TranscriptError.html)
+[`TranscriptError`](https://docs.rs/omni-voice/latest/omni_voice/transcript/enum.TranscriptError.html)
 rather than generic HTTP errors:
 
 | Variant                       | When                                                                  |
@@ -108,7 +108,7 @@ pub trait TranscriptSource: Send + Sync {
 
 `matches` is `where Self: Sized` so it stays out of the `dyn` vtable —
 sources can be used through `Box<dyn TranscriptSource>` (planned for a
-future `omni-dev transcript fetch <url>` auto-detect path).
+future `omni-voice transcript fetch <url>` auto-detect path).
 
 Format converters take `&[Cue]` and never reach back into a source, so
 they are reused as-is by every implementation.

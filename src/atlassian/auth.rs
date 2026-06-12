@@ -1,7 +1,7 @@
 //! Atlassian credential management.
 //!
 //! Loads and saves Atlassian Cloud API credentials from/to the
-//! `~/.omni-dev/settings.json` file using the existing `env` map.
+//! `~/.omni-voice/settings.json` file using the existing `env` map.
 
 use std::collections::HashMap;
 use std::fs;
@@ -118,7 +118,7 @@ pub fn status() -> AuthStatus {
     }
 }
 
-/// Saves Atlassian credentials to `~/.omni-dev/settings.json`.
+/// Saves Atlassian credentials to `~/.omni-voice/settings.json`.
 ///
 /// Reads the existing settings file, merges the new credential keys into
 /// the `env` map, and writes back. Preserves all other settings.
@@ -238,7 +238,7 @@ pub(crate) mod test_util {
 
         /// Sets the three Atlassian credential env vars to point at a wiremock
         /// (or any HTTP) endpoint. The matching `HOME` is replaced with a
-        /// fresh tempdir so any `~/.omni-dev/settings.json` on the developer's
+        /// fresh tempdir so any `~/.omni-voice/settings.json` on the developer's
         /// machine does not bleed in.
         pub(crate) fn set_credentials(&self, instance_url: &str) -> tempfile::TempDir {
             let dir = {
@@ -367,7 +367,7 @@ mod tests {
     fn status_reports_presence_flags_from_settings_without_leaking_secrets() {
         let guard = EnvGuard::take();
         let dir = with_empty_home(&guard);
-        let omni_dir = dir.path().join(".omni-dev");
+        let omni_dir = dir.path().join(".omni-voice");
         fs::create_dir_all(&omni_dir).unwrap();
         fs::write(
             omni_dir.join("settings.json"),
@@ -434,7 +434,7 @@ mod tests {
             };
             save_credentials(&creds).unwrap();
 
-            let settings_path = temp_dir.path().join(".omni-dev").join("settings.json");
+            let settings_path = temp_dir.path().join(".omni-voice").join("settings.json");
             assert!(settings_path.exists());
             let content = fs::read_to_string(&settings_path).unwrap();
             let val: serde_json::Value = serde_json::from_str(&content).unwrap();
@@ -452,7 +452,7 @@ mod tests {
                 std::fs::create_dir_all("tmp").ok();
                 tempfile::TempDir::new_in("tmp").unwrap()
             };
-            let omni_dir = temp_dir.path().join(".omni-dev");
+            let omni_dir = temp_dir.path().join(".omni-voice");
             fs::create_dir_all(&omni_dir).unwrap();
             let settings_path = omni_dir.join("settings.json");
             fs::write(

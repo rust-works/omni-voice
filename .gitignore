@@ -45,11 +45,12 @@ lcov.info
 
 .ai
 
-# Local omni-dev configuration overrides (personal settings)
-.omni-dev/local/
+# Local omni-voice configuration overrides (personal settings)
+.omni-voice/local/
 
 # ASCII Cinema demo files (temporary)
 cinema/
 
 # Git worktrees
 /.work/
+/*.jsonl

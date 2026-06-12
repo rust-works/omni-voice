@@ -1,11 +1,11 @@
 //! Embedded reference resources shared by the CLI and the MCP server.
 //!
 //! Resources are exposed via two surfaces that must stay in lock step:
-//! - CLI: `omni-dev resources show <id>` / `omni-dev resources list`
-//! - MCP: `omni-dev://<id>` (e.g. `omni-dev://specs/jfm`)
+//! - CLI: `omni-voice resources show <id>` / `omni-voice resources list`
+//! - MCP: `omni-voice://<id>` (e.g. `omni-voice://specs/jfm`)
 //!
 //! Content is embedded into the binary at compile time so installed builds
-//! (`cargo install omni-dev`) serve it without reading from disk.
+//! (`cargo install omni-voice`) serve it without reading from disk.
 
 /// JFM (JIRA-Flavoured Markdown) specification, embedded from
 /// `docs/specs/jfm.md`.
@@ -31,7 +31,7 @@ pub const REGISTRY: &[Resource] = &[Resource {
 
 /// Returns the resource with the given canonical id, or `None`.
 ///
-/// Lookup is exact-string and case-sensitive. The `omni-dev://` URI scheme
+/// Lookup is exact-string and case-sensitive. The `omni-voice://` URI scheme
 /// must be stripped by the caller before lookup.
 pub fn get(id: &str) -> Option<&'static Resource> {
     REGISTRY.iter().find(|r| r.id == id)

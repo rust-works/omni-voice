@@ -81,7 +81,7 @@ fn jira_write_error(status: u16, body: String) -> anyhow::Error {
 /// accepts an [`AtlassianCredentials`](crate::atlassian::auth::AtlassianCredentials)
 /// resolved from the `ATLASSIAN_INSTANCE_URL`, `ATLASSIAN_EMAIL`, and
 /// `ATLASSIAN_API_TOKEN` environment variables (falling back to
-/// `~/.omni-dev/settings.json`) by
+/// `~/.omni-voice/settings.json`) by
 /// [`load_credentials`](crate::atlassian::auth::load_credentials).
 ///
 /// Authenticates every request with HTTP Basic auth: a precomputed
@@ -140,7 +140,7 @@ pub struct JiraIssue {
 /// populated for [`Self::Named`] and [`Self::All`].
 #[derive(Debug, Clone, Default)]
 pub enum FieldSelection {
-    /// Only the standard fields omni-dev tracks (summary, description,
+    /// Only the standard fields omni-voice tracks (summary, description,
     /// status, issuetype, assignee, priority, labels).
     #[default]
     Standard,
@@ -456,7 +456,7 @@ pub struct JiraField {
 }
 
 /// Maps a raw `(schema.type, schema.custom)` pair from the JIRA field API into
-/// the value omni-dev surfaces as `schema_type`. Rich-text custom fields are
+/// the value omni-voice surfaces as `schema_type`. Rich-text custom fields are
 /// reported as `"richtext"` so callers can detect ADF-required fields without
 /// inspecting the plugin URI; all other fields pass through unchanged.
 fn map_schema_type(raw_type: Option<String>, raw_custom: Option<&str>) -> Option<String> {
@@ -3688,7 +3688,7 @@ mod tests {
 
     #[tokio::test]
     async fn search_confluence_users_missing_account_id() {
-        // Regression for rust-works/omni-dev#542: some user records (e.g. app
+        // Regression for rust-works/omni-voice#542: some user records (e.g. app
         // users, deactivated users) return no `accountId`. Such entries must
         // not fail deserialization.
         let server = wiremock::MockServer::start().await;

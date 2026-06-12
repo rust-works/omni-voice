@@ -1,6 +1,6 @@
 # Shell Completion
 
-`omni-dev completions <shell>` prints a shell completion script to stdout. The
+`omni-voice completions <shell>` prints a shell completion script to stdout. The
 script is generated from the live clap command tree, so it stays in sync with
 the CLI surface across releases without a separate maintenance burden.
 
@@ -8,15 +8,15 @@ Supported shells: `bash`, `zsh`, `fish`, `powershell`, `elvish`.
 
 The subcommand is hidden from the top-level `--help` listing to keep the
 primary help block focused on day-to-day commands, but it remains discoverable
-via `omni-dev help-all`.
+via `omni-voice help-all`.
 
 ## Quick check
 
 ```bash
-omni-dev completions bash | head
+omni-voice completions bash | head
 ```
 
-If you see a `_omni-dev()` function definition, the binary is working. The
+If you see a `_omni-voice()` function definition, the binary is working. The
 remaining sections cover how to install the script so your shell actually
 loads it.
 
@@ -26,16 +26,16 @@ loads it.
 
 ```bash
 # In ~/.bashrc:
-eval "$(omni-dev completions bash)"
+eval "$(omni-voice completions bash)"
 ```
 
 This regenerates the completion script every time a new bash session starts,
-so upgrading `omni-dev` is enough — there is no separate file to refresh.
+so upgrading `omni-voice` is enough — there is no separate file to refresh.
 
 ### System-wide
 
 ```bash
-omni-dev completions bash | sudo tee /etc/bash_completion.d/omni-dev > /dev/null
+omni-voice completions bash | sudo tee /etc/bash_completion.d/omni-voice > /dev/null
 ```
 
 Requires the `bash-completion` package installed on the system. New shells
@@ -44,19 +44,19 @@ pick it up automatically.
 ## Zsh
 
 Zsh discovers completion functions via `$fpath` and loads them through
-`compinit`. The file must be named `_omni-dev` (underscore prefix matching the
+`compinit`. The file must be named `_omni-voice` (underscore prefix matching the
 command name) and live in a directory on `$fpath`.
 
 ### Per-user (recommended)
 
-The naive `omni-dev completions zsh > "${fpath[1]}/_omni-dev"` recipe assumes
+The naive `omni-voice completions zsh > "${fpath[1]}/_omni-voice"` recipe assumes
 `$fpath[1]` is user-writable. On most systems it is not — it tends to be
 `/usr/share/zsh/site-functions`, owned by root. Use a directory you own
 instead:
 
 ```bash
 mkdir -p ~/.zsh/completions
-omni-dev completions zsh > ~/.zsh/completions/_omni-dev
+omni-voice completions zsh > ~/.zsh/completions/_omni-voice
 ```
 
 Then add this to `~/.zshrc` **before** `compinit` runs:
@@ -75,22 +75,22 @@ can skip the `$fpath` edit:
 
 ```bash
 mkdir -p ~/.oh-my-zsh/completions
-omni-dev completions zsh > ~/.oh-my-zsh/completions/_omni-dev
+omni-voice completions zsh > ~/.oh-my-zsh/completions/_omni-voice
 ```
 
 ### Verifying without restarting
 
 ```zsh
-unfunction _omni-dev 2>/dev/null
-autoload -Uz _omni-dev
-omni-dev <Tab>
+unfunction _omni-voice 2>/dev/null
+autoload -Uz _omni-voice
+omni-voice <Tab>
 ```
 
 If completion fires, the installation worked.
 
 ### Troubleshooting
 
-- **"_omni-dev: function definition file not found"** — the file is not on
+- **"_omni-voice: function definition file not found"** — the file is not on
   `$fpath`. Run `echo $fpath` and confirm the directory you wrote to is
   listed; if not, the `fpath=(...)` line in `.zshrc` is missing or runs
   after `compinit`.
@@ -103,7 +103,7 @@ Fish loads completions from `~/.config/fish/completions/<command>.fish`
 automatically:
 
 ```fish
-omni-dev completions fish > ~/.config/fish/completions/omni-dev.fish
+omni-voice completions fish > ~/.config/fish/completions/omni-voice.fish
 ```
 
 No `fish` config change is required. The completion is available immediately
@@ -114,13 +114,13 @@ in new shells (and in existing shells after `source` of the file).
 PowerShell uses `Register-ArgumentCompleter`. For the current session:
 
 ```powershell
-omni-dev completions powershell | Out-String | Invoke-Expression
+omni-voice completions powershell | Out-String | Invoke-Expression
 ```
 
 For persistence across sessions, append the same line to your `$PROFILE`:
 
 ```powershell
-Add-Content $PROFILE 'omni-dev completions powershell | Out-String | Invoke-Expression'
+Add-Content $PROFILE 'omni-voice completions powershell | Out-String | Invoke-Expression'
 ```
 
 Then reopen the shell or `. $PROFILE`.
@@ -130,20 +130,20 @@ Then reopen the shell or `. $PROFILE`.
 Elvish loads modules from `~/.config/elvish/lib/`:
 
 ```bash
-omni-dev completions elvish > ~/.config/elvish/lib/omni-dev.elv
+omni-voice completions elvish > ~/.config/elvish/lib/omni-voice.elv
 ```
 
-Then `use omni-dev` from `~/.config/elvish/rc.elv` to load it on shell start.
+Then `use omni-voice` from `~/.config/elvish/rc.elv` to load it on shell start.
 
 ## Upgrading
 
-When you upgrade `omni-dev`, regenerate any installed completion files so they
+When you upgrade `omni-voice`, regenerate any installed completion files so they
 reflect new subcommands and flags. The bash `eval "$(...)"` recipe does this
 automatically; the file-based recipes do not.
 
 A simple refresh script:
 
 ```bash
-omni-dev completions zsh > ~/.zsh/completions/_omni-dev
-omni-dev completions fish > ~/.config/fish/completions/omni-dev.fish
+omni-voice completions zsh > ~/.zsh/completions/_omni-voice
+omni-voice completions fish > ~/.config/fish/completions/omni-voice.fish
 ```

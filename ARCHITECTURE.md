@@ -1,13 +1,13 @@
 # Architecture
 
-This document describes the high-level design of omni-dev. It is intended to help developers quickly build a mental model of the codebase.
+This document describes the high-level design of omni-voice. It is intended to help developers quickly build a mental model of the codebase.
 
 ## System overview
 
-omni-dev is a developer toolkit that pairs AI-powered Git commit analysis with read/write access to Atlassian and Datadog. It ships as two binaries:
+omni-voice is a developer toolkit that pairs AI-powered Git commit analysis with read/write access to Atlassian and Datadog. It ships as two binaries:
 
-- **`omni-dev`** — the primary CLI: git commit workflows, PR creation, JIRA/Confluence integration, Datadog queries, and AI diagnostics.
-- **`omni-dev-mcp`** — an optional MCP server gated behind the `mcp` Cargo feature that exposes the same surface to AI assistants over stdio. See [ADR-0021](docs/adrs/adr-0021.md).
+- **`omni-voice`** — the primary CLI: git commit workflows, PR creation, JIRA/Confluence integration, Datadog queries, and AI diagnostics.
+- **`omni-voice-mcp`** — an optional MCP server gated behind the `mcp` Cargo feature that exposes the same surface to AI assistants over stdio. See [ADR-0021](docs/adrs/adr-0021.md).
 
 The git/AI workflows are:
 
@@ -21,8 +21,8 @@ All AI-powered workflows share the same pipeline: parse CLI arguments, read git 
 
 ```
 src/
-├── main.rs              `omni-dev` entry point: tracing, Cli::parse(), execute()
-├── mcp_server.rs        `omni-dev-mcp` entry point (gated by `mcp` feature)
+├── main.rs              `omni-voice` entry point: tracing, Cli::parse(), execute()
+├── mcp_server.rs        `omni-voice-mcp` entry point (gated by `mcp` feature)
 ├── lib.rs               Public module exports and VERSION constant
 ├── cli.rs               Clap command hierarchy root + global flags
 ├── cli/
@@ -43,7 +43,7 @@ src/
 │   ├── datadog_tools.rs                     14 datadog_* tools
 │   ├── ai_tools.rs                          ai_chat, claude_skills_*
 │   ├── config_tools.rs                      config_models_show, atlassian_auth_status
-│   ├── resources.rs                         git://, jira://, confluence://, omni-dev://specs/{name}
+│   ├── resources.rs                         git://, jira://, confluence://, omni-voice://specs/{name}
 │   ├── specs.rs                             include_str! reference specs (jfm)
 │   ├── output_file.rs                       Off-context write helper for read tools
 │   └── truncate.rs / validate.rs / cancel.rs / error.rs
@@ -73,9 +73,9 @@ src/
 ├── data/                RepositoryView, AmendmentFile, CheckReport, ProjectContext, YAML utils
 ├── git/                 GitRepository (git2 wrapper), CommitInfo, AmendmentHandler, RemoteInfo
 ├── utils/
-│   ├── settings.rs      Settings loading (env vars → ~/.omni-dev/settings.json)
+│   ├── settings.rs      Settings loading (env vars → ~/.omni-voice/settings.json)
 │   ├── preflight.rs     AI credential / GitHub CLI / Atlassian / Datadog preflight
-│   ├── ai_scratch.rs    `~/.cache/omni-dev/ai-scratch/` management
+│   ├── ai_scratch.rs    `~/.cache/omni-voice/ai-scratch/` management
 │   └── general.rs       General utilities
 └── templates/
     ├── models.yaml                  AI model specifications
@@ -98,13 +98,13 @@ src/
 
 **`datadog/`** — Typed Datadog v1/v2 client. Each endpoint family has its own façade (`monitors_api.rs`, `dashboards_api.rs`, etc.) emitting strongly-typed responses. The base `DatadogClient` handles 429 with `Retry-After` / `X-RateLimit-Reset` and surfaces rate-limit headers in error output.
 
-**`mcp/`** *(feature `mcp`)* — MCP server runtime built on `rmcp`. Each tool family lives in its own module; tools are registered via the `#[tool]` macro and the per-domain `tool_router()` builders in `OmniDevServer::new()`. Tools build a fresh client per invocation so credential changes take effect without restart.
+**`mcp/`** *(feature `mcp`)* — MCP server runtime built on `rmcp`. Each tool family lives in its own module; tools are registered via the `#[tool]` macro and the per-domain `tool_router()` builders in `OmniVoiceServer::new()`. Tools build a fresh client per invocation so credential changes take effect without restart.
 
 ### AI backend dispatch
 
 `src/claude/client.rs::create_default_claude_client` selects an `AiClient` implementation in this order:
 
-1. `OMNI_DEV_AI_BACKEND=claude-cli` (or `--ai-backend claude-cli`) → `ClaudeCliAiClient` — shells out to `claude -p` in a sandbox (tools off, MCP off, settings skipped, fresh temp cwd, scrubbed env). Honours escape hatches `OMNI_DEV_CLAUDE_CLI_ALLOW_TOOLS` / `OMNI_DEV_CLAUDE_CLI_ALLOW_MCP` and the per-call cap `OMNI_DEV_CLAUDE_CLI_MAX_BUDGET_USD`.
+1. `OMNI_VOICE_AI_BACKEND=claude-cli` (or `--ai-backend claude-cli`) → `ClaudeCliAiClient` — shells out to `claude -p` in a sandbox (tools off, MCP off, settings skipped, fresh temp cwd, scrubbed env). Honours escape hatches `OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS` / `OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP` and the per-call cap `OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD`.
 2. `USE_OLLAMA=true` → `OpenAiAiClient::new_ollama`.
 3. `USE_OPENAI=true` → `OpenAiAiClient::new_openai`.
 4. `CLAUDE_CODE_USE_BEDROCK=true` → `BedrockAiClient`.
@@ -130,8 +130,8 @@ Git repository operations (git2)
 RepositoryView construction
   ├─ Assemble all commit info, branch info, remotes
   └─ (Optional) Load project context via ProjectDiscovery
-       ├─ Commit guidelines from .omni-dev/commit-guidelines.md
-       ├─ Scopes from .omni-dev/scopes.yaml + ecosystem defaults
+       ├─ Commit guidelines from .omni-voice/commit-guidelines.md
+       ├─ Scopes from .omni-voice/scopes.yaml + ecosystem defaults
        └─ Branch, file, and work pattern analysis
     │
     ▼
@@ -214,9 +214,9 @@ Loads model specifications from an embedded YAML file (`src/templates/models.yam
 Resolves project configuration with cascading priority:
 
 ```
-.omni-dev/local/{file}    ← local override (gitignored)
-.omni-dev/{file}           ← project shared config
-~/.omni-dev/{file}         ← user home fallback
+.omni-voice/local/{file}    ← local override (gitignored)
+.omni-voice/{file}           ← project shared config
+~/.omni-voice/{file}         ← user home fallback
 ```
 
 Detects the project ecosystem from marker files (`Cargo.toml` → Rust, `package.json` → Node, etc.) and merges ecosystem-specific default scopes into the project's custom scopes.

@@ -1,4 +1,4 @@
-//! `omni-dev ai claude history sync` — exports Claude Code conversation
+//! `omni-voice ai claude history sync` — exports Claude Code conversation
 //! history to a target directory as one `.jsonl` (and/or `.md`) per chat.
 //!
 //! See the issue and the module-level docs in [`super`] for the design rationale

@@ -1,9 +1,9 @@
-//! `omni-dev voice install-model` — one-time fetch of model artefacts.
+//! `omni-voice voice install-model` — one-time fetch of model artefacts.
 //!
 //! Supports two variants: `whisper-tiny.en` for the `whisper-candle` ASR
 //! backend, and `speaker-wespeaker-en` for the speaker-embedding runtime
 //! added in #805 / ADR-0034. Files land in the conventional install
-//! locations beneath `~/.omni-dev/voice/models/`.
+//! locations beneath `~/.omni-voice/voice/models/`.
 //!
 //! Bumps the model-download cost to install time rather than transcribe/
 //! enrol time, so network failures surface explicitly when the user opts
@@ -47,7 +47,7 @@ impl Variant {
 }
 
 /// Downloads the model files for a chosen variant into the conventional
-/// install location at `~/.omni-dev/voice/models/<variant-subdir>/` (or
+/// install location at `~/.omni-voice/voice/models/<variant-subdir>/` (or
 /// `--dest` to override).
 ///
 /// Idempotent: if every required file is already present and non-empty,
@@ -56,7 +56,7 @@ impl Variant {
 #[derive(Parser)]
 pub struct InstallModelCommand {
     /// Override the install directory. Defaults to the variant's
-    /// canonical location under `~/.omni-dev/voice/models/`.
+    /// canonical location under `~/.omni-voice/voice/models/`.
     #[arg(long)]
     pub dest: Option<PathBuf>,
 

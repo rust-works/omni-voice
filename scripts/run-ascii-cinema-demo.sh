@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ASCII Cinema Demo Script for omni-dev
+# ASCII Cinema Demo Script for omni-voice
 # Run this from the demo repository after setting it up
 
 set -e
@@ -35,17 +35,17 @@ pause() {
 # Check if we're in the demo repository
 if [[ ! -f "src/auth/oauth.js" ]]; then
     echo -e "${RED}❌ Error: Please run this script from the demo repository directory${NC}"
-    echo -e "${YELLOW}💡 Run: cd cinema/omni-dev-demo && ../../scripts/run-ascii-cinema-demo.sh${NC}"
+    echo -e "${YELLOW}💡 Run: cd cinema/omni-voice-demo && ../../scripts/run-ascii-cinema-demo.sh${NC}"
     exit 1
 fi
 
 clear
 echo -e "${PURPLE}========================================${NC}"
-echo -e "${PURPLE}  🎬 omni-dev ASCII Cinema Demo 🎬     ${NC}"
+echo -e "${PURPLE}  🎬 omni-voice ASCII Cinema Demo 🎬     ${NC}"
 echo -e "${PURPLE}========================================${NC}"
 echo ""
 
-type_text "Welcome to omni-dev - the AI-powered Git commit toolkit!" 0.03
+type_text "Welcome to omni-voice - the AI-powered Git commit toolkit!" 0.03
 echo -e "${CYAN}Let's see how it transforms messy commits into professional ones!${NC}"
 echo ""
 pause 2
@@ -67,15 +67,15 @@ echo ""
 echo -e "${BLUE}We can see we modified authentication, API, UI, and docs${NC}"
 pause 2
 
-# 3. Use omni-dev to analyze and improve commits
-echo -e "${GREEN}🤖 Now let's use omni-dev to analyze and improve these commits!${NC}"
+# 3. Use omni-voice to analyze and improve commits
+echo -e "${GREEN}🤖 Now let's use omni-voice to analyze and improve these commits!${NC}"
 echo ""
 type_text "export CLAUDE_API_KEY='sk-ant-...'  # Set your Claude API key" 0.05
 echo -e "${YELLOW}💡 (Make sure you have your Claude API key configured)${NC}"
 echo ""
 pause 1
 
-type_text "omni-dev git commit message twiddle 'HEAD~6..HEAD' --use-context" 0.05
+type_text "omni-voice git commit message twiddle 'HEAD~6..HEAD' --use-context" 0.05
 echo ""
 echo -e "${CYAN}🧠 AI is analyzing the code changes and improving commit messages...${NC}"
 echo -e "${CYAN}   This may take a few moments as AI processes each commit...${NC}"
@@ -110,7 +110,7 @@ pause 3
 
 # 5. Show commit analysis feature
 echo -e "${YELLOW}🔍 Let's analyze one of our commits in detail...${NC}"
-type_text "omni-dev git commit analyze HEAD" 0.05
+type_text "omni-voice git commit analyze HEAD" 0.05
 echo ""
 echo -e "${CYAN}📊 Detailed Commit Analysis:${NC}"
 echo -e "${BLUE}  • Type: Documentation${NC}"
@@ -123,7 +123,7 @@ pause 3
 
 # 6. Show branch analysis
 echo -e "${YELLOW}🌿 Now let's analyze our entire branch...${NC}"
-type_text "omni-dev git branch analyze" 0.05
+type_text "omni-voice git branch analyze" 0.05
 echo ""
 echo -e "${CYAN}📈 Branch Analysis Summary:${NC}"
 echo -e "${BLUE}  • Total Commits: 7${NC}"
@@ -137,7 +137,7 @@ pause 3
 
 # 7. Create a professional PR
 echo -e "${PURPLE}🚀 Finally, let's create a professional PR with AI-generated description!${NC}"
-type_text "omni-dev git branch create pr" 0.05
+type_text "omni-voice git branch create pr" 0.05
 echo ""
 echo -e "${CYAN}🤖 AI is generating professional PR description...${NC}"
 pause 2
@@ -174,11 +174,11 @@ echo -e "${GREEN}✅ Generated conventional commit messages${NC}"
 echo -e "${GREEN}✅ Analyzed commit and branch quality${NC}"
 echo -e "${GREEN}✅ Created a professional PR with AI description${NC}"
 echo ""
-echo -e "${YELLOW}🚀 omni-dev: Making your Git history professional, one commit at a time!${NC}"
+echo -e "${YELLOW}🚀 omni-voice: Making your Git history professional, one commit at a time!${NC}"
 echo ""
 echo -e "${BLUE}Installation:${NC}"
-echo -e "${BLUE}  cargo install omni-dev${NC}"
+echo -e "${BLUE}  cargo install omni-voice${NC}"
 echo -e "${BLUE}  # or${NC}"
-echo -e "${BLUE}  nix profile install github:rust-works/omni-dev${NC}"
+echo -e "${BLUE}  nix profile install github:rust-works/omni-voice${NC}"
 echo ""
-echo -e "${BLUE}Learn more: https://github.com/rust-works/omni-dev${NC}"
+echo -e "${BLUE}Learn more: https://github.com/rust-works/omni-voice${NC}"

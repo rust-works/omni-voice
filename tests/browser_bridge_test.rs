@@ -21,7 +21,7 @@ use tokio::net::TcpListener;
 use tokio_tungstenite::tungstenite::ClientRequestBuilder;
 use tokio_tungstenite::tungstenite::Message;
 
-use omni_dev::browser::{self, BridgeConfig};
+use omni_voice::browser::{self, BridgeConfig};
 
 /// Boots a bridge on random ports and returns `(control_port, ws_port, token)`.
 /// Serialises the reserve→drop→rebind window across all tests. `tokio::test`
@@ -860,7 +860,7 @@ async fn cli_request_client_streams() {
     .await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    let bin = env!("CARGO_BIN_EXE_omni-dev");
+    let bin = env!("CARGO_BIN_EXE_omni-voice");
     let out = tokio::process::Command::new(bin)
         .args([
             "browser",
@@ -1134,7 +1134,7 @@ async fn bridge_survives_unparseable_browser_frame() {
 #[tokio::test]
 async fn cli_request_client_stream_reports_error() {
     let (control_port, _ws_port, token) = start_bridge(None, Duration::from_secs(5)).await;
-    let bin = env!("CARGO_BIN_EXE_omni-dev");
+    let bin = env!("CARGO_BIN_EXE_omni-voice");
     let out = tokio::process::Command::new(bin)
         .args([
             "browser",
@@ -1155,7 +1155,7 @@ async fn cli_request_client_stream_reports_error() {
     assert!(stderr.contains("503"), "stderr was: {stderr}");
 }
 
-/// Drives the real `omni-dev browser bridge request` thin client against a running
+/// Drives the real `omni-voice browser bridge request` thin client against a running
 /// bridge. Exercises the CLI dispatch and `request::execute` end to end
 /// (token from env, header injection, `--header`, `--body @file`, and envelope
 /// printing) rather than re-implementing the HTTP call.
@@ -1165,7 +1165,7 @@ async fn cli_request_client_round_trips() {
     let _browser = FakeBrowser::connect(ws_port, &token, true).await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    let bin = env!("CARGO_BIN_EXE_omni-dev");
+    let bin = env!("CARGO_BIN_EXE_omni-voice");
 
     // GET with a custom header.
     let out = tokio::process::Command::new(bin)
@@ -1225,7 +1225,7 @@ async fn cli_request_client_round_trips() {
 /// The client exits non-zero with a helpful message when no token is available.
 #[tokio::test]
 async fn cli_request_client_without_token_errors() {
-    let bin = env!("CARGO_BIN_EXE_omni-dev");
+    let bin = env!("CARGO_BIN_EXE_omni-voice");
     let out = tokio::process::Command::new(bin)
         .args(["browser", "bridge", "request", "--url", "/x"])
         .env_remove("OMNI_BRIDGE_TOKEN")
@@ -1242,7 +1242,7 @@ async fn cli_request_client_without_token_errors() {
 async fn cli_request_client_reports_bridge_error() {
     // Bridge running, but no browser connected → control plane returns 503.
     let (control_port, _ws_port, token) = start_bridge(None, Duration::from_secs(5)).await;
-    let bin = env!("CARGO_BIN_EXE_omni-dev");
+    let bin = env!("CARGO_BIN_EXE_omni-voice");
     let out = tokio::process::Command::new(bin)
         .args([
             "browser",

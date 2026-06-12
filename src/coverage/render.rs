@@ -6,7 +6,7 @@
 //! EPS-filtered per-file before/after/Δ table, and the artifact footer — plus a
 //! `### Patch coverage` section (the headline metric the aggregate comment could
 //! never show) and an indirect-changes section. CI renders this comment via
-//! `omni-dev coverage diff --format markdown` (see `.github/workflows/ci.yml`).
+//! `omni-voice coverage diff --format markdown` (see `.github/workflows/ci.yml`).
 
 use anyhow::Result;
 use serde::Serialize;

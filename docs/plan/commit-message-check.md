@@ -1,10 +1,10 @@
-# Plan: `omni-dev git commit message check` Command
+# Plan: `omni-voice git commit message check` Command
 
 **Status:** Built
 
 ## Overview
 
-Add a new `omni-dev git commit message check` command that analyzes commit messages against the actual code changes (diffs) and **project-defined commit guidelines**, producing a report of issues without modifying any commits.
+Add a new `omni-voice git commit message check` command that analyzes commit messages against the actual code changes (diffs) and **project-defined commit guidelines**, producing a report of issues without modifying any commits.
 
 Key characteristics:
 - **Non-interactive**: Designed for CI pipelines and automated checks
@@ -30,7 +30,7 @@ This means:
 
 ## Commit Guidelines Structure
 
-Projects define their commit guidelines in `.omni-dev/commit-guidelines.md` (see [`omni-dev-directory.md`](../omni-dev-directory.md#commit-guidelinesmd) for the format contract). The check command reads and enforces these. Guidelines should specify severity levels for violations.
+Projects define their commit guidelines in `.omni-voice/commit-guidelines.md` (see [`omni-voice-directory.md`](../omni-voice-directory.md#commit-guidelinesmd) for the format contract). The check command reads and enforces these. Guidelines should specify severity levels for violations.
 
 ### Example Commit Guidelines File
 
@@ -77,7 +77,7 @@ When no project guidelines exist, the command uses built-in defaults based on co
 ## Command Structure
 
 ```
-omni-dev git commit message check [OPTIONS] [COMMIT_RANGE]
+omni-voice git commit message check [OPTIONS] [COMMIT_RANGE]
 ```
 
 ### Arguments

@@ -10,11 +10,11 @@
 //! magnitude slower):
 //!
 //! ```text
-//! omni-dev voice install-model
+//! omni-voice voice install-model
 //! cargo test --release --test voice_streaming_candle_test -- --ignored --nocapture
 //! ```
 //!
-//! Or point at a pre-staged install via `OMNI_DEV_VOICE_WHISPER_MODEL`.
+//! Or point at a pre-staged install via `OMNI_VOICE_VOICE_WHISPER_MODEL`.
 //!
 //! The paced test replays the fixture at 1× wall-clock via a
 //! **deadline-based** driver ([`PacedAudioInput`]): chunk `i` is released
@@ -25,7 +25,7 @@
 //!
 //! Peak RSS is reported on Linux (`/proc/self/status` `VmHWM`, no `unsafe`
 //! needed) and additionally **gated** at ≤ 500 MB when
-//! `OMNI_DEV_STREAMING_RSS_GATE=1` — set by the CI keep-up workflow, which
+//! `OMNI_VOICE_STREAMING_RSS_GATE=1` — set by the CI keep-up workflow, which
 //! runs this binary in isolation so the process high-water mark belongs to
 //! one pipeline rather than several tests sharing the process.
 
@@ -35,10 +35,10 @@
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-use omni_dev::voice::backends::candle_streaming::{CandleStreamingTranscriber, StreamingConfig};
-use omni_dev::voice::det::CountingUlidRng;
-use omni_dev::voice::models::{default_whisper_model_dir, ensure_model_present};
-use omni_dev::voice::transcriber::{
+use omni_voice::voice::backends::candle_streaming::{CandleStreamingTranscriber, StreamingConfig};
+use omni_voice::voice::det::CountingUlidRng;
+use omni_voice::voice::models::{default_whisper_model_dir, ensure_model_present};
+use omni_voice::voice::transcriber::{
     AudioChunk, AudioInput, EndpointKind, Transcriber, TranscriptEvent, VecAudioInput,
 };
 
@@ -64,7 +64,7 @@ fn fixture_words() -> PathBuf {
 }
 
 fn resolve_model_dir() -> Option<PathBuf> {
-    if let Ok(env) = std::env::var("OMNI_DEV_VOICE_WHISPER_MODEL") {
+    if let Ok(env) = std::env::var("OMNI_VOICE_VOICE_WHISPER_MODEL") {
         if !env.is_empty() {
             return Some(PathBuf::from(env));
         }
@@ -74,8 +74,8 @@ fn resolve_model_dir() -> Option<PathBuf> {
 
 fn require_model_dir() -> PathBuf {
     resolve_model_dir().expect(
-        "Whisper model not found. Run `omni-dev voice install-model` or set \
-         OMNI_DEV_VOICE_WHISPER_MODEL=<path> to point at a pre-staged install.",
+        "Whisper model not found. Run `omni-voice voice install-model` or set \
+         OMNI_VOICE_VOICE_WHISPER_MODEL=<path> to point at a pre-staged install.",
     )
 }
 
@@ -198,7 +198,7 @@ fn peak_rss_bytes() -> Option<u64> {
 /// `WhisperEngine::decode_pcm`) so the inference code is covered.
 /// Config trades cadence for speed (~3 decodes total).
 #[test]
-#[ignore = "requires Whisper tiny.en model on disk; run `omni-dev voice install-model` first"]
+#[ignore = "requires Whisper tiny.en model on disk; run `omni-voice voice install-model` first"]
 fn streaming_smoke_short_en_transcribes_with_real_backend() {
     const CONTENT_WORDS: &[&str] = &[
         "wizards",
@@ -264,7 +264,7 @@ fn streaming_smoke_short_en_transcribes_with_real_backend() {
 /// RTF ≤ 0.5 (an upper bound on inference RTF — chunk pulls are instant
 /// when unpaced), and event-stream shape.
 #[test]
-#[ignore = "requires Whisper tiny.en model on disk; run `omni-dev voice install-model` first"]
+#[ignore = "requires Whisper tiny.en model on disk; run `omni-voice voice install-model` first"]
 fn streaming_unpaced_meets_wer_and_rtf_envelope() {
     let model_dir = require_model_dir();
     let transcriber = CandleStreamingTranscriber::new(&model_dir)
@@ -310,7 +310,7 @@ fn streaming_unpaced_meets_wer_and_rtf_envelope() {
         "frontier should be ~300 s, got {audio_secs}"
     );
     let rtf = wall_secs / audio_secs;
-    let rtf_gate = env_gate("OMNI_DEV_STREAMING_RTF_GATE", 0.5);
+    let rtf_gate = env_gate("OMNI_VOICE_STREAMING_RTF_GATE", 0.5);
     eprintln!("unpaced: wall={wall_secs:.1}s audio={audio_secs:.1}s rtf={rtf:.3}");
     assert!(
         rtf <= rtf_gate,
@@ -333,7 +333,7 @@ fn streaming_unpaced_meets_wer_and_rtf_envelope() {
 /// [`CountingUlidRng`] must produce byte-identical serialized event
 /// streams (the #969 determinism gate; per-host).
 #[test]
-#[ignore = "requires Whisper tiny.en model on disk; run `omni-dev voice install-model` first"]
+#[ignore = "requires Whisper tiny.en model on disk; run `omni-voice voice install-model` first"]
 fn streaming_is_deterministic_across_runs() {
     let model_dir = require_model_dir();
 
@@ -374,10 +374,10 @@ fn streaming_is_deterministic_across_runs() {
 
 /// As-live envelope at 1× pacing: time-to-final ≤ 2.5 s (mean & max),
 /// display lag bounded and non-drifting; partial-latency P50/P95 and peak
-/// RSS reported (RSS gated only under `OMNI_DEV_STREAMING_RSS_GATE=1`).
+/// RSS reported (RSS gated only under `OMNI_VOICE_STREAMING_RSS_GATE=1`).
 /// Wall-clock runtime ≈ the fixture length (5 min).
 #[test]
-#[ignore = "requires Whisper tiny.en model on disk and ~5 min wall clock; run `omni-dev voice install-model` first"]
+#[ignore = "requires Whisper tiny.en model on disk and ~5 min wall clock; run `omni-voice voice install-model` first"]
 fn streaming_paced_time_to_final_and_lag_bounded() {
     let model_dir = require_model_dir();
     let transcriber = CandleStreamingTranscriber::new(&model_dir)
@@ -437,7 +437,7 @@ fn streaming_paced_time_to_final_and_lag_bounded() {
         "paced: time-to-final mean={ttf_mean:.2}s max={ttf_max:.2}s over {} endpoints",
         ttf.len()
     );
-    let ttf_gate = env_gate("OMNI_DEV_STREAMING_TTF_GATE", 2.5);
+    let ttf_gate = env_gate("OMNI_VOICE_STREAMING_TTF_GATE", 2.5);
     assert!(
         ttf_mean <= ttf_gate,
         "time-to-final mean gate: {ttf_mean:.2} > {ttf_gate} (baseline 0.73)"
@@ -534,7 +534,7 @@ fn streaming_paced_time_to_final_and_lag_bounded() {
         Some(bytes) => {
             let mb = bytes as f64 / (1024.0 * 1024.0);
             eprintln!("paced: peak RSS {mb:.0} MB (baseline ~429 MB)");
-            if std::env::var("OMNI_DEV_STREAMING_RSS_GATE").as_deref() == Ok("1") {
+            if std::env::var("OMNI_VOICE_STREAMING_RSS_GATE").as_deref() == Ok("1") {
                 assert!(mb <= 500.0, "peak RSS gate: {mb:.0} MB > 500 MB");
             }
         }

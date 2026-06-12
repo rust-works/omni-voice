@@ -54,7 +54,7 @@ impl LoginCommand {
     }
 }
 
-/// Validates credentials and persists them to `~/.omni-dev/settings.json`.
+/// Validates credentials and persists them to `~/.omni-voice/settings.json`.
 ///
 /// Extracted from [`LoginCommand::execute`] so the input-validation and
 /// site-normalisation branches are reachable from tests without mocking
@@ -79,9 +79,9 @@ fn run_login(api_key: &str, app_key: &str, site_raw: &str) -> Result<()> {
     };
 
     auth::save_credentials(&credentials)?;
-    println!("\nCredentials saved to ~/.omni-dev/settings.json");
+    println!("\nCredentials saved to ~/.omni-voice/settings.json");
     println!("  Site: {site}");
-    println!("\nRun `omni-dev datadog auth status` to verify.");
+    println!("\nRun `omni-voice datadog auth status` to verify.");
 
     Ok(())
 }
@@ -95,7 +95,7 @@ impl LogoutCommand {
     pub fn execute(self) -> Result<()> {
         let removed = auth::remove_credentials()?;
         if removed {
-            println!("Datadog credentials removed from ~/.omni-dev/settings.json");
+            println!("Datadog credentials removed from ~/.omni-voice/settings.json");
         } else {
             println!("No Datadog credentials were configured.");
         }
@@ -225,7 +225,7 @@ mod tests {
         run_login("api-1", "app-1", "").unwrap();
 
         let content =
-            fs::read_to_string(dir.path().join(".omni-dev").join("settings.json")).unwrap();
+            fs::read_to_string(dir.path().join(".omni-voice").join("settings.json")).unwrap();
         let val: serde_json::Value = serde_json::from_str(&content).unwrap();
         assert_eq!(val["env"]["DATADOG_API_KEY"], "api-1");
         assert_eq!(val["env"]["DATADOG_APP_KEY"], "app-1");
@@ -240,7 +240,7 @@ mod tests {
         run_login("api", "app", "https://api.us5.datadoghq.com/").unwrap();
 
         let content =
-            fs::read_to_string(dir.path().join(".omni-dev").join("settings.json")).unwrap();
+            fs::read_to_string(dir.path().join(".omni-voice").join("settings.json")).unwrap();
         let val: serde_json::Value = serde_json::from_str(&content).unwrap();
         assert_eq!(val["env"]["DATADOG_SITE"], "us5.datadoghq.com");
     }
@@ -251,7 +251,7 @@ mod tests {
     fn logout_command_removes_credentials_when_present() {
         let guard = EnvGuard::take();
         let dir = with_empty_home(&guard);
-        let omni_dir = dir.path().join(".omni-dev");
+        let omni_dir = dir.path().join(".omni-voice");
         fs::create_dir_all(&omni_dir).unwrap();
         fs::write(
             omni_dir.join("settings.json"),
@@ -348,7 +348,7 @@ mod tests {
     // ── StatusCommand::execute end-to-end via DATADOG_API_URL ─────
 
     fn write_settings(dir: &std::path::Path, site: &str) {
-        let omni_dir = dir.join(".omni-dev");
+        let omni_dir = dir.join(".omni-voice");
         fs::create_dir_all(&omni_dir).unwrap();
         let json = format!(
             r#"{{"env":{{"DATADOG_API_KEY":"api","DATADOG_APP_KEY":"app","DATADOG_SITE":"{site}"}}}}"#

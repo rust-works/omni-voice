@@ -21,7 +21,7 @@
 //!   Atlassian schema addition does not start producing violations.
 //! - Unknown attribute names are permissive (only declared fields are
 //!   checked). This keeps round-trip safe — Atlassian sometimes adds
-//!   optional fields that omni-dev's snapshot doesn't yet describe.
+//!   optional fields that omni-voice's snapshot doesn't yet describe.
 //! - `serde_json::Value::Null` for an optional field is treated as
 //!   "absent" (matches Atlassian's payload conventions).
 //!

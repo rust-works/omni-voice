@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>omni-dev Tutorial</title>
+  <title>omni-voice Tutorial</title>
   <style>
     :root {
       --bg: #fafbfc;
@@ -276,8 +276,8 @@
 <body>
 
 <header>
-  <h1>omni-dev — Atlassian, PRs, commits, the browser bridge, and more in seven tabs</h1>
-  <p>A tutorial covering seven omni-dev workflows. Switch tabs to navigate.</p>
+  <h1>omni-voice — Atlassian, PRs, commits, the browser bridge, and more in seven tabs</h1>
+  <p>A tutorial covering seven omni-voice workflows. Switch tabs to navigate.</p>
 </header>
 
 <div class="container">
@@ -305,11 +305,11 @@
       <h2>JIRA — read, write, and edit issues as local markdown</h2>
 
       <p>
-        omni-dev exposes JIRA issues through the
+        omni-voice exposes JIRA issues through the
         <strong>JFM (JIRA-Flavoured Markdown)</strong> format — YAML frontmatter
         plus a markdown body that round-trips losslessly to and from
         Atlassian Document Format (ADF). You edit issues like normal markdown
-        files; omni-dev handles the ADF translation on push.
+        files; omni-voice handles the ADF translation on push.
       </p>
 
       <h3>The basic loop</h3>
@@ -320,12 +320,12 @@
 export ATLASSIAN_EMAIL="me@example.com"
 export ATLASSIAN_API_TOKEN="atlassian_api_token_here"
 
-omni-dev atlassian auth status</pre>
+omni-voice atlassian auth status</pre>
       </div>
 
       <div class="step">
         <span class="step-num">2</span><strong>Read</strong> an issue into a local <code>.md</code> file.
-        <pre>omni-dev atlassian jira read PROJ-1234 > PROJ-1234.md</pre>
+        <pre>omni-voice atlassian jira read PROJ-1234 > PROJ-1234.md</pre>
       </div>
 
       <div class="step">
@@ -333,15 +333,15 @@ omni-dev atlassian auth status</pre>
       </div>
 
       <div class="step">
-        <span class="step-num">4</span><strong>Write</strong> it back. omni-dev validates the ADF locally before the network call, so schema violations abort with a clear diagnosis instead of a vague HTTP&nbsp;500.
-        <pre>omni-dev atlassian jira write PROJ-1234.md</pre>
+        <span class="step-num">4</span><strong>Write</strong> it back. omni-voice validates the ADF locally before the network call, so schema violations abort with a clear diagnosis instead of a vague HTTP&nbsp;500.
+        <pre>omni-voice atlassian jira write PROJ-1234.md</pre>
       </div>
 
       <p>
         For a one-shot fetch/edit/push cycle in <code>$EDITOR</code>, use the
         <code>edit</code> subcommand:
       </p>
-      <pre>omni-dev atlassian jira edit PROJ-1234</pre>
+      <pre>omni-voice atlassian jira edit PROJ-1234</pre>
 
       <h3>A realistically messy JFM issue body</h3>
 
@@ -425,7 +425,7 @@ proposing new architecture changes.
 ## Open tasks
 
 - [x] Pin the candle revision to a tagged release.
-- [x] Verify the trait shape against :card[https://github.com/rust-works/omni-dev/issues/807]{localId=task-card}.
+- [x] Verify the trait shape against :card[https://github.com/rust-works/omni-voice/issues/807]{localId=task-card}.
 - [ ] Land the `FileAsyncAudioInput` harness — see expander below.
 - [ ] Snapshot the boundary-artifact test.
 
@@ -507,7 +507,7 @@ H<sub>2</sub>O is water; E&nbsp;=&nbsp;mc<sup>2</sup>. The candidate
 no idea why.
 
 This paragraph contains :placeholder[fill in latency number once
-measured] and a :card[https://github.com/rust-works/omni-dev/issues/806]{localId=card-806}.
+measured] and a :card[https://github.com/rust-works/omni-voice/issues/806]{localId=card-806}.
 
 [This sentence carries an inline comment thread.]{annotation-id=anno-3 annotation-type=inlineComment}
 
@@ -519,7 +519,7 @@ ADF nodes JFM doesn&apos;t yet model round-trip through a fenced block:
 {"type":"customAtlassianNode","attrs":{"key":"value"}}
 ```
 
-omni-dev preserves these byte-for-byte across read/write.
+omni-voice preserves these byte-for-byte across read/write.
 </pre>
 
       <h4>What the same content looks like rendered (approximate)</h4>
@@ -628,7 +628,7 @@ omni-dev preserves these byte-for-byte across read/write.
         <code>:::expand</code> nested directly inside <code>:::panel</code>
         parses fine in JFM but the Atlassian API will <em>reject</em> the
         ADF. Invert the nesting (panel inside expand) or use
-        <code>:::nested-expand</code> inside table cells. omni-dev runs
+        <code>:::nested-expand</code> inside table cells. omni-voice runs
         the validator before pushing, so you&apos;ll see this locally — but
         knowing the rule up-front saves a round-trip.
       </div>
@@ -664,15 +664,15 @@ omni-dev preserves these byte-for-byte across read/write.
       </p>
 
       <h3>The basic loop</h3>
-      <pre>omni-dev atlassian confluence read 12345 > page.md      # pull
+      <pre>omni-voice atlassian confluence read 12345 > page.md      # pull
 $EDITOR page.md                                          # edit
-omni-dev atlassian confluence write page.md              # push</pre>
+omni-voice atlassian confluence write page.md              # push</pre>
 
       <p>
         <code>page_id</code> in the frontmatter does the routing. Omit it
         and use <code>create</code> instead to create a new page:
       </p>
-      <pre>omni-dev atlassian confluence create page.md</pre>
+      <pre>omni-voice atlassian confluence create page.md</pre>
 
       <h3>A complex Confluence page exercising unusual nodes</h3>
 
@@ -701,7 +701,7 @@ parent_id: "12345"
 # Voice Capture — Architecture Brief
 {align=center}
 
-::card[https://github.com/rust-works/omni-dev/issues/799]
+::card[https://github.com/rust-works/omni-voice/issues/799]
 ::embed[https://www.youtube.com/watch?v=dQw4w9WgXcQ]{width=480}
 
 :::panel{type=info}
@@ -926,7 +926,7 @@ line three.
 
 ---
 
-&copy; ENG space. Edits via `omni-dev atlassian confluence write page.md`.
+&copy; ENG space. Edits via `omni-voice atlassian confluence write page.md`.
 </pre>
 
       <h4>Approximate rendered preview</h4>
@@ -996,7 +996,7 @@ line three.
 
       <div class="panel panel-note">
         <div class="panel-title">📝 Validator-first workflow</div>
-        omni-dev runs <code>validate_document</code> against the assembled
+        omni-voice runs <code>validate_document</code> against the assembled
         ADF before sending. The most common rejection on Confluence pages
         is <code>:::expand</code> nested directly inside a table cell —
         use <code>:::nested-expand</code>. The schema source of truth is
@@ -1026,7 +1026,7 @@ line three.
       <h2>Create PRs — AI-generated descriptions, one command</h2>
 
       <p>
-        <code>omni-dev git branch create pr</code> opens a pull request on the
+        <code>omni-voice git branch create pr</code> opens a pull request on the
         current branch with an AI-generated title and body derived from the
         commits and the diff against the base branch.
       </p>
@@ -1041,8 +1041,8 @@ git push -u origin feature/streaming-asr</pre>
       </div>
 
       <div class="step">
-        <span class="step-num">2</span><strong>Create the PR.</strong> omni-dev reads the commits, builds a prompt, and posts via the <code>gh</code> CLI.
-        <pre>omni-dev git branch create pr</pre>
+        <span class="step-num">2</span><strong>Create the PR.</strong> omni-voice reads the commits, builds a prompt, and posts via the <code>gh</code> CLI.
+        <pre>omni-voice git branch create pr</pre>
       </div>
 
       <div class="step">
@@ -1066,7 +1066,7 @@ git push -u origin feature/streaming-asr</pre>
       <ul>
         <li>The list of commits between <code>HEAD</code> and the base branch (subject + body).</li>
         <li>A summarized diff (file paths, lines added/removed, and small-file content).</li>
-        <li>Optional template at <code>.omni-dev/pr-template.md</code> — used as a stylistic exemplar.</li>
+        <li>Optional template at <code>.omni-voice/pr-template.md</code> — used as a stylistic exemplar.</li>
       </ul>
 
       <div class="panel panel-info">
@@ -1084,7 +1084,7 @@ c5449c9 feat(voice): land streaming-ASR trait surface
 841187f feat(voice): LocalAgreement-2 merger
 728ce74 test(voice): 5-min monologue fixture
 
-$ omni-dev git branch create pr --draft
+$ omni-voice git branch create pr --draft
 
   → analysing commits (3)…
   → summarising diff (12 files, +984 −214)…
@@ -1105,11 +1105,11 @@ PROPOSED BODY (excerpt)
 
 Open the PR? [y/N] y
 
-✓ #890 opened: https://github.com/rust-works/omni-dev/pull/890</pre>
+✓ #890 opened: https://github.com/rust-works/omni-voice/pull/890</pre>
 
       <div class="panel panel-warn">
         <div class="panel-title">⚠️ Don&apos;t push empty branches</div>
-        omni-dev expects the branch to have commits and be pushed to remote
+        omni-voice expects the branch to have commits and be pushed to remote
         before <code>create pr</code> runs. Worktree workflows in particular
         often start with an empty branch — push at least one commit first
         or PR creation will fail.
@@ -1121,10 +1121,10 @@ Open the PR? [y/N] y
       <h2>Twiddle commit messages — AI-powered amendments</h2>
 
       <p>
-        <code>omni-dev git commit message twiddle</code> rewrites recent
+        <code>omni-voice git commit message twiddle</code> rewrites recent
         commit messages to comply with project guidelines while preserving
         the commits themselves. It pairs with the
-        <a href=".omni-dev/commit-guidelines.md"><code>.omni-dev/commit-guidelines.md</code></a>
+        <a href=".omni-voice/commit-guidelines.md"><code>.omni-voice/commit-guidelines.md</code></a>
         rules in your repo.
       </p>
 
@@ -1139,12 +1139,12 @@ Open the PR? [y/N] y
 
       <div class="step">
         <span class="step-num">1</span><strong>View</strong> — analyse commits and emit a YAML report.
-        <pre>omni-dev git commit message view HEAD~5..HEAD > commits.yaml</pre>
+        <pre>omni-voice git commit message view HEAD~5..HEAD > commits.yaml</pre>
       </div>
 
       <div class="step">
         <span class="step-num">2</span><strong>Twiddle</strong> — let the AI rewrite the messages.
-        <pre>omni-dev git commit message twiddle --range HEAD~5..HEAD</pre>
+        <pre>omni-voice git commit message twiddle --range HEAD~5..HEAD</pre>
         <p class="muted">
           You&apos;ll be asked to confirm before any <code>git filter-branch</code>-equivalent rewrite happens.
         </p>
@@ -1152,7 +1152,7 @@ Open the PR? [y/N] y
 
       <div class="step">
         <span class="step-num">3</span><strong>Check</strong> — validate without rewriting (CI-friendly).
-        <pre>omni-dev git commit message check --range HEAD~5..HEAD</pre>
+        <pre>omni-voice git commit message check --range HEAD~5..HEAD</pre>
       </div>
 
       <h3>Sibling subcommands</h3>
@@ -1177,9 +1177,9 @@ c5449c9 wip
 4d1290d streaming stuff
 52ba037 initial</pre>
 
-      <pre>$ omni-dev git commit message twiddle --range HEAD~5..HEAD
+      <pre>$ omni-voice git commit message twiddle --range HEAD~5..HEAD
 
-  → reading .omni-dev/commit-guidelines.md
+  → reading .omni-voice/commit-guidelines.md
   → analysing 5 commits…
   → calling claude…
 
@@ -1205,7 +1205,7 @@ Apply rewrite? [y/N] y
 
       <div class="panel panel-info">
         <div class="panel-title">ℹ️ How twiddle uses commit-guidelines.md</div>
-        The contents of <code>.omni-dev/commit-guidelines.md</code> are
+        The contents of <code>.omni-voice/commit-guidelines.md</code> are
         included verbatim in the prompt. The AI is asked to rewrite
         messages so they conform — conventional-commit prefix, scope,
         imperative mood, body lines under N characters, etc. — whilst
@@ -1218,9 +1218,9 @@ Apply rewrite? [y/N] y
         Twiddle plus PR creation is the canonical pre-PR cleanup:
       </p>
       <pre># clean up history, then open a PR with a fresh AI-generated body
-omni-dev git commit message twiddle --range HEAD~5..HEAD \
+omni-voice git commit message twiddle --range HEAD~5..HEAD \
   &amp;&amp; git push --force-with-lease \
-  &amp;&amp; omni-dev git branch create pr --draft</pre>
+  &amp;&amp; omni-voice git branch create pr --draft</pre>
     </section>
 
     <!-- ====================== BROWSER BRIDGE TAB ====================== -->
@@ -1228,7 +1228,7 @@ omni-dev git commit message twiddle --range HEAD~5..HEAD \
       <h2>Browser bridge — drive authenticated requests through a logged-in tab</h2>
 
       <p>
-        <code>omni-dev browser bridge serve</code> runs a long-lived local
+        <code>omni-voice browser bridge serve</code> runs a long-lived local
         process that lets you issue HTTP requests <strong>through an
         authenticated browser tab</strong>. When you are poking at internal
         services — Grafana/Loki, SSO-gated dashboards, admin panels — the
@@ -1244,9 +1244,9 @@ omni-dev git commit message twiddle --range HEAD~5..HEAD \
         That makes the <strong>security model the load-bearing part of the
         design</strong>, not an add-on — both planes are authenticated and
         default-closed. The rationale lives in
-        <a href="https://github.com/rust-works/omni-dev/blob/main/docs/adrs/adr-0036.md">ADR-0036</a>;
+        <a href="https://github.com/rust-works/omni-voice/blob/main/docs/adrs/adr-0036.md">ADR-0036</a>;
         the operator guide is
-        <a href="https://github.com/rust-works/omni-dev/blob/main/docs/browser-bridge.md">docs/browser-bridge.md</a>.
+        <a href="https://github.com/rust-works/omni-voice/blob/main/docs/browser-bridge.md">docs/browser-bridge.md</a>.
       </div>
 
       <h3>How it works</h3>
@@ -1263,7 +1263,7 @@ omni-dev git commit message twiddle --range HEAD~5..HEAD \
    HTTP + bearer token + X-Omni-Bridge      WebSocket + token subprotocol
               │                                          │
               ▼                                          ▼
-  ┌──────────────────────── omni-dev browser bridge ────────────────────────┐
+  ┌──────────────────────── omni-voice browser bridge ────────────────────────┐
   │   HTTP control plane            id-correlator           WebSocket plane  │
   │   127.0.0.1:9998      ──►   pending: id → oneshot   ──►   127.0.0.1:9999 │
   │   (axum)              ◄──   resolve on WS reply     ◄──   (tungstenite)  │
@@ -1282,7 +1282,7 @@ omni-dev git commit message twiddle --range HEAD~5..HEAD \
       <div class="step">
         <span class="step-num">1</span><strong>Start the bridge.</strong> It prints
         the bound ports, a generated session token, and a ready-to-paste JS snippet.
-        <pre>omni-dev browser bridge serve</pre>
+        <pre>omni-voice browser bridge serve</pre>
       </div>
 
       <div class="step">
@@ -1296,7 +1296,7 @@ omni-dev git commit message twiddle --range HEAD~5..HEAD \
         <span class="step-num">3</span><strong>Drive requests</strong> from your
         shell. The token is in the bridge&apos;s stdout.
         <pre>export OMNI_BRIDGE_TOKEN=&lt;token printed by the bridge&gt;
-omni-dev browser bridge request --url /loki/api/v1/labels</pre>
+omni-voice browser bridge request --url /loki/api/v1/labels</pre>
       </div>
 
       <p class="muted">
@@ -1311,10 +1311,10 @@ omni-dev browser bridge request --url /loki/api/v1/labels</pre>
         <code>--token-file</code>), adds the required headers, POSTs to a
         <em>running</em> bridge, and prints the response envelope:
       </p>
-<pre>omni-dev browser bridge request --url /loki/api/v1/labels --method GET
-omni-dev browser bridge request --url /api/foo --method POST --body @payload.json
-omni-dev browser bridge request --url /api/foo --header "Accept: application/json"
-omni-dev browser bridge request --stream --url /events | your-consumer   # SSE / chunked</pre>
+<pre>omni-voice browser bridge request --url /loki/api/v1/labels --method GET
+omni-voice browser bridge request --url /api/foo --method POST --body @payload.json
+omni-voice browser bridge request --url /api/foo --header "Accept: application/json"
+omni-voice browser bridge request --stream --url /events | your-consumer   # SSE / chunked</pre>
 
       <h4>The transparent proxy</h4>
       <p>
@@ -1344,8 +1344,8 @@ curl -H "Authorization: Bearer $T" -H "X-Omni-Bridge: 1" \
         and <code>Origin</code>; select one with <code>--target</code> (or the
         <code>X-Omni-Bridge-Target</code> header):
       </p>
-<pre>omni-dev browser bridge request --target 2 --url /api/foo                 # by id
-omni-dev browser bridge request --target https://admin.internal --url /x  # by origin</pre>
+<pre>omni-voice browser bridge request --target 2 --url /api/foo                 # by id
+omni-voice browser bridge request --target https://admin.internal --url /x  # by origin</pre>
 
       <table>
         <thead><tr><th>Situation</th><th>Result</th></tr></thead>
@@ -1415,7 +1415,7 @@ END=$(date +%s)000000000   # now, in nanoseconds
 LIMIT=5000
 
 while :; do
-  page=$(omni-dev browser bridge request \
+  page=$(omni-voice browser bridge request \
     --url "/api/datasources/proxy/uid/${DS_UID}/loki/api/v1/query_range?query=${QUERY}&amp;end=${END}&amp;limit=${LIMIT}&amp;direction=backward")
 
   # The upstream JSON is the envelope's `body` string; parse it once.
@@ -1467,7 +1467,7 @@ done</pre>
       <h2>YouTube transcript — captions as SRT, VTT, TXT, or JSON</h2>
 
       <p>
-        <code>omni-dev transcript youtube</code> fetches captions and transcripts
+        <code>omni-voice transcript youtube</code> fetches captions and transcripts
         from YouTube. The provider is the first positional argument, so the
         namespace stays clean as more sources (Vimeo, podcast RSS, generic
         VTT/SRT URLs) are added later. Three subcommands: <code>info</code> and
@@ -1479,8 +1479,8 @@ done</pre>
       <div class="step">
         <span class="step-num">1</span><strong>Inspect</strong> the video&apos;s
         metadata and available tracks.
-        <pre>omni-dev transcript youtube info jNQXAC9IVRw
-omni-dev transcript youtube list-langs jNQXAC9IVRw</pre>
+        <pre>omni-voice transcript youtube info jNQXAC9IVRw
+omni-voice transcript youtube list-langs jNQXAC9IVRw</pre>
         <p class="muted">Both default to a human table; pass
           <code>--output json</code> for machine-readable output.</p>
       </div>
@@ -1488,7 +1488,7 @@ omni-dev transcript youtube list-langs jNQXAC9IVRw</pre>
       <div class="step">
         <span class="step-num">2</span><strong>Fetch</strong> a track and render it.
         Writes to stdout unless <code>-o</code> is given.
-        <pre>omni-dev transcript youtube fetch jNQXAC9IVRw --format srt -o me-at-the-zoo.srt</pre>
+        <pre>omni-voice transcript youtube fetch jNQXAC9IVRw --format srt -o me-at-the-zoo.srt</pre>
       </div>
 
       <h3>Locator forms</h3>
@@ -1536,7 +1536,7 @@ jNQXAC9IVRw                         # bare 11-character video ID</pre>
 
       <h3>Worked example</h3>
       <span class="lang-tag">terminal</span>
-<pre>$ omni-dev transcript youtube info jNQXAC9IVRw
+<pre>$ omni-voice transcript youtube info jNQXAC9IVRw
 Source:    youtube
 ID:        jNQXAC9IVRw
 Title:     Me at the zoo
@@ -1546,7 +1546,7 @@ Languages:
   - en       [manual] English
   - en       [auto]   English (auto-generated)
 
-$ omni-dev transcript youtube fetch jNQXAC9IVRw --format txt
+$ omni-voice transcript youtube fetch jNQXAC9IVRw --format txt
 All right, so here we are in front of the elephants.
 The cool thing about these guys is that they have really,
 really, really long trunks. And that's cool. And that's
@@ -1558,7 +1558,7 @@ pretty much all there is to say.</pre>
         <code>clap</code> dependency; the CLI is a thin bridge. Format converters
         consume <code>&amp;[Cue]</code> and never reach back into a source, so all
         four output formats work for any future provider. See
-        <a href="https://github.com/rust-works/omni-dev/blob/main/docs/transcript.md">docs/transcript.md</a>
+        <a href="https://github.com/rust-works/omni-voice/blob/main/docs/transcript.md">docs/transcript.md</a>
         for the recipe to add one.
       </div>
     </section>
@@ -1568,7 +1568,7 @@ pretty much all there is to say.</pre>
       <h2>Claude history — export your Claude Code sessions</h2>
 
       <p>
-        <code>omni-dev ai claude history sync</code> exports your Claude Code
+        <code>omni-voice ai claude history sync</code> exports your Claude Code
         conversation history to a target directory as one <code>.jsonl</code>
         (and/or rendered <code>.md</code>) per chat. The corpus is a
         <strong>behavioural transcript</strong> — prompts, responses, thinking,
@@ -1588,7 +1588,7 @@ pretty much all there is to say.</pre>
       <div class="step">
         <span class="step-num">1</span><strong>Sync</strong> every session to a
         target directory. Both file shapes side by side:
-        <pre>omni-dev ai claude history sync --target ~/claude-history \
+        <pre>omni-voice ai claude history sync --target ~/claude-history \
   --output-format jsonl,markdown</pre>
       </div>
 
@@ -1598,7 +1598,7 @@ pretty much all there is to say.</pre>
         session UUID:
       </p>
       <pre>~/claude-history/
-  -Users-me-wrk-omni-dev/
+  -Users-me-wrk-omni-voice/
     0f1a…2b.jsonl       # append-only event log, byte-identical across runs
     0f1a…2b.md          # rendered, human-readable transcript
   -Users-me-tmp-spike/
@@ -1629,13 +1629,13 @@ pretty much all there is to say.</pre>
         on a schedule:
       </p>
       <span class="lang-tag">terminal</span>
-<pre>$ omni-dev ai claude history sync --target ~/hist --output-format jsonl,markdown
-created  jsonl     -Users-me-omni-dev/0f1a…2b -> ~/hist/…/0f1a…2b.jsonl (48213 bytes)
-created  markdown  -Users-me-omni-dev/0f1a…2b -> ~/hist/…/0f1a…2b.md (21044 bytes)
+<pre>$ omni-voice ai claude history sync --target ~/hist --output-format jsonl,markdown
+created  jsonl     -Users-me-omni-voice/0f1a…2b -> ~/hist/…/0f1a…2b.jsonl (48213 bytes)
+created  markdown  -Users-me-omni-voice/0f1a…2b -> ~/hist/…/0f1a…2b.md (21044 bytes)
 
-$ omni-dev ai claude history sync --target ~/hist --output-format jsonl,markdown
-skipped  jsonl     -Users-me-omni-dev/0f1a…2b (unchanged) -> ~/hist/…/0f1a…2b.jsonl
-skipped  markdown  -Users-me-omni-dev/0f1a…2b (unchanged) -> ~/hist/…/0f1a…2b.md</pre>
+$ omni-voice ai claude history sync --target ~/hist --output-format jsonl,markdown
+skipped  jsonl     -Users-me-omni-voice/0f1a…2b (unchanged) -> ~/hist/…/0f1a…2b.jsonl
+skipped  markdown  -Users-me-omni-voice/0f1a…2b (unchanged) -> ~/hist/…/0f1a…2b.md</pre>
 
       <div class="panel panel-warn">
         <div class="panel-title">⚠️ <code>--prune</code> is scoped, not a blunt delete</div>

@@ -1,4 +1,4 @@
-//! `omni-dev completions <shell>` — emit a shell completion script generated
+//! `omni-voice completions <shell>` — emit a shell completion script generated
 //! from the live clap command tree.
 
 use anyhow::Result;
@@ -19,7 +19,7 @@ impl CompletionsCommand {
     /// Writes the completion script for `self.shell` to stdout.
     pub fn execute(self) -> Result<()> {
         let mut cmd = Cli::command();
-        generate(self.shell, &mut cmd, "omni-dev", &mut std::io::stdout());
+        generate(self.shell, &mut cmd, "omni-voice", &mut std::io::stdout());
         Ok(())
     }
 }
@@ -31,7 +31,7 @@ mod tests {
     use crate::cli::Commands;
 
     fn assert_parses_to(arg: &str, expected: Shell) {
-        let cli = Cli::try_parse_from(["omni-dev", "completions", arg]).unwrap();
+        let cli = Cli::try_parse_from(["omni-voice", "completions", arg]).unwrap();
         assert!(matches!(
             cli.command,
             Commands::Completions(CompletionsCommand { shell }) if shell == expected
@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn clap_rejects_unknown_shell() {
-        let result = Cli::try_parse_from(["omni-dev", "completions", "banana"]);
+        let result = Cli::try_parse_from(["omni-voice", "completions", "banana"]);
         assert!(result.is_err());
     }
 }

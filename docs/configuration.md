@@ -1,19 +1,19 @@
 # Configuration Guide
 
-Complete guide to configuring omni-dev's contextual intelligence for your
+Complete guide to configuring omni-voice's contextual intelligence for your
 project.
 
 ## Overview
 
-omni-dev's contextual intelligence system learns about your project to
+omni-voice's contextual intelligence system learns about your project to
 provide better commit message suggestions. Configuration happens through the
-`.omni-dev/` directory in your repository root.
+`.omni-voice/` directory in your repository root.
 
 ## Quick Setup
 
 ```bash
 # 1. Create configuration directory
-mkdir .omni-dev
+mkdir .omni-voice
 
 # 2. Authenticate (see "Authentication" section below)
 export CLAUDE_API_KEY="your-api-key-here"
@@ -24,66 +24,66 @@ export CLAUDE_API_KEY="your-api-key-here"
 
 ## Configuration Files
 
-> See [`omni-dev-directory.md`](omni-dev-directory.md) for the formal
-> contract: the full inventory of recognised files under `.omni-dev/`, their
-> precedence rules, and the exact validation messages omni-dev emits when a
+> See [`omni-voice-directory.md`](omni-voice-directory.md) for the formal
+> contract: the full inventory of recognised files under `.omni-voice/`, their
+> precedence rules, and the exact validation messages omni-voice emits when a
 > file is malformed. This page is the narrative walkthrough; that page is the
 > spec.
 
 ### Local Override Support
 
 All configuration files support local overrides. If a file exists in
-`.omni-dev/local/`, it takes precedence over the shared project
-configuration in `.omni-dev/`.
+`.omni-voice/local/`, it takes precedence over the shared project
+configuration in `.omni-voice/`.
 
-**Important**: Add `.omni-dev/local/` to your `.gitignore` to keep personal
+**Important**: Add `.omni-voice/local/` to your `.gitignore` to keep personal
 configurations private.
 
 ### Config File Resolution
 
 For each configuration file (e.g., `scopes.yaml`, `commit-guidelines.md`),
-omni-dev checks the following locations in order and uses the first match:
+omni-voice checks the following locations in order and uses the first match:
 
 | Priority | Location                                     | Purpose                         |
 |----------|----------------------------------------------|---------------------------------|
 | 1        | `{dir}/local/{filename}`                     | Personal overrides (gitignored) |
 | 2        | `{dir}/{filename}`                           | Shared project configuration    |
-| 3        | `$XDG_CONFIG_HOME/omni-dev/{filename}`       | XDG global config               |
-| 4        | `$HOME/.omni-dev/{filename}`                 | Legacy global fallback          |
+| 3        | `$XDG_CONFIG_HOME/omni-voice/{filename}`       | XDG global config               |
+| 4        | `$HOME/.omni-voice/{filename}`                 | Legacy global fallback          |
 
 Where `{dir}` is the active config directory, resolved as follows:
 
 ### Config Directory Resolution
 
-The config directory (`.omni-dev/`) is itself resolved through a priority
+The config directory (`.omni-voice/`) is itself resolved through a priority
 chain:
 
 | Priority | Source                              | Description                                  |
 |----------|-------------------------------------|----------------------------------------------|
 | 1        | `--context-dir` CLI flag            | Explicit override; disables walk-up           |
-| 2        | `OMNI_DEV_CONFIG_DIR` env var       | Environment override; disables walk-up        |
-| 3        | Walk-up discovery                   | Nearest `.omni-dev/` from CWD to repo root   |
-| 4        | `.omni-dev` (relative to CWD)       | Default fallback                              |
+| 2        | `OMNI_VOICE_CONFIG_DIR` env var       | Environment override; disables walk-up        |
+| 3        | Walk-up discovery                   | Nearest `.omni-voice/` from CWD to repo root   |
+| 4        | `.omni-voice` (relative to CWD)       | Default fallback                              |
 
 **Walk-up discovery** searches from the current working directory upward
 through parent directories, stopping at the repository root (`.git`
-boundary). The first directory containing a `.omni-dev/` subdirectory wins.
+boundary). The first directory containing a `.omni-voice/` subdirectory wins.
 This is especially useful in monorepos where subdirectories need different
 configuration.
 
-**XDG compliance**: When `$XDG_CONFIG_HOME` is set, omni-dev checks
-`$XDG_CONFIG_HOME/omni-dev/` for global config files. When unset, it
-defaults to `$HOME/.config/omni-dev/`. The legacy `$HOME/.omni-dev/` path
+**XDG compliance**: When `$XDG_CONFIG_HOME` is set, omni-voice checks
+`$XDG_CONFIG_HOME/omni-voice/` for global config files. When unset, it
+defaults to `$HOME/.config/omni-voice/`. The legacy `$HOME/.omni-voice/` path
 is still supported as a final fallback.
 
 See [Configuration Best Practices](configuration-best-practices.md) for
 guidance on writing effective configuration files.
 
-### 1. Scope Definitions (`.omni-dev/scopes.yaml`)
+### 1. Scope Definitions (`.omni-voice/scopes.yaml`)
 
 **Purpose**: Define project-specific scopes and their meanings for use in
 conventional commit messages. See
-[`omni-dev-directory.md`](omni-dev-directory.md#scopesyaml) for the format
+[`omni-voice-directory.md`](omni-voice-directory.md#scopesyaml) for the format
 contract, required fields, and validation behaviour.
 
 #### What are Scopes?
@@ -99,12 +99,12 @@ For example:
 
 **Step 1: Create the configuration directory**
 ```bash
-mkdir -p .omni-dev
+mkdir -p .omni-voice
 ```
 
 **Step 2: Create the scopes.yaml file**
 ```bash
-touch .omni-dev/scopes.yaml
+touch .omni-voice/scopes.yaml
 ```
 
 **Step 3: Define your scopes**
@@ -129,14 +129,14 @@ scopes:
 
 #### How Scopes Are Used
 
-1. **During commit analysis**: omni-dev examines changed files and suggests appropriate scopes based on file_patterns
+1. **During commit analysis**: omni-voice examines changed files and suggests appropriate scopes based on file_patterns
 2. **In commit messages**: Scopes appear as `type(scope): description`
 3. **For organization**: Scopes help categorize changes and make commit history more searchable
 
 #### Scope Selection Logic
 
 When multiple scopes match changed files:
-- omni-dev prioritizes scopes with more specific file patterns
+- omni-voice prioritizes scopes with more specific file patterns
 - If patterns have equal specificity, all matching scopes are suggested
 - You can override automatic detection by specifying the scope manually
 
@@ -289,10 +289,10 @@ scopes:
       - "lib/**"
 ```
 
-### 2. Commit Guidelines (`.omni-dev/commit-guidelines.md`)
+### 2. Commit Guidelines (`.omni-voice/commit-guidelines.md`)
 
 **Purpose**: Document your project's commit message conventions. See
-[`omni-dev-directory.md`](omni-dev-directory.md#commit-guidelinesmd) for the
+[`omni-voice-directory.md`](omni-voice-directory.md#commit-guidelinesmd) for the
 file's format contract and validation behaviour.
 
 **Template**:
@@ -351,7 +351,7 @@ Fixes #123
 - `perf` - Performance improvements
 
 ## Scopes
-See `.omni-dev/scopes.yaml` for complete list.
+See `.omni-voice/scopes.yaml` for complete list.
 
 Common scopes:
 - `auth` - Authentication systems
@@ -458,7 +458,7 @@ Commits are validated by:
 
 ### Authentication
 
-**Required**: omni-dev needs a Claude API key for AI features. The default
+**Required**: omni-voice needs a Claude API key for AI features. The default
 Anthropic backend accepts any of these environment variables (checked in
 order, first match wins):
 
@@ -506,10 +506,10 @@ For automated workflows, store the key as a secret:
 
 ### Directory Structure
 
-Recommended `.omni-dev/` structure:
+Recommended `.omni-voice/` structure:
 
 ```
-.omni-dev/
+.omni-voice/
 ├── scopes.yaml              # Required: Project scopes
 ├── commit-guidelines.md     # Required: Commit standards
 ├── local/                   # Optional: Local overrides (add to .gitignore)
@@ -526,7 +526,7 @@ Recommended `.omni-dev/` structure:
 
 #### Personal Scope Additions
 
-**Team config** (`.omni-dev/scopes.yaml`):
+**Team config** (`.omni-voice/scopes.yaml`):
 
 ```yaml
 scopes:
@@ -538,7 +538,7 @@ scopes:
     file_patterns: ["src/ui/**"]
 ```
 
-**Your personal config** (`.omni-dev/local/scopes.yaml`):
+**Your personal config** (`.omni-voice/local/scopes.yaml`):
 
 ```yaml
 scopes:
@@ -561,23 +561,23 @@ scopes:
 1. **Create local directory**:
 
    ```bash
-   mkdir -p .omni-dev/local
+   mkdir -p .omni-voice/local
    ```
 
 2. **Add to .gitignore**:
 
    ```bash
-   echo ".omni-dev/local/" >> .gitignore
+   echo ".omni-voice/local/" >> .gitignore
    ```
 
 3. **Copy and customize**:
 
    ```bash
    # Start with team config
-   cp .omni-dev/scopes.yaml .omni-dev/local/scopes.yaml
+   cp .omni-voice/scopes.yaml .omni-voice/local/scopes.yaml
    
    # Customize for your workflow
-   vim .omni-dev/local/scopes.yaml
+   vim .omni-voice/local/scopes.yaml
    ```
 
 ## Advanced Configuration
@@ -588,34 +588,34 @@ Use a different directory for configuration:
 
 ```bash
 # Use CLI flag
-omni-dev git commit message twiddle 'HEAD~5..HEAD' \
+omni-voice git commit message twiddle 'HEAD~5..HEAD' \
   --context-dir ./config
 
 # Or use environment variable
-export OMNI_DEV_CONFIG_DIR=./config
-omni-dev git commit message twiddle 'HEAD~5..HEAD'
+export OMNI_VOICE_CONFIG_DIR=./config
+omni-voice git commit message twiddle 'HEAD~5..HEAD'
 ```
 
-Both `--context-dir` and `OMNI_DEV_CONFIG_DIR` disable walk-up discovery,
+Both `--context-dir` and `OMNI_VOICE_CONFIG_DIR` disable walk-up discovery,
 giving you full control over which config directory is used.
 
 ### Multiple Configuration Sets (Monorepos)
 
 For monorepos, walk-up discovery automatically selects the right config.
-Place `.omni-dev/` directories at each package level:
+Place `.omni-voice/` directories at each package level:
 
 ```
 repo/
 ├── .git/
-├── .omni-dev/                    # Root config (fallback)
+├── .omni-voice/                    # Root config (fallback)
 │   └── scopes.yaml
 ├── packages/
 │   ├── frontend/
-│   │   ├── .omni-dev/            # Frontend-specific config
+│   │   ├── .omni-voice/            # Frontend-specific config
 │   │   │   └── scopes.yaml
 │   │   └── src/
 │   └── backend/
-│       ├── .omni-dev/            # Backend-specific config
+│       ├── .omni-voice/            # Backend-specific config
 │       │   └── scopes.yaml
 │       └── src/
 ```
@@ -628,8 +628,8 @@ If you prefer explicit control, you can still use `--context-dir`:
 
 ```bash
 # Explicit override
-omni-dev git commit message twiddle 'HEAD~5..HEAD' \
-  --context-dir ./packages/frontend/.omni-dev
+omni-voice git commit message twiddle 'HEAD~5..HEAD' \
+  --context-dir ./packages/frontend/.omni-voice
 ```
 
 ### File Pattern Matching
@@ -653,10 +653,10 @@ Check if your configuration is working:
 
 ```bash
 # Test with a small range first
-omni-dev git commit message twiddle 'HEAD^..HEAD' --use-context
+omni-voice git commit message twiddle 'HEAD^..HEAD' --use-context
 
 # Check what context is being detected
-omni-dev git commit message view 'HEAD^..HEAD'
+omni-voice git commit message view 'HEAD^..HEAD'
 ```
 
 ### Common Issues
@@ -679,7 +679,7 @@ export CLAUDE_API_KEY="$(echo $CLAUDE_API_KEY | tr -d '[:space:]')"
 
 **Context Not Loading**:
 
-- Ensure `.omni-dev/` directory exists
+- Ensure `.omni-voice/` directory exists
 - Check file permissions (must be readable)
 - Validate YAML syntax in scopes.yaml
 
@@ -730,7 +730,7 @@ file_patterns:
   - "middleware/auth.js"
   - "auth.rs"
 
-# ❌ Missing - omni-dev can't auto-detect scope
+# ❌ Missing - omni-voice can't auto-detect scope
 file_patterns: []
 ```
 
@@ -740,27 +740,27 @@ Keep guidelines up-to-date and accessible:
 
 ```bash
 # Link from main README
-echo "See [.omni-dev/commit-guidelines.md](.omni-dev/commit-guidelines.md) for commit standards" >> README.md
+echo "See [.omni-voice/commit-guidelines.md](.omni-voice/commit-guidelines.md) for commit standards" >> README.md
 
 # Include in PR template
-echo "- [ ] Commits follow [project guidelines](.omni-dev/commit-guidelines.md)" >> .github/pull_request_template.md
+echo "- [ ] Commits follow [project guidelines](.omni-voice/commit-guidelines.md)" >> .github/pull_request_template.md
 ```
 
-The format and validation contract for `.omni-dev/commit-guidelines.md`
+The format and validation contract for `.omni-voice/commit-guidelines.md`
 itself is documented in
-[`omni-dev-directory.md`](omni-dev-directory.md#commit-guidelinesmd).
+[`omni-voice-directory.md`](omni-voice-directory.md#commit-guidelinesmd).
 
 ### 5. Version Your Configuration
 
 Track configuration changes:
 
 ```bash
-# Include .omni-dev/ in git
-git add .omni-dev/
-git commit -m "feat(config): add omni-dev contextual intelligence setup"
+# Include .omni-voice/ in git
+git add .omni-voice/
+git commit -m "feat(config): add omni-voice contextual intelligence setup"
 
 # Document major changes
-echo "## v2.0.0 - Updated scopes and guidelines" >> .omni-dev/CHANGELOG.md
+echo "## v2.0.0 - Updated scopes and guidelines" >> .omni-voice/CHANGELOG.md
 ```
 
 ## Real-World Usage Examples
@@ -777,10 +777,10 @@ git commit -m "fix(api): resolve timeout on large payloads"
 git commit -m "docs(readme): update API examples"
 ```
 
-**With omni-dev**:
+**With omni-voice**:
 ```bash
-# omni-dev analyzes your changes and suggests the appropriate scope
-$ omni-dev git commit message twiddle HEAD --use-context
+# omni-voice analyzes your changes and suggests the appropriate scope
+$ omni-voice git commit message twiddle HEAD --use-context
 
 # Output might suggest:
 # Based on changes to src/auth/login.js and src/auth/2fa.js:
@@ -793,19 +793,19 @@ $ omni-dev git commit message twiddle HEAD --use-context
 **1. Single File Change**:
 ```bash
 # Changed: src/api/users.js
-# omni-dev suggests: fix(api): validate email format in user creation
+# omni-voice suggests: fix(api): validate email format in user creation
 ```
 
 **2. Multiple Files, Same Scope**:
 ```bash
 # Changed: src/ui/Button.jsx, src/ui/Modal.jsx, src/ui/theme.css
-# omni-dev suggests: refactor(ui): update component styling to new design system
+# omni-voice suggests: refactor(ui): update component styling to new design system
 ```
 
 **3. Multiple Files, Different Scopes**:
 ```bash
 # Changed: src/api/auth.js, docs/API.md
-# omni-dev suggests multiple options:
+# omni-voice suggests multiple options:
 # - feat(api): add OAuth provider with documentation
 # - feat(api,docs): implement OAuth and update API docs
 # You choose the most appropriate one
@@ -814,7 +814,7 @@ $ omni-dev git commit message twiddle HEAD --use-context
 **4. No Matching Scope**:
 ```bash
 # Changed: new-feature/experimental.js (no pattern matches)
-# omni-dev suggests: feat: add experimental feature
+# omni-voice suggests: feat: add experimental feature
 # (No scope when patterns don't match)
 ```
 
@@ -838,17 +838,17 @@ git commit -m "fix(auth): improve auth error logging detail"
 For new team members:
 
 ```bash
-# 1. Install omni-dev
-cargo install omni-dev
+# 1. Install omni-voice
+cargo install omni-voice
 
 # 2. Set up API key  
 export CLAUDE_API_KEY="team-shared-key-or-individual-key"
 
 # 3. Test configuration
-omni-dev git commit message view HEAD --use-context
+omni-voice git commit message view HEAD --use-context
 
-# 4. Review project guidelines (see omni-dev-directory.md for the format contract)
-cat .omni-dev/commit-guidelines.md
+# 4. Review project guidelines (see omni-voice-directory.md for the format contract)
+cat .omni-voice/commit-guidelines.md
 ```
 
 ### Shared Configuration
@@ -884,16 +884,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install omni-dev
-        run: cargo install omni-dev
+      - name: Install omni-voice
+        run: cargo install omni-voice
 
       - name: Validate commit messages
         env:
           CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
         run: |
-          omni-dev git commit message check 'origin/main..HEAD' || {
+          omni-voice git commit message check 'origin/main..HEAD' || {
             echo "Commit validation failed"
-            echo "Run: omni-dev git commit message twiddle 'origin/main..HEAD' --use-context"
+            echo "Run: omni-voice git commit message twiddle 'origin/main..HEAD' --use-context"
             exit 1
           }
 ```
@@ -922,17 +922,17 @@ If you're currently writing commit messages manually:
 
    ```bash
    # Start with new commits only
-   omni-dev git commit message twiddle 'HEAD~5..HEAD' --use-context
+   omni-voice git commit message twiddle 'HEAD~5..HEAD' --use-context
    
    # Gradually clean up older commits
-   omni-dev git commit message twiddle 'HEAD~20..HEAD' --concurrency 3
+   omni-voice git commit message twiddle 'HEAD~20..HEAD' --concurrency 3
    ```
 
 ### From Other Tools
 
 **From Commitizen**:
 
-- Map your existing scopes to omni-dev format
+- Map your existing scopes to omni-voice format
 - Import scope descriptions and examples
 - Update team documentation
 
@@ -948,15 +948,15 @@ If you're currently writing commit messages manually:
 
 **Scopes Not Working**:
 
-1. Check YAML syntax: `cat .omni-dev/scopes.yaml | python -m yaml`
+1. Check YAML syntax: `cat .omni-voice/scopes.yaml | python -m yaml`
 2. Verify file patterns match your structure
-3. Test with debug output: `RUST_LOG=omni_dev=debug omni-dev git commit message view HEAD --use-context`
+3. Test with debug output: `RUST_LOG=omni_voice=debug omni-voice git commit message view HEAD --use-context`
 
 **Guidelines Not Loading**:
 
-1. Ensure `.omni-dev/commit-guidelines.md` exists at one of the locations
+1. Ensure `.omni-voice/commit-guidelines.md` exists at one of the locations
    listed in
-   [`omni-dev-directory.md`](omni-dev-directory.md#chain-a--hierarchical-resolution)
+   [`omni-voice-directory.md`](omni-voice-directory.md#chain-a--hierarchical-resolution)
 2. Check file permissions
 3. Verify markdown formatting
 
@@ -968,18 +968,18 @@ echo "Key starts with: $(echo $CLAUDE_API_KEY | head -c 10)..."
 echo "Key length: $(echo $CLAUDE_API_KEY | wc -c)"
 
 # Test API access with debug output
-RUST_LOG=omni_dev=debug omni-dev git commit message view HEAD --use-context
+RUST_LOG=omni_voice=debug omni-voice git commit message view HEAD --use-context
 ```
 
 ## AI Backend Selection
 
-omni-dev supports five AI backends. Selection happens once at startup in
+omni-voice supports five AI backends. Selection happens once at startup in
 `src/claude/client.rs::create_default_claude_client` and is checked in this
 order:
 
 | Order | Selector | Backend | Notes |
 |-------|----------|---------|-------|
-| 1 | `OMNI_DEV_AI_BACKEND=claude-cli` (or `--ai-backend claude-cli`) | `ClaudeCliAiClient` | Shells out to `claude -p` in a sandbox |
+| 1 | `OMNI_VOICE_AI_BACKEND=claude-cli` (or `--ai-backend claude-cli`) | `ClaudeCliAiClient` | Shells out to `claude -p` in a sandbox |
 | 2 | `USE_OLLAMA=true` | `OpenAiAiClient` (Ollama) | Local Ollama server |
 | 3 | `USE_OPENAI=true` | `OpenAiAiClient` (OpenAI) | OpenAI-compatible API |
 | 4 | `CLAUDE_CODE_USE_BEDROCK=true` | `BedrockAiClient` | AWS Bedrock |
@@ -998,32 +998,32 @@ Once a backend is chosen, the model name resolves in this precedence
 4. `ANTHROPIC_MODEL` environment variable
 5. The hard-coded default for the backend
 
-Run `omni-dev config models show` to list every model omni-dev knows about
+Run `omni-voice config models show` to list every model omni-voice knows about
 along with token limits and capabilities. Pass `--embedded-only` to print
 the embedded catalog verbatim (useful for diffing against the merged view).
 
 ### Customising the model catalog
 
-omni-dev ships with an embedded `models.yaml` that defines token limits,
+omni-voice ships with an embedded `models.yaml` that defines token limits,
 beta-header unlocks, and provider defaults for known Claude / OpenAI /
 Gemini models. You can extend or override that catalog without rebuilding
 by dropping a YAML file in either of:
 
 | Layer       | Path                          | Purpose                                                                 |
 |-------------|-------------------------------|-------------------------------------------------------------------------|
-| Project     | `./.omni-dev/models.yaml`     | Per-repository overrides (commit this if your team agrees on the values) |
-| User        | `~/.omni-dev/models.yaml`     | Personal overrides across all projects                                  |
-| Override    | `OMNI_DEV_MODELS_YAML=<path>` | Single explicit file; short-circuits the project/user lookup            |
+| Project     | `./.omni-voice/models.yaml`     | Per-repository overrides (commit this if your team agrees on the values) |
+| User        | `~/.omni-voice/models.yaml`     | Personal overrides across all projects                                  |
+| Override    | `OMNI_VOICE_MODELS_YAML=<path>` | Single explicit file; short-circuits the project/user lookup            |
 | (Embedded)  | built-in                      | Compile-time fallback; always present                                   |
 
 Layers are deep-merged with **project > user > embedded** precedence. You
 can also pass `--models-yaml <PATH>` as a global CLI flag, which is
-equivalent to setting `OMNI_DEV_MODELS_YAML`.
+equivalent to setting `OMNI_VOICE_MODELS_YAML`.
 
 #### Adding a brand-new model
 
 ```yaml
-# ~/.omni-dev/models.yaml
+# ~/.omni-voice/models.yaml
 version: "1"
 models:
   - provider: "claude"
@@ -1035,7 +1035,7 @@ models:
     tier: "flagship"
 ```
 
-The next omni-dev invocation that targets `claude-future-9000` will pick up
+The next omni-voice invocation that targets `claude-future-9000` will pick up
 the limits you declared instead of falling through to provider defaults.
 
 #### Correcting limits on an embedded entry
@@ -1044,7 +1044,7 @@ User entries with the same `api_identifier` deep-merge over the embedded
 entry, so you only need to redeclare the fields you want to change:
 
 ```yaml
-# ./.omni-dev/models.yaml
+# ./.omni-voice/models.yaml
 version: "1"
 models:
   - api_identifier: "claude-opus-4-6"
@@ -1058,7 +1058,7 @@ Provider blocks deep-merge per field, so you can override
 API base:
 
 ```yaml
-# ./.omni-dev/models.yaml
+# ./.omni-voice/models.yaml
 version: "1"
 providers:
   claude:
@@ -1067,7 +1067,7 @@ providers:
 
 #### Inspecting the merged view
 
-`omni-dev config models show` serialises the resulting configuration with
+`omni-voice config models show` serialises the resulting configuration with
 each entry's source layer recorded as `source: embedded|user|project|override`.
 A header at the top counts entries per layer so you can see at a glance
 which of your overrides are actually winning.
@@ -1078,7 +1078,7 @@ which of your overrides are actually winning.
   alone is fully functional.
 - Malformed user/project YAML logs an error to stderr and the layer is
   skipped; the registry continues to load.
-- A missing path supplied via `OMNI_DEV_MODELS_YAML` / `--models-yaml`
+- A missing path supplied via `OMNI_VOICE_MODELS_YAML` / `--models-yaml`
   emits a warning (the user explicitly named the file).
 - The `version:` field is advisory — files declaring a different version
   load with a warning rather than failing. The current schema version is
@@ -1099,23 +1099,23 @@ runs in a fresh temp working directory with a scrubbed environment.
 
 ```bash
 # Switch backends
-export OMNI_DEV_AI_BACKEND=claude-cli
+export OMNI_VOICE_AI_BACKEND=claude-cli
 # or pass --ai-backend claude-cli per-invocation
 
 # Override the CLI binary path
-export OMNI_DEV_CLAUDE_CLI_BIN=/opt/homebrew/bin/claude
+export OMNI_VOICE_CLAUDE_CLI_BIN=/opt/homebrew/bin/claude
 
 # Tune the subprocess timeout (default: 300s) and stdout cap (default: 4 MiB)
-export OMNI_DEV_CLAUDE_CLI_TIMEOUT_SECS=600
-export OMNI_DEV_CLAUDE_CLI_STDOUT_MAX_BYTES=33554432
+export OMNI_VOICE_CLAUDE_CLI_TIMEOUT_SECS=600
+export OMNI_VOICE_CLAUDE_CLI_STDOUT_MAX_BYTES=33554432
 
 # Per-invocation budget cap (forwarded to `claude -p --max-budget-usd`)
-export OMNI_DEV_CLAUDE_CLI_MAX_BUDGET_USD=2.50
+export OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD=2.50
 # or pass --claude-cli-max-budget-usd 2.50
 
 # Escape hatches (each logs a WARN every time it is active)
-export OMNI_DEV_CLAUDE_CLI_ALLOW_TOOLS=true   # remove --tools "" lockdown
-export OMNI_DEV_CLAUDE_CLI_ALLOW_MCP=true     # remove --strict-mcp-config
+export OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS=true   # remove --tools "" lockdown
+export OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP=true     # remove --strict-mcp-config
 # or pass --claude-cli-allow-tools / --claude-cli-allow-mcp
 ```
 
@@ -1157,4 +1157,4 @@ Complete example configurations for different project types:
 - 📖 [User Guide](user-guide.md) - Complete usage guide
 - 🔧 [Troubleshooting](troubleshooting.md) - Common issues
 - 📝 [Examples](examples.md) - Real-world examples  
-- 💬 [GitHub Discussions](https://github.com/rust-works/omni-dev/discussions) - Community support
+- 💬 [GitHub Discussions](https://github.com/rust-works/omni-voice/discussions) - Community support

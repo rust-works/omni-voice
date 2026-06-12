@@ -1,4 +1,4 @@
-//! Runtime helpers shared by the `omni-dev-mcp` binary and tests.
+//! Runtime helpers shared by the `omni-voice-mcp` binary and tests.
 //!
 //! Extracting these out of the binary keeps `src/mcp_server.rs` to a thin
 //! `main` shim and lets us cover the interesting work — error formatting,
@@ -13,7 +13,7 @@ use rmcp::{
 };
 use tracing_subscriber::EnvFilter;
 
-use super::OmniDevServer;
+use super::OmniVoiceServer;
 
 /// Initialises the MCP server's tracing subscriber.
 ///
@@ -33,7 +33,7 @@ pub fn try_init_tracing() -> Result<()> {
     Ok(())
 }
 
-/// Constructs an [`OmniDevServer`] and starts serving on the given transport.
+/// Constructs an [`OmniVoiceServer`] and starts serving on the given transport.
 ///
 /// The returned future resolves once the peer disconnects.
 pub async fn serve_with<T, E, A>(transport: T) -> Result<()>
@@ -41,8 +41,8 @@ where
     T: rmcp::transport::IntoTransport<RoleServer, E, A>,
     E: std::error::Error + Send + Sync + 'static,
 {
-    let service: RunningService<RoleServer, OmniDevServer> =
-        OmniDevServer::new().serve(transport).await?;
+    let service: RunningService<RoleServer, OmniVoiceServer> =
+        OmniVoiceServer::new().serve(transport).await?;
     service.waiting().await?;
     Ok(())
 }
@@ -66,7 +66,7 @@ pub fn feature_flags() -> &'static str {
 pub fn log_startup_event() {
     let version = env!("CARGO_PKG_VERSION");
     let features = feature_flags();
-    tracing::info!(version, features, "starting omni-dev MCP server");
+    tracing::info!(version, features, "starting omni-voice MCP server");
 }
 
 /// Writes an `anyhow::Error` chain to a writer in the format the binary uses.

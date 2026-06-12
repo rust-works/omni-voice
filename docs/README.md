@@ -1,6 +1,6 @@
-# omni-dev Documentation
+# omni-voice Documentation
 
-Complete documentation for omni-dev - the intelligent Git commit message toolkit with AI-powered contextual intelligence.
+Complete documentation for omni-voice - the intelligent Git commit message toolkit with AI-powered contextual intelligence.
 
 ## 📚 User Documentation
 
@@ -33,18 +33,18 @@ Complete documentation for omni-dev - the intelligent Git commit message toolkit
 ### MCP Server
 
 - **[MCP Reference](mcp.md)** - Tool catalog, resources, and setup for Claude Desktop / Claude Code / MCP Inspector
-- **[Glama Listing](glama-listing.md)** - Admin-form configuration and per-release publication procedure for the [glama.ai](https://glama.ai/mcp/servers/rust-works/omni-dev) listing
+- **[Glama Listing](glama-listing.md)** - Admin-form configuration and per-release publication procedure for the [glama.ai](https://glama.ai/mcp/servers/rust-works/omni-voice) listing
 - **[ADR-0021](adrs/adr-0021.md)** - Architectural decision behind the second binary
 
 ### Transcript Fetching
 
-- **[Transcript Reference](transcript.md)** - `omni-dev transcript` CLI reference, library architecture, and the recipe for adding a new source
+- **[Transcript Reference](transcript.md)** - `omni-voice transcript` CLI reference, library architecture, and the recipe for adding a new source
 
 ### Reference & Support
 
 - **[Shell Completion](shell-completion.md)** - Install per-shell completion scripts for `bash`, `zsh`, `fish`, `powershell`, and `elvish`
 - **[Troubleshooting](troubleshooting.md)** - Common issues and solutions  
-- **[API Documentation](https://docs.rs/omni-dev)** - Rust API reference
+- **[API Documentation](https://docs.rs/omni-voice)** - Rust API reference
 - **[Changelog](../CHANGELOG.md)** - Version history and changes
 
 ## 🛠️ Developer Documentation
@@ -123,18 +123,18 @@ Each file in [`plan/`](plan/) carries a `**Status:**` header (`Built`, `In Progr
 
 ## 🔗 External Resources
 
-- **[GitHub Repository](https://github.com/rust-works/omni-dev)** - Source code and issues
+- **[GitHub Repository](https://github.com/rust-works/omni-voice)** - Source code and issues
 - **[omni-dev-commit-check Action](https://github.com/action-works/omni-dev-commit-check)** - GitHub Action for CI commit validation
-- **[Crates.io Page](https://crates.io/crates/omni-dev)** - Package information
-- **[Rust API Docs](https://docs.rs/omni-dev)** - Generated API documentation
-- **[GitHub Discussions](https://github.com/rust-works/omni-dev/discussions)** - Community support
+- **[Crates.io Page](https://crates.io/crates/omni-voice)** - Package information
+- **[Rust API Docs](https://docs.rs/omni-voice)** - Generated API documentation
+- **[GitHub Discussions](https://github.com/rust-works/omni-voice/discussions)** - Community support
 - **[Anthropic Console](https://console.anthropic.com/)** - Get your Claude API key
 
 ## 🤝 Community
 
-- **Questions**: Use [GitHub Discussions](https://github.com/rust-works/omni-dev/discussions)
-- **Bug Reports**: Open an [Issue](https://github.com/rust-works/omni-dev/issues)  
-- **Feature Requests**: Start a [Discussion](https://github.com/rust-works/omni-dev/discussions) first
+- **Questions**: Use [GitHub Discussions](https://github.com/rust-works/omni-voice/discussions)
+- **Bug Reports**: Open an [Issue](https://github.com/rust-works/omni-voice/issues)  
+- **Feature Requests**: Start a [Discussion](https://github.com/rust-works/omni-voice/discussions) first
 - **Contributions**: See [Contributing Guidelines](../CONTRIBUTING.md)
 
 ## 📅 Documentation Maintenance
@@ -149,7 +149,7 @@ This documentation is maintained alongside the codebase and updated with each re
 
 **Need help choosing where to start?**
 
-- **New to omni-dev**: [Getting Started](getting-started.md) → [User Guide](user-guide.md)
+- **New to omni-voice**: [Getting Started](getting-started.md) → [User Guide](user-guide.md)
 - **Setting up a project**: [Configuration Guide](configuration.md)
 - **Having issues**: [Troubleshooting](troubleshooting.md)
 - **Want examples**: [Examples](examples.md)

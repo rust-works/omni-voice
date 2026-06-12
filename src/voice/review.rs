@@ -51,7 +51,7 @@ pub struct ReviewOptions {
     /// Wall-clock source for `now` and synthesised event timestamps.
     pub clock: Box<dyn Clock>,
     /// Override the voice root directory (test hook). When `None` the
-    /// standard `~/.omni-dev/voice/` root (or `OMNI_DEV_VOICE_ROOT`) is
+    /// standard `~/.omni-voice/voice/` root (or `OMNI_VOICE_VOICE_ROOT`) is
     /// used.
     pub session_root_override: Option<PathBuf>,
 }

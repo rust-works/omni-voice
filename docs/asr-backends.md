@@ -1,6 +1,6 @@
 # ASR Backends
 
-How `omni-dev voice transcribe` turns 16 kHz mono WAV audio into transcript
+How `omni-voice voice transcribe` turns 16 kHz mono WAV audio into transcript
 events, and how to choose between the available speech-to-text backends.
 
 For the AI (LLM) backends used by commit-message generation, see
@@ -24,11 +24,11 @@ Windows.
 Backend choice flows from, in order:
 
 1. `--backend <name>` on the command line,
-2. the `OMNI_DEV_VOICE_BACKEND` environment variable,
+2. the `OMNI_VOICE_VOICE_BACKEND` environment variable,
 3. the default: `mock`.
 
 ```bash
-omni-dev voice transcribe recording.wav --backend whisper-candle-streaming
+omni-voice voice transcribe recording.wav --backend whisper-candle-streaming
 ```
 
 ## Installing the model
@@ -36,11 +36,11 @@ omni-dev voice transcribe recording.wav --backend whisper-candle-streaming
 Both Whisper backends share the same model files:
 
 ```bash
-omni-dev voice install-model            # stages whisper-tiny.en
+omni-voice voice install-model            # stages whisper-tiny.en
 ```
 
-Files land in `~/.omni-dev/voice/models/whisper-tiny.en/`. Override the
-location with `--model <dir>` or `OMNI_DEV_VOICE_WHISPER_MODEL=<dir>`.
+Files land in `~/.omni-voice/voice/models/whisper-tiny.en/`. Override the
+location with `--model <dir>` or `OMNI_VOICE_VOICE_WHISPER_MODEL=<dir>`.
 
 ## `whisper-candle` (batch)
 
@@ -52,8 +52,8 @@ exists as a file and latency is irrelevant. See
 ## `whisper-candle-streaming` (cross-platform streaming LCD)
 
 The **latency-tolerant, lowest-common-denominator streaming tier**
-([#974](https://github.com/rust-works/omni-dev/issues/974), validated by the
-[#969](https://github.com/rust-works/omni-dev/issues/969) spike): VAD-gated
+([#974](https://github.com/rust-works/omni-voice/issues/974), validated by the
+[#969](https://github.com/rust-works/omni-voice/issues/969) spike): VAD-gated
 chunking + cadence re-decode + LocalAgreement-2 commit over the same candle
 Whisper inference the batch backend uses. Events stream lazily as audio is
 consumed: committed text arrives as non-revisable `Final`s, the volatile
@@ -74,8 +74,8 @@ keep-up on Linux and Windows runners.
 
 Low-latency interactive streaming belongs to the Voxtral tier:
 [ADR-0037](adrs/adr-0037.md) /
-[#933](https://github.com/rust-works/omni-dev/issues/933) on non-Windows, and
-[#936](https://github.com/rust-works/omni-dev/issues/936) (pure-Rust,
+[#933](https://github.com/rust-works/omni-voice/issues/933) on non-Windows, and
+[#936](https://github.com/rust-works/omni-voice/issues/936) (pure-Rust,
 streaming-native) as the future cross-platform successor. On Windows,
 interactive use rides this LCD tier until #936 lands.
 
@@ -118,7 +118,7 @@ model-gated suite (`#[ignore]` by default — needs the model on disk and
 minutes of CPU; run under `--release`):
 
 ```bash
-omni-dev voice install-model
+omni-voice voice install-model
 cargo test --release --test voice_streaming_candle_test -- --ignored --nocapture
 ```
 
@@ -126,11 +126,11 @@ Gates: WER ≤ 15 %, unpaced RTF ≤ 0.5, byte-identical determinism across runs
 time-to-final ≤ 2.5 s (mean & max) under a deadline-paced 1× driver, display
 lag bounded and non-drifting. Partial latency is reported, not gated (the LCD
 tier explicitly does not meet the interactive ≤ 1 s bar). Peak RSS is
-reported on Linux and gated at ≤ 500 MB when `OMNI_DEV_STREAMING_RSS_GATE=1`
+reported on Linux and gated at ≤ 500 MB when `OMNI_VOICE_STREAMING_RSS_GATE=1`
 (set by the CI keep-up workflow, which runs the test in isolation).
 
 The RTF and time-to-final gates accept env overrides
-(`OMNI_DEV_STREAMING_RTF_GATE`, `OMNI_DEV_STREAMING_TTF_GATE`): the
+(`OMNI_VOICE_STREAMING_RTF_GATE`, `OMNI_VOICE_STREAMING_TTF_GATE`): the
 `voice-streaming-keepup` CI lane sets them to `1.0` / `5.0` because it
 checks the *keep-up* criterion (during-speech RTF < 1, bounded lag) on
 hosted runners slower than target hardware, not the Apple-Silicon-calibrated

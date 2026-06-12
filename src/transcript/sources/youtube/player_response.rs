@@ -352,7 +352,7 @@ fn timedtext_url(base_url: &str, tlang: Option<&str>) -> String {
 }
 
 /// Project a [`PlayerResponse`] to the [`LanguageInfo`] list expected by
-/// `omni-dev transcript youtube list-langs`.
+/// `omni-voice transcript youtube list-langs`.
 pub fn list_languages(response: &PlayerResponse) -> Vec<LanguageInfo> {
     response
         .captions
@@ -379,7 +379,7 @@ pub fn list_languages(response: &PlayerResponse) -> Vec<LanguageInfo> {
 }
 
 /// Project a [`PlayerResponse`] to the [`MediaInfo`] expected by
-/// `omni-dev transcript youtube info`.
+/// `omni-voice transcript youtube info`.
 pub fn extract_media_info(response: &PlayerResponse) -> MediaInfo {
     let details = response.video_details.as_ref();
     MediaInfo {

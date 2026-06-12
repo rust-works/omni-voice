@@ -20,10 +20,10 @@
 //!
 //! [`ModelRegistry::load`] builds the registry from a layered set of YAML
 //! sources: an embedded catalog (compile-time `include_str!`), an optional
-//! user-level file at `~/.omni-dev/models.yaml`, and an optional
-//! project-local file at `./.omni-dev/models.yaml`. Layers are deep-merged
+//! user-level file at `~/.omni-voice/models.yaml`, and an optional
+//! project-local file at `./.omni-voice/models.yaml`. Layers are deep-merged
 //! with project > user > embedded precedence; an explicit override path
-//! provided via `OMNI_DEV_MODELS_YAML` short-circuits the user/project
+//! provided via `OMNI_VOICE_MODELS_YAML` short-circuits the user/project
 //! lookup. See [ADR-0022](../../docs/adrs/adr-0022.md) for the layered
 //! loader rationale and [ADR-0011](../../docs/adrs/adr-0011.md) for the
 //! original compile-time design.
@@ -38,7 +38,7 @@ use serde::{Deserialize, Serialize};
 /// Embedded models YAML configuration, loaded at compile time.
 pub(crate) const MODELS_YAML: &str = include_str!("../templates/models.yaml");
 
-/// Schema version that this build of omni-dev understands.
+/// Schema version that this build of omni-voice understands.
 ///
 /// User/project files declaring a different version receive a warning at
 /// load time. Files without a `version:` field are accepted with a warning
@@ -47,7 +47,7 @@ pub const MODELS_SCHEMA_VERSION: &str = "1";
 
 /// Environment variable that, when set, points at a single user-side YAML
 /// file and short-circuits the standard user/project lookup.
-pub const OMNI_DEV_MODELS_YAML_ENV: &str = "OMNI_DEV_MODELS_YAML";
+pub const OMNI_VOICE_MODELS_YAML_ENV: &str = "OMNI_VOICE_MODELS_YAML";
 
 /// Ultimate fallback max output tokens when no model or provider config matches.
 const FALLBACK_MAX_OUTPUT_TOKENS: usize = 4096;
@@ -64,11 +64,11 @@ pub enum ModelSource {
     /// Compile-time embedded catalog (`src/templates/models.yaml`).
     #[default]
     Embedded,
-    /// User-level catalog at `~/.omni-dev/models.yaml`.
+    /// User-level catalog at `~/.omni-voice/models.yaml`.
     User,
-    /// Project-local catalog at `./.omni-dev/models.yaml`.
+    /// Project-local catalog at `./.omni-voice/models.yaml`.
     Project,
-    /// File explicitly pointed to by `OMNI_DEV_MODELS_YAML`/`--models-yaml`.
+    /// File explicitly pointed to by `OMNI_VOICE_MODELS_YAML`/`--models-yaml`.
     Override,
 }
 
@@ -232,7 +232,7 @@ pub struct ProviderConfig {
 ///
 /// [`ModelConfiguration`] is the result of merging the embedded
 /// `src/templates/models.yaml` with any optional user
-/// (`~/.omni-dev/models.yaml`) and project (`./.omni-dev/models.yaml`)
+/// (`~/.omni-voice/models.yaml`) and project (`./.omni-voice/models.yaml`)
 /// overrides, in that precedence order. See
 /// [ADR-0022](../../docs/adrs/adr-0022.md) for the layered loader and
 /// merge semantics. The canonical entry point that produces a fully merged
@@ -270,16 +270,16 @@ impl ModelRegistry {
     /// over the embedded one.
     ///
     /// Lookup order (highest precedence wins):
-    /// 1. `OMNI_DEV_MODELS_YAML` — explicit override path; short-circuits 2 & 3.
-    /// 2. `./.omni-dev/models.yaml` — project-local catalog (if present).
-    /// 3. `~/.omni-dev/models.yaml` — user-level catalog (if present).
+    /// 1. `OMNI_VOICE_MODELS_YAML` — explicit override path; short-circuits 2 & 3.
+    /// 2. `./.omni-voice/models.yaml` — project-local catalog (if present).
+    /// 3. `~/.omni-voice/models.yaml` — user-level catalog (if present).
     /// 4. Embedded `src/templates/models.yaml` — always present, lowest layer.
     ///
     /// Missing user-side files fall through silently. Malformed user-side
     /// files log an error and are skipped. A malformed embedded catalog is
     /// a hard failure (compile-time invariant).
     pub fn load() -> Result<Self> {
-        let override_path = std::env::var(OMNI_DEV_MODELS_YAML_ENV)
+        let override_path = std::env::var(OMNI_VOICE_MODELS_YAML_ENV)
             .ok()
             .filter(|s| !s.is_empty())
             .map(PathBuf::from);
@@ -308,7 +308,7 @@ impl ModelRegistry {
                 Some(yaml) => layers.push((ModelSource::Override, yaml)),
                 None => {
                     tracing::warn!(
-                        "{OMNI_DEV_MODELS_YAML_ENV} points at {} but the file is missing or unreadable; falling back to embedded catalog",
+                        "{OMNI_VOICE_MODELS_YAML_ENV} points at {} but the file is missing or unreadable; falling back to embedded catalog",
                         path.display()
                     );
                 }
@@ -593,16 +593,16 @@ impl ModelRegistry {
     }
 }
 
-/// Default project-local catalog path: `<cwd>/.omni-dev/models.yaml`.
+/// Default project-local catalog path: `<cwd>/.omni-voice/models.yaml`.
 fn default_project_path() -> Option<PathBuf> {
     std::env::current_dir()
         .ok()
-        .map(|cwd| cwd.join(".omni-dev").join("models.yaml"))
+        .map(|cwd| cwd.join(".omni-voice").join("models.yaml"))
 }
 
-/// Default user-level catalog path: `~/.omni-dev/models.yaml`.
+/// Default user-level catalog path: `~/.omni-voice/models.yaml`.
 fn default_user_path() -> Option<PathBuf> {
-    dirs::home_dir().map(|h| h.join(".omni-dev").join("models.yaml"))
+    dirs::home_dir().map(|h| h.join(".omni-voice").join("models.yaml"))
 }
 
 /// Reads `path` if it exists. Returns `None` for missing files; logs and
@@ -1583,7 +1583,7 @@ providers:
     }
 
     #[test]
-    fn empty_omni_dev_models_yaml_env_var_is_ignored() {
+    fn empty_omni_voice_models_yaml_env_var_is_ignored() {
         // Exercises the `.filter(|s| !s.is_empty())` branch from `load()`
         // directly. The `load()` entry point is not safely callable from
         // a unit test because it consults a process-wide OnceLock.

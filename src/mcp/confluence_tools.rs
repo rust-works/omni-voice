@@ -36,7 +36,7 @@ use crate::data::yaml::to_yaml;
 
 use super::error::tool_error;
 use super::output_file::write_to_file_yaml;
-use super::server::OmniDevServer;
+use super::server::OmniVoiceServer;
 
 // ── Parameter structs ───────────────────────────────────────────────
 
@@ -79,7 +79,7 @@ pub struct ConfluenceCreateParams {
     /// For `format = "jfm"` (the default), this is GitHub-style markdown,
     /// NOT Confluence wiki markup. Use `##` not `h2.`, triple-backtick fences
     /// not `{code}`, backtick inline code not `{{...}}`. Full reference:
-    /// MCP resource `omni-dev://specs/jfm`.
+    /// MCP resource `omni-voice://specs/jfm`.
     pub content: String,
     /// Optional parent page ID for nesting under an existing page.
     #[serde(default)]
@@ -99,7 +99,7 @@ pub struct ConfluenceWriteParams {
     /// For `format = "jfm"` (the default), this is GitHub-style markdown,
     /// NOT Confluence wiki markup. Use `##` not `h2.`, triple-backtick fences
     /// not `{code}`, backtick inline code not `{{...}}`. Full reference:
-    /// MCP resource `omni-dev://specs/jfm`.
+    /// MCP resource `omni-voice://specs/jfm`.
     pub content: String,
     /// Format of `content`: `"jfm"` (default markdown) or `"adf"` (raw ADF JSON).
     #[serde(default)]
@@ -607,7 +607,7 @@ fn resolve_output_dir(requested: Option<String>) -> Result<(PathBuf, Option<temp
         Ok((path, None))
     } else {
         let tmp = tempfile::Builder::new()
-            .prefix("omni-dev-confluence-download-")
+            .prefix("omni-voice-confluence-download-")
             .tempdir()
             .context("Failed to create download tempdir")?;
         let path = tmp.path().to_path_buf();
@@ -1049,13 +1049,13 @@ pub async fn delete_attachment_result(
 
 #[allow(missing_docs)] // #[tool_router] generates a pub `confluence_tool_router` fn.
 #[tool_router(router = confluence_tool_router, vis = "pub")]
-impl OmniDevServer {
+impl OmniVoiceServer {
     /// Tool: fetch a Confluence page as JFM markdown (default) or ADF JSON.
     #[tool(
         description = "Fetch a Confluence page by ID. Returns JFM markdown by default, or raw ADF JSON when format=\"adf\". \
                        When `output_file` is set, the content is written to that path and the tool returns \
                        a short YAML summary (path/bytes/format) — useful for large pages. \
-                       Mirrors `omni-dev atlassian confluence read`."
+                       Mirrors `omni-voice atlassian confluence read`."
     )]
     pub async fn confluence_read(
         &self,
@@ -1071,7 +1071,7 @@ impl OmniDevServer {
     /// Tool: search Confluence pages by CQL.
     #[tool(
         description = "Search Confluence pages using CQL. Returns YAML with matching page IDs, titles, and space keys. \
-                       Mirrors `omni-dev atlassian confluence search --cql`."
+                       Mirrors `omni-voice atlassian confluence search --cql`."
     )]
     pub async fn confluence_search(
         &self,
@@ -1087,8 +1087,8 @@ impl OmniDevServer {
     #[tool(
         description = "Create a new Confluence page from JFM markdown (default) or raw ADF JSON. \
                        JFM is GitHub-style markdown, NOT Confluence wiki markup — see resource \
-                       `omni-dev://specs/jfm` for syntax. Returns the new page's ID. \
-                       Mirrors `omni-dev atlassian confluence create`."
+                       `omni-voice://specs/jfm` for syntax. Returns the new page's ID. \
+                       Mirrors `omni-voice atlassian confluence create`."
     )]
     pub async fn confluence_create(
         &self,
@@ -1105,8 +1105,8 @@ impl OmniDevServer {
     #[tool(
         description = "Overwrite a Confluence page's body from JFM markdown (default) or raw ADF JSON. \
                        JFM is GitHub-style markdown, NOT Confluence wiki markup — see resource \
-                       `omni-dev://specs/jfm` for syntax. \
-                       Mirrors `omni-dev atlassian confluence write --force`."
+                       `omni-voice://specs/jfm` for syntax. \
+                       Mirrors `omni-voice atlassian confluence write --force`."
     )]
     pub async fn confluence_write(
         &self,
@@ -1126,7 +1126,7 @@ impl OmniDevServer {
     #[tool(
         description = "Delete a Confluence page. IRREVERSIBLE. Requires the caller to pass `confirm: true` \
                        to prevent accidental deletions. Set `purge: true` to permanently purge instead of \
-                       moving to trash (requires space admin). Mirrors `omni-dev atlassian confluence delete --force`."
+                       moving to trash (requires space admin). Mirrors `omni-voice atlassian confluence delete --force`."
     )]
     pub async fn confluence_delete(
         &self,
@@ -1146,7 +1146,7 @@ impl OmniDevServer {
                        `\"before\"`, or `\"after\"` (sibling reorder relative to target). \
                        Same-space only — cross-space moves are not supported. \
                        Returns the moved page's metadata as YAML (id, title, parent_id, ancestors). \
-                       Mirrors `omni-dev atlassian confluence move`."
+                       Mirrors `omni-voice atlassian confluence move`."
     )]
     pub async fn confluence_move(
         &self,
@@ -1161,7 +1161,7 @@ impl OmniDevServer {
         description = "Recursively download a Confluence page or an entire space into a directory. \
                        Either `id` (root page) or `space` (space key) must be provided. \
                        Returns a YAML manifest summary of downloaded pages. \
-                       Mirrors `omni-dev atlassian confluence download`."
+                       Mirrors `omni-voice atlassian confluence download`."
     )]
     pub async fn confluence_download(
         &self,
@@ -1176,7 +1176,7 @@ impl OmniDevServer {
     #[tool(
         description = "List children of a Confluence page, or top-level pages in a space. \
                        Supports optional recursion with a max depth. Mirrors \
-                       `omni-dev atlassian confluence children`."
+                       `omni-voice atlassian confluence children`."
     )]
     pub async fn confluence_children(
         &self,
@@ -1205,7 +1205,7 @@ impl OmniDevServer {
                        content. `since` filters to versions at or after a numeric \
                        version (\"5\") or ISO 8601 date (\"2026-01-01T00:00:00Z\"). \
                        `limit` defaults to 20; `0` means unlimited. Mirrors \
-                       `omni-dev atlassian confluence history`."
+                       `omni-voice atlassian confluence history`."
     )]
     pub async fn confluence_history(
         &self,
@@ -1229,7 +1229,7 @@ impl OmniDevServer {
                        `kind` selects \"footer\", \"inline\", or \"all\" (default — \
                        both kinds merged and sorted by creation time). `limit` of 0 \
                        returns every comment. Mirrors \
-                       `omni-dev atlassian confluence comment list`.")]
+                       `omni-voice atlassian confluence comment list`.")]
     pub async fn confluence_comment_list(
         &self,
         Parameters(params): Parameters<ConfluenceCommentListParams>,
@@ -1249,7 +1249,7 @@ impl OmniDevServer {
                        footer comment. The content is converted to ADF before posting. \
                        For inline (anchored) comments, use \
                        `confluence_comment_add_inline`. Mirrors \
-                       `omni-dev atlassian confluence comment add`."
+                       `omni-voice atlassian confluence comment add`."
     )]
     pub async fn confluence_comment_add(
         &self,
@@ -1270,7 +1270,7 @@ impl OmniDevServer {
                        exactly; if it appears multiple times, pass `match_index` \
                        (1-based) to pick which occurrence. Errors if the anchor \
                        does not match or `match_index` is out of range. Mirrors \
-                       `omni-dev atlassian confluence comment add-inline`."
+                       `omni-voice atlassian confluence comment add-inline`."
     )]
     pub async fn confluence_comment_add_inline(
         &self,
@@ -1296,7 +1296,7 @@ impl OmniDevServer {
                        `kind` must be \"footer\" or \"inline\" — Confluence stores \
                        reply chains on kind-specific endpoints, so the caller must \
                        commit to one. `limit` of 0 returns every reply. Mirrors \
-                       `omni-dev atlassian confluence comment replies`."
+                       `omni-voice atlassian confluence comment replies`."
     )]
     pub async fn confluence_comment_replies(
         &self,
@@ -1315,7 +1315,7 @@ impl OmniDevServer {
     /// Lists labels on a Confluence page.
     #[tool(description = "List labels on a Confluence page (auto-paginated). \
                        `limit` of 0 returns every label. Mirrors \
-                       `omni-dev atlassian confluence label list`.")]
+                       `omni-voice atlassian confluence label list`.")]
     pub async fn confluence_label_list(
         &self,
         Parameters(params): Parameters<ConfluenceLabelListParams>,
@@ -1330,7 +1330,7 @@ impl OmniDevServer {
 
     /// Adds labels to a Confluence page.
     #[tool(description = "Add one or more labels to a Confluence page. Mirrors \
-                       `omni-dev atlassian confluence label add`.")]
+                       `omni-voice atlassian confluence label add`.")]
     pub async fn confluence_label_add(
         &self,
         Parameters(params): Parameters<ConfluenceLabelAddParams>,
@@ -1348,7 +1348,7 @@ impl OmniDevServer {
         description = "Remove one or more labels from a Confluence page. Destructive \
                        operation: callers must explicitly pass `confirm: true` for the \
                        removal to proceed; otherwise the tool refuses with an error. \
-                       Mirrors `omni-dev atlassian confluence label remove`."
+                       Mirrors `omni-voice atlassian confluence label remove`."
     )]
     pub async fn confluence_label_remove(
         &self,
@@ -1366,7 +1366,7 @@ impl OmniDevServer {
     #[tool(
         description = "Search Confluence users by display name or email. `limit` of 0 \
                        returns every match; defaults to 25. Mirrors \
-                       `omni-dev atlassian confluence user search`."
+                       `omni-voice atlassian confluence user search`."
     )]
     pub async fn confluence_user_search(
         &self,
@@ -1387,7 +1387,7 @@ impl OmniDevServer {
                        overrides the stored name; `comment` is recorded as a version note; \
                        `minor_edit` (default false) marks the upload as minor. \
                        Returns YAML describing the new attachment. Mirrors \
-                       `omni-dev atlassian confluence attachment upload`."
+                       `omni-voice atlassian confluence attachment upload`."
     )]
     pub async fn confluence_attachment_upload(
         &self,
@@ -1413,7 +1413,7 @@ impl OmniDevServer {
         description = "List attachments on a Confluence page (one page per call). \
                        Pass the returned `next_cursor` back as `cursor` to fetch the next \
                        page. `limit` defaults to 25. Mirrors \
-                       `omni-dev atlassian confluence attachment list`."
+                       `omni-voice atlassian confluence attachment list`."
     )]
     pub async fn confluence_attachment_list(
         &self,
@@ -1442,7 +1442,7 @@ impl OmniDevServer {
                        `status` (common values: `current`, `archived`). Filters \
                        combine as AND. Pass the returned `next_cursor` back as \
                        `cursor` to fetch the next page. `limit` defaults to 25. \
-                       Mirrors `omni-dev atlassian confluence space list`."
+                       Mirrors `omni-voice atlassian confluence space list`."
     )]
     pub async fn confluence_space_list(
         &self,
@@ -1478,7 +1478,7 @@ impl OmniDevServer {
                        passed through to the Confluence v2 API verbatim. Pass the \
                        returned `next_cursor` back as `cursor` to fetch the next \
                        page. `limit` defaults to 25. \
-                       Mirrors `omni-dev atlassian confluence space pages`."
+                       Mirrors `omni-voice atlassian confluence space pages`."
     )]
     pub async fn confluence_space_pages(
         &self,
@@ -1503,7 +1503,7 @@ impl OmniDevServer {
     #[tool(
         description = "Delete a Confluence attachment by ID. Set `purge: true` to \
                        permanently purge instead of moving to trash (requires space admin). \
-                       Mirrors `omni-dev atlassian confluence attachment delete --force`."
+                       Mirrors `omni-voice atlassian confluence attachment delete --force`."
     )]
     pub async fn confluence_attachment_delete(
         &self,
@@ -1530,7 +1530,7 @@ impl OmniDevServer {
                        \n\nDetail levels: `summary` (counts only), `outline` (default — \
                        per-section change kind + drill-in cursors), `full` (embeds per-section \
                        deltas, budget-truncated). \
-                       \n\nMirrors `omni-dev atlassian confluence compare run`."
+                       \n\nMirrors `omni-voice atlassian confluence compare run`."
     )]
     pub async fn confluence_compare(
         &self,
@@ -1549,7 +1549,7 @@ impl OmniDevServer {
                        `confluence_compare` (outline mode). Stateless: the cursor encodes \
                        the page ID and version pair. Output formats: \"unified\" (default), \
                        \"side_by_side\", \"markdown_inline\". Mirrors \
-                       `omni-dev atlassian confluence compare section`.")]
+                       `omni-voice atlassian confluence compare section`.")]
     pub async fn confluence_compare_section(
         &self,
         Parameters(params): Parameters<ConfluenceCompareSectionParams>,
@@ -2573,8 +2573,8 @@ mod tests {
 
     use rmcp::handler::server::wrapper::Parameters;
 
-    fn make_server() -> OmniDevServer {
-        OmniDevServer::new()
+    fn make_server() -> OmniVoiceServer {
+        OmniVoiceServer::new()
     }
 
     /// Clear env vars so `create_client()` fails cleanly — lets us drive the
@@ -3364,7 +3364,7 @@ mod tests {
 
     #[test]
     fn tool_router_registers_all_confluence_tools() {
-        let router = OmniDevServer::confluence_tool_router();
+        let router = OmniVoiceServer::confluence_tool_router();
         for name in [
             "confluence_read",
             "confluence_search",

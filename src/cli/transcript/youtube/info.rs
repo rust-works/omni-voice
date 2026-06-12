@@ -1,4 +1,4 @@
-//! `omni-dev transcript youtube info` — show top-level metadata about a video.
+//! `omni-voice transcript youtube info` — show top-level metadata about a video.
 
 use anyhow::{Context, Result};
 use clap::{Parser, ValueEnum};

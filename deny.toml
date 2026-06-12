@@ -1,4 +1,4 @@
-# deny.toml -- cargo-deny configuration for omni-dev
+# deny.toml -- cargo-deny configuration for omni-voice
 # Reference: https://embarkstudios.github.io/cargo-deny/
 
 [graph]

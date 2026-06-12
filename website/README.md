@@ -1,6 +1,6 @@
-# omni-dev website
+# omni-voice website
 
-Source for [omni-dev.john-ky.io](https://omni-dev.john-ky.io), built with
+Source for [omni-voice.john-ky.io](https://omni-voice.john-ky.io), built with
 [Zola](https://www.getzola.org/) and deployed to GitHub Pages by
 `.github/workflows/website.yml`.
 

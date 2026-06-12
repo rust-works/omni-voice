@@ -1,13 +1,13 @@
 [package]
-name = "omni-dev"
-version = "0.28.0"
+name = "omni-voice"
+version = "0.1.0"
 edition = "2021"
 authors = ["John Ky <newhoggy@gmail.com>"]
 license = "BSD-3-Clause"
 description = "A powerful Git commit message analysis and amendment toolkit"
-repository = "https://github.com/rust-works/omni-dev"
-homepage = "https://github.com/rust-works/omni-dev"
-documentation = "https://docs.rs/omni-dev"
+repository = "https://github.com/rust-works/omni-voice"
+homepage = "https://github.com/rust-works/omni-voice"
+documentation = "https://docs.rs/omni-voice"
 readme = "README.md"
 keywords = ["git", "commit", "conventional-commits", "development", "cli"]
 categories = ["development-tools", "command-line-utilities"]
@@ -91,16 +91,16 @@ wiremock = "0.6"
 rmcp = { version = "1.7", features = ["client", "server", "transport-io", "macros"] }
 
 [lib]
-name = "omni_dev"
+name = "omni_voice"
 path = "src/lib.rs"
 
 [[bin]]
-name = "omni-dev"
+name = "omni-voice"
 path = "src/main.rs"
 required-features = []
 
 [[bin]]
-name = "omni-dev-mcp"
+name = "omni-voice-mcp"
 path = "src/mcp_server.rs"
 required-features = ["mcp"]
 

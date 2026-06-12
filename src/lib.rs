@@ -1,4 +1,4 @@
-//! # omni-dev
+//! # omni-voice
 //!
 //! A comprehensive development toolkit written in Rust.
 //!
@@ -11,9 +11,9 @@
 //! ## Quick Start
 //!
 //! ```rust
-//! use omni_dev::*;
+//! use omni_voice::*;
 //!
-//! println!("Hello from omni-dev!");
+//! println!("Hello from omni-voice!");
 //! ```
 
 #![warn(missing_docs)]
@@ -39,5 +39,5 @@ mod test_support;
 
 pub use crate::cli::Cli;
 
-/// The current version of omni-dev.
+/// The current version of omni-voice.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

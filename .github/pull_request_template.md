@@ -2,7 +2,7 @@
 <!-- 
 Provide a clear, comprehensive overview of what this PR does and why.
 Include: What changed, why it was needed, and the impact on users/system.
-See .omni-dev/pr-guidelines.md for detailed guidance.
+See .omni-voice/pr-guidelines.md for detailed guidance.
 -->
 
 ## Type of Change
@@ -114,7 +114,7 @@ Highlight security, performance, or architecture concerns.
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published
-- [ ] I have read and followed the [PR Guidelines](../.omni-dev/pr-guidelines.md)
+- [ ] I have read and followed the [PR Guidelines](../.omni-voice/pr-guidelines.md)
 
 ## Performance Impact
 <!-- 

@@ -1,4 +1,4 @@
-//! CLI command for `omni-dev datadog logs search`.
+//! CLI command for `omni-voice datadog logs search`.
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, SecondsFormat, Utc};
@@ -12,7 +12,7 @@ use crate::datadog::logs_api::LogsApi;
 use crate::datadog::time::parse_time_range;
 use crate::datadog::types::{LogEvent, LogSearchResult, SortOrder};
 
-/// Sort order argument for `omni-dev datadog logs search`.
+/// Sort order argument for `omni-voice datadog logs search`.
 ///
 /// Wraps [`SortOrder`] so clap can derive a `ValueEnum` impl with the
 /// kebab-case strings the CLI exposes (`timestamp-asc`,
@@ -396,7 +396,7 @@ mod tests {
 
         let guard = EnvGuard::take();
         let dir = with_empty_home(&guard);
-        let omni_dir = dir.path().join(".omni-dev");
+        let omni_dir = dir.path().join(".omni-voice");
         fs::create_dir_all(&omni_dir).unwrap();
         fs::write(
             omni_dir.join("settings.json"),
@@ -429,7 +429,7 @@ mod tests {
         // time-range parse step; --from is intentionally garbage.
         let guard = EnvGuard::take();
         let dir = with_empty_home(&guard);
-        let omni_dir = dir.path().join(".omni-dev");
+        let omni_dir = dir.path().join(".omni-voice");
         fs::create_dir_all(&omni_dir).unwrap();
         fs::write(
             omni_dir.join("settings.json"),

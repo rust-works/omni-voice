@@ -1,22 +1,22 @@
 # Local Override Configuration
 
-Local overrides allow developers to customize their personal omni-dev workflow without affecting shared project settings.
+Local overrides allow developers to customize their personal omni-voice workflow without affecting shared project settings.
 
 ## Overview
 
-All `.omni-dev` configuration files now support local overrides through the `.omni-dev/local/` directory. Files in the local directory take precedence over shared project configurations.
+All `.omni-voice` configuration files now support local overrides through the `.omni-voice/local/` directory. Files in the local directory take precedence over shared project configurations.
 
 ## Priority Order
 
 Local overrides are the highest-priority tier in the full resolution chain:
 
-1. `.omni-dev/local/{filename}` - **Local override (highest priority)**
-2. `.omni-dev/{filename}` - Shared project configuration
-3. `$XDG_CONFIG_HOME/omni-dev/{filename}` - XDG global config
-4. `$HOME/.omni-dev/{filename}` - Legacy global fallback
+1. `.omni-voice/local/{filename}` - **Local override (highest priority)**
+2. `.omni-voice/{filename}` - Shared project configuration
+3. `$XDG_CONFIG_HOME/omni-voice/{filename}` - XDG global config
+4. `$HOME/.omni-voice/{filename}` - Legacy global fallback
 
 See [Configuration Guide](configuration.md) for the narrative walkthrough
-and [`omni-dev-directory.md`](omni-dev-directory.md#chain-a--hierarchical-resolution)
+and [`omni-voice-directory.md`](omni-voice-directory.md#chain-a--hierarchical-resolution)
 for the formal precedence contract, including config-directory selection
 (walk-up discovery, env var, CLI flag) and the per-file validation behaviour.
 
@@ -30,16 +30,16 @@ for the formal precedence contract, including config-directory selection
 
 ```bash
 # 1. Create local override directory
-mkdir -p .omni-dev/local
+mkdir -p .omni-voice/local
 
 # 2. Add to .gitignore to keep personal settings private
-echo ".omni-dev/local/" >> .gitignore
+echo ".omni-voice/local/" >> .gitignore
 
 # 3. Copy team config as starting point
-cp .omni-dev/scopes.yaml .omni-dev/local/scopes.yaml
+cp .omni-voice/scopes.yaml .omni-voice/local/scopes.yaml
 
 # 4. Customize for your workflow
-vim .omni-dev/local/scopes.yaml
+vim .omni-voice/local/scopes.yaml
 ```
 
 ## Examples
@@ -48,7 +48,7 @@ vim .omni-dev/local/scopes.yaml
 
 Add personal scopes while keeping team standards:
 
-**Team config** (`.omni-dev/scopes.yaml`):
+**Team config** (`.omni-voice/scopes.yaml`):
 
 ```yaml
 scopes:
@@ -60,7 +60,7 @@ scopes:
     file_patterns: ["src/ui/**"]
 ```
 
-**Your personal config** (`.omni-dev/local/scopes.yaml`):
+**Your personal config** (`.omni-voice/local/scopes.yaml`):
 
 ```yaml
 scopes:
@@ -88,7 +88,7 @@ scopes:
 
 Override team guidelines with your preferred style:
 
-**Your personal guidelines** (`.omni-dev/local/commit-guidelines.md`):
+**Your personal guidelines** (`.omni-voice/local/commit-guidelines.md`):
 
 ```markdown
 # Personal Commit Guidelines
@@ -150,7 +150,7 @@ Fixes #123
 Always begin by copying the shared configuration:
 
 ```bash
-cp .omni-dev/scopes.yaml .omni-dev/local/scopes.yaml
+cp .omni-voice/scopes.yaml .omni-voice/local/scopes.yaml
 ```
 
 ### 2. Document Personal Changes
@@ -162,12 +162,12 @@ Mark personal additions clearly:
   description: "[LOCAL] My experimental features"  # Mark as local
 ```
 
-### 3. Keep `.omni-dev/local/` Private
+### 3. Keep `.omni-voice/local/` Private
 
 **Always** add to `.gitignore`:
 
 ```
-.omni-dev/local/
+.omni-voice/local/
 ```
 
 ### 4. Share Useful Patterns
@@ -184,7 +184,7 @@ Periodically sync with team config updates:
 
 ```bash
 # Review team changes
-diff .omni-dev/scopes.yaml .omni-dev/local/scopes.yaml
+diff .omni-voice/scopes.yaml .omni-voice/local/scopes.yaml
 
 # Update local config as needed
 ```
@@ -194,8 +194,8 @@ diff .omni-dev/scopes.yaml .omni-dev/local/scopes.yaml
 ### Local Config Not Loading
 
 - Check file permissions (must be readable)
-- Verify YAML syntax: `python -c "import yaml; yaml.safe_load(open('.omni-dev/local/scopes.yaml'))"`
-- Ensure `.omni-dev/local/` directory exists
+- Verify YAML syntax: `python -c "import yaml; yaml.safe_load(open('.omni-voice/local/scopes.yaml'))"`
+- Ensure `.omni-voice/local/` directory exists
 
 ### Conflicts with Team Config
 
@@ -205,7 +205,7 @@ diff .omni-dev/scopes.yaml .omni-dev/local/scopes.yaml
 
 ### Version Control Issues
 
-- Ensure `.omni-dev/local/` is in `.gitignore`
+- Ensure `.omni-voice/local/` is in `.gitignore`
 - Never commit personal configurations to shared repository
 - Use separate branches if testing team config changes
 
@@ -216,7 +216,7 @@ diff .omni-dev/scopes.yaml .omni-dev/local/scopes.yaml
 For complex workflows, organize by context:
 
 ```
-.omni-dev/local/
+.omni-voice/local/
 ├── scopes-client-a.yaml
 ├── scopes-client-b.yaml
 └── switch-config.sh
@@ -231,7 +231,7 @@ Use scripts to switch between different local configs based on project context.
 Create personal feature contexts:
 
 ```
-.omni-dev/local/context/feature-contexts/
+.omni-voice/local/context/feature-contexts/
 ├── my-auth-feature.yaml
 ├── experimental-ui.yaml
 └── performance-testing.yaml
@@ -239,7 +239,7 @@ Create personal feature contexts:
 
 ## Integration
 
-Local overrides work seamlessly with all omni-dev features:
+Local overrides work seamlessly with all omni-voice features:
 
 - Contextual intelligence uses your personal scopes
 - Commit message generation respects your templates

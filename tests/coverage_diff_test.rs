@@ -15,7 +15,7 @@ use anyhow::Result;
 use git2::{Repository, Signature};
 use tempfile::TempDir;
 
-use omni_dev::coverage::{analyze, CoverageReport, DiffModel, DiffScope, FileCoverage};
+use omni_voice::coverage::{analyze, CoverageReport, DiffModel, DiffScope, FileCoverage};
 
 /// A temporary git repo whose commits each define the full file set (files
 /// omitted from a commit are removed), so renames and deletions work.

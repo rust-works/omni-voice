@@ -1,6 +1,6 @@
 //! Voice capture: microphone-to-WAV pipeline.
 //!
-//! The library half of `omni-dev voice capture`. The CLI entry point lives in
+//! The library half of `omni-voice voice capture`. The CLI entry point lives in
 //! [`crate::cli::voice`]. This module is intentionally CLI-free so the audio
 //! pipeline (source → mixdown → resample → idle-detect → trim → write) can be
 //! unit-tested against fixture WAVs without a real microphone.
@@ -37,7 +37,7 @@ pub use capture::{
 pub use clock::{Clock, FixedClock, SystemClock};
 pub use det::{CountingUlidRng, SystemUlidRng, UlidRng};
 pub use factory::{create_default_transcriber, VoiceOpts};
-pub use paths::{captures_dir, omni_dev_voice_root, speaker_file, speakers_dir};
+pub use paths::{captures_dir, omni_voice_voice_root, speaker_file, speakers_dir};
 pub use render::{detect_format, render_jsonl, render_markdown, OutputFormat};
 pub use speaker::{cosine, l2_normalise, EnrolledSpeaker, WespeakerEmbedder, MIN_EMBED_SAMPLES};
 pub use transcriber::{

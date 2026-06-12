@@ -13,10 +13,10 @@ use crate::data::context::{
     ScopeRequirements,
 };
 
-/// Returns the XDG-compliant config directory for omni-dev.
+/// Returns the XDG-compliant config directory for omni-voice.
 ///
-/// Uses `$XDG_CONFIG_HOME/omni-dev/` if the variable is set, otherwise
-/// defaults to `$HOME/.config/omni-dev/` per the XDG Base Directory
+/// Uses `$XDG_CONFIG_HOME/omni-voice/` if the variable is set, otherwise
+/// defaults to `$HOME/.config/omni-voice/` per the XDG Base Directory
 /// Specification. Returns `None` if neither can be determined.
 ///
 /// Uses `std::env::var` directly rather than `dirs::config_dir()`, which
@@ -25,12 +25,12 @@ use crate::data::context::{
 fn xdg_config_dir() -> Option<PathBuf> {
     if let Ok(xdg_home) = std::env::var("XDG_CONFIG_HOME") {
         if !xdg_home.is_empty() {
-            return Some(PathBuf::from(xdg_home).join("omni-dev"));
+            return Some(PathBuf::from(xdg_home).join("omni-voice"));
         }
     }
 
-    // Default: $HOME/.config/omni-dev/
-    dirs::home_dir().map(|home| home.join(".config").join("omni-dev"))
+    // Default: $HOME/.config/omni-voice/
+    dirs::home_dir().map(|home| home.join(".config").join("omni-voice"))
 }
 
 /// Resolves configuration file path with local override support and global fallback.
@@ -38,8 +38,8 @@ fn xdg_config_dir() -> Option<PathBuf> {
 /// Priority:
 /// 1. `{dir}/local/{filename}` (local override)
 /// 2. `{dir}/{filename}` (shared project config)
-/// 3. `$XDG_CONFIG_HOME/omni-dev/{filename}` (XDG global config)
-/// 4. `$HOME/.omni-dev/{filename}` (legacy global fallback)
+/// 3. `$XDG_CONFIG_HOME/omni-voice/{filename}` (XDG global config)
+/// 4. `$HOME/.omni-voice/{filename}` (legacy global fallback)
 pub fn resolve_config_file(dir: &Path, filename: &str) -> PathBuf {
     let local_path = dir.join("local").join(filename);
     if local_path.exists() {
@@ -61,7 +61,7 @@ pub fn resolve_config_file(dir: &Path, filename: &str) -> PathBuf {
 
     // Check legacy home directory fallback
     if let Ok(home_dir) = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("No home directory")) {
-        let home_path = home_dir.join(".omni-dev").join(filename);
+        let home_path = home_dir.join(".omni-voice").join(filename);
         if home_path.exists() {
             return home_path;
         }
@@ -71,15 +71,15 @@ pub fn resolve_config_file(dir: &Path, filename: &str) -> PathBuf {
     project_path
 }
 
-/// Walks up from `start` toward the repository root, looking for `.omni-dev/`.
+/// Walks up from `start` toward the repository root, looking for `.omni-voice/`.
 ///
-/// Returns the first `.omni-dev/` directory found. Stops at the repository
+/// Returns the first `.omni-voice/` directory found. Stops at the repository
 /// root (identified by a `.git` directory or file). Returns `None` if no
-/// `.omni-dev/` is found within the repository boundary.
+/// `.omni-voice/` is found within the repository boundary.
 fn walk_up_find_config_dir(start: &Path) -> Option<PathBuf> {
     let mut current = start.to_path_buf();
     loop {
-        let candidate = current.join(".omni-dev");
+        let candidate = current.join(".omni-voice");
         if candidate.is_dir() {
             return Some(candidate);
         }
@@ -99,11 +99,11 @@ fn walk_up_find_config_dir(start: &Path) -> Option<PathBuf> {
 pub enum ConfigDirSource {
     /// Explicitly set via `--context-dir` CLI flag.
     CliFlag,
-    /// Set via `OMNI_DEV_CONFIG_DIR` environment variable.
+    /// Set via `OMNI_VOICE_CONFIG_DIR` environment variable.
     EnvVar,
     /// Found via walk-up discovery from CWD.
     WalkUp,
-    /// Default `.omni-dev` (no explicit override, no walk-up match).
+    /// Default `.omni-voice` (no explicit override, no walk-up match).
     Default,
 }
 
@@ -111,7 +111,7 @@ impl fmt::Display for ConfigDirSource {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::CliFlag => write!(f, "--context-dir"),
-            Self::EnvVar => write!(f, "OMNI_DEV_CONFIG_DIR"),
+            Self::EnvVar => write!(f, "OMNI_VOICE_CONFIG_DIR"),
             Self::WalkUp => write!(f, "walk-up"),
             Self::Default => write!(f, "default"),
         }
@@ -122,15 +122,15 @@ impl fmt::Display for ConfigDirSource {
 ///
 /// Priority:
 /// 1. `override_dir` (from `--context-dir` CLI flag; disables walk-up)
-/// 2. `OMNI_DEV_CONFIG_DIR` environment variable (disables walk-up)
-/// 3. Walk-up: nearest `.omni-dev/` from CWD to repo root
-/// 4. `.omni-dev` default
+/// 2. `OMNI_VOICE_CONFIG_DIR` environment variable (disables walk-up)
+/// 3. Walk-up: nearest `.omni-voice/` from CWD to repo root
+/// 4. `.omni-voice` default
 pub fn resolve_context_dir_with_source(override_dir: Option<&Path>) -> (PathBuf, ConfigDirSource) {
     if let Some(dir) = override_dir {
         return (dir.to_path_buf(), ConfigDirSource::CliFlag);
     }
 
-    if let Ok(env_dir) = std::env::var("OMNI_DEV_CONFIG_DIR") {
+    if let Ok(env_dir) = std::env::var("OMNI_VOICE_CONFIG_DIR") {
         if !env_dir.is_empty() {
             return (PathBuf::from(env_dir), ConfigDirSource::EnvVar);
         }
@@ -143,7 +143,7 @@ pub fn resolve_context_dir_with_source(override_dir: Option<&Path>) -> (PathBuf,
         }
     }
 
-    (PathBuf::from(".omni-dev"), ConfigDirSource::Default)
+    (PathBuf::from(".omni-voice"), ConfigDirSource::Default)
 }
 
 /// Resolves the context directory from an optional CLI override.
@@ -157,7 +157,7 @@ pub fn resolve_context_dir(override_dir: Option<&Path>) -> PathBuf {
 /// Like [`resolve_context_dir_with_source`], but anchored to an explicit
 /// `repo_root` instead of the process current working directory.
 ///
-/// The override and `OMNI_DEV_CONFIG_DIR` tiers behave identically; only the
+/// The override and `OMNI_VOICE_CONFIG_DIR` tiers behave identically; only the
 /// walk-up start and the default fall back to `repo_root` rather than the CWD,
 /// so a command run with an injected `--repo` discovers config under that repo.
 pub fn resolve_context_dir_with_source_at(
@@ -168,7 +168,7 @@ pub fn resolve_context_dir_with_source_at(
         return (dir.to_path_buf(), ConfigDirSource::CliFlag);
     }
 
-    if let Ok(env_dir) = std::env::var("OMNI_DEV_CONFIG_DIR") {
+    if let Ok(env_dir) = std::env::var("OMNI_VOICE_CONFIG_DIR") {
         if !env_dir.is_empty() {
             return (PathBuf::from(env_dir), ConfigDirSource::EnvVar);
         }
@@ -179,7 +179,7 @@ pub fn resolve_context_dir_with_source_at(
         return (config_dir, ConfigDirSource::WalkUp);
     }
 
-    (repo_root.join(".omni-dev"), ConfigDirSource::Default)
+    (repo_root.join(".omni-voice"), ConfigDirSource::Default)
 }
 
 /// Like [`resolve_context_dir`], but anchored to an explicit `repo_root`.
@@ -209,9 +209,9 @@ pub enum ConfigSourceLabel {
     LocalOverride(PathBuf),
     /// Found in `{dir}/{filename}`.
     Project(PathBuf),
-    /// Found in `$XDG_CONFIG_HOME/omni-dev/{filename}`.
+    /// Found in `$XDG_CONFIG_HOME/omni-voice/{filename}`.
     Xdg(PathBuf),
-    /// Found in `$HOME/.omni-dev/{filename}`.
+    /// Found in `$HOME/.omni-voice/{filename}`.
     Global(PathBuf),
     /// Not found at any tier.
     NotFound,
@@ -252,7 +252,7 @@ pub fn config_source_label(dir: &Path, filename: &str) -> ConfigSourceLabel {
     }
 
     if let Some(home_dir) = dirs::home_dir() {
-        let home_path = home_dir.join(".omni-dev").join(filename);
+        let home_path = home_dir.join(".omni-voice").join(filename);
         if home_path.exists() {
             return ConfigSourceLabel::Global(home_path);
         }
@@ -467,8 +467,8 @@ impl ProjectDiscovery {
             exists = context_dir_path.exists(),
             "Looking for context directory"
         );
-        debug!("Loading omni-dev config");
-        self.load_omni_dev_config(&mut context, &context_dir_path)?;
+        debug!("Loading omni-voice config");
+        self.load_omni_voice_config(&mut context, &context_dir_path)?;
         debug!("Config loading completed");
 
         // 2. Standard git configuration files
@@ -483,8 +483,8 @@ impl ProjectDiscovery {
         Ok(context)
     }
 
-    /// Loads configuration from .omni-dev/ directory with local override support.
-    fn load_omni_dev_config(&self, context: &mut ProjectContext, dir: &Path) -> Result<()> {
+    /// Loads configuration from .omni-voice/ directory with local override support.
+    fn load_omni_voice_config(&self, context: &mut ProjectContext, dir: &Path) -> Result<()> {
         // Load commit guidelines (with local override)
         let guidelines_path = resolve_config_file(dir, "commit-guidelines.md");
         debug!(
@@ -855,7 +855,7 @@ mod tests {
 
         let resolved = resolve_config_file(base, "scopes.yaml");
         // When no local or project file exists, it either returns:
-        // - the home directory path if $HOME/.omni-dev/scopes.yaml exists
+        // - the home directory path if $HOME/.omni-voice/scopes.yaml exists
         // - the project path as fallback default
         // Either way, the resolved path should NOT be the local override path.
         assert_ne!(resolved, base.join("local").join("scopes.yaml"));
@@ -1031,18 +1031,18 @@ scopes:
 
     // ── resolve_context_dir ────────────────────────────────────────────
 
-    // Use a mutex to serialize tests that modify OMNI_DEV_CONFIG_DIR.
+    // Use a mutex to serialize tests that modify OMNI_VOICE_CONFIG_DIR.
     static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     #[test]
-    fn context_dir_defaults_to_omni_dev() {
+    fn context_dir_defaults_to_omni_voice() {
         let _lock = ENV_MUTEX.lock().unwrap();
-        std::env::remove_var("OMNI_DEV_CONFIG_DIR");
+        std::env::remove_var("OMNI_VOICE_CONFIG_DIR");
         let result = resolve_context_dir(None);
-        // Walk-up may find .omni-dev in the real repo, or fall back to ".omni-dev"
+        // Walk-up may find .omni-voice in the real repo, or fall back to ".omni-voice"
         assert!(
-            result.ends_with(".omni-dev"),
-            "expected path ending in .omni-dev, got {result:?}"
+            result.ends_with(".omni-voice"),
+            "expected path ending in .omni-voice, got {result:?}"
         );
     }
 
@@ -1057,32 +1057,32 @@ scopes:
     #[test]
     fn context_dir_env_var() {
         let _lock = ENV_MUTEX.lock().unwrap();
-        std::env::set_var("OMNI_DEV_CONFIG_DIR", "/tmp/my-config");
+        std::env::set_var("OMNI_VOICE_CONFIG_DIR", "/tmp/my-config");
         let result = resolve_context_dir(None);
-        std::env::remove_var("OMNI_DEV_CONFIG_DIR");
+        std::env::remove_var("OMNI_VOICE_CONFIG_DIR");
         assert_eq!(result, PathBuf::from("/tmp/my-config"));
     }
 
     #[test]
     fn context_dir_cli_flag_beats_env_var() {
         let _lock = ENV_MUTEX.lock().unwrap();
-        std::env::set_var("OMNI_DEV_CONFIG_DIR", "/tmp/env-config");
+        std::env::set_var("OMNI_VOICE_CONFIG_DIR", "/tmp/env-config");
         let cli = PathBuf::from("cli-config");
         let result = resolve_context_dir(Some(&cli));
-        std::env::remove_var("OMNI_DEV_CONFIG_DIR");
+        std::env::remove_var("OMNI_VOICE_CONFIG_DIR");
         assert_eq!(result, cli);
     }
 
     #[test]
     fn context_dir_ignores_empty_env_var() {
         let _lock = ENV_MUTEX.lock().unwrap();
-        std::env::set_var("OMNI_DEV_CONFIG_DIR", "");
+        std::env::set_var("OMNI_VOICE_CONFIG_DIR", "");
         let result = resolve_context_dir(None);
-        std::env::remove_var("OMNI_DEV_CONFIG_DIR");
-        // Walk-up may find .omni-dev in the real repo, or fall back to ".omni-dev"
+        std::env::remove_var("OMNI_VOICE_CONFIG_DIR");
+        // Walk-up may find .omni-voice in the real repo, or fall back to ".omni-voice"
         assert!(
-            result.ends_with(".omni-dev"),
-            "expected path ending in .omni-dev, got {result:?}"
+            result.ends_with(".omni-voice"),
+            "expected path ending in .omni-voice, got {result:?}"
         );
     }
 
@@ -1100,9 +1100,9 @@ scopes:
     #[test]
     fn with_source_env_var() {
         let _lock = ENV_MUTEX.lock().unwrap();
-        std::env::set_var("OMNI_DEV_CONFIG_DIR", "/tmp/env-config");
+        std::env::set_var("OMNI_VOICE_CONFIG_DIR", "/tmp/env-config");
         let (path, source) = resolve_context_dir_with_source(None);
-        std::env::remove_var("OMNI_DEV_CONFIG_DIR");
+        std::env::remove_var("OMNI_VOICE_CONFIG_DIR");
         assert_eq!(path, PathBuf::from("/tmp/env-config"));
         assert_eq!(source, ConfigDirSource::EnvVar);
     }
@@ -1110,10 +1110,10 @@ scopes:
     #[test]
     fn with_source_cli_beats_env() {
         let _lock = ENV_MUTEX.lock().unwrap();
-        std::env::set_var("OMNI_DEV_CONFIG_DIR", "/tmp/env-config");
+        std::env::set_var("OMNI_VOICE_CONFIG_DIR", "/tmp/env-config");
         let custom = PathBuf::from("cli-config");
         let (path, source) = resolve_context_dir_with_source(Some(&custom));
-        std::env::remove_var("OMNI_DEV_CONFIG_DIR");
+        std::env::remove_var("OMNI_VOICE_CONFIG_DIR");
         assert_eq!(path, custom);
         assert_eq!(source, ConfigDirSource::CliFlag);
     }
@@ -1121,12 +1121,12 @@ scopes:
     #[test]
     fn with_source_walk_up_or_default() {
         let _lock = ENV_MUTEX.lock().unwrap();
-        std::env::remove_var("OMNI_DEV_CONFIG_DIR");
+        std::env::remove_var("OMNI_VOICE_CONFIG_DIR");
         let (path, source) = resolve_context_dir_with_source(None);
-        // Inside this repo, walk-up finds .omni-dev; outside, falls back to default
+        // Inside this repo, walk-up finds .omni-voice; outside, falls back to default
         assert!(
-            path.ends_with(".omni-dev"),
-            "expected path ending in .omni-dev, got {path:?}"
+            path.ends_with(".omni-voice"),
+            "expected path ending in .omni-voice, got {path:?}"
         );
         assert!(
             source == ConfigDirSource::WalkUp || source == ConfigDirSource::Default,
@@ -1149,10 +1149,10 @@ scopes:
     #[test]
     fn with_source_at_env_var() {
         let _lock = ENV_MUTEX.lock().unwrap();
-        std::env::set_var("OMNI_DEV_CONFIG_DIR", "/tmp/env-config");
+        std::env::set_var("OMNI_VOICE_CONFIG_DIR", "/tmp/env-config");
         let (path, source) =
             resolve_context_dir_with_source_at(None, std::path::Path::new("/unused"));
-        std::env::remove_var("OMNI_DEV_CONFIG_DIR");
+        std::env::remove_var("OMNI_VOICE_CONFIG_DIR");
         assert_eq!(path, PathBuf::from("/tmp/env-config"));
         assert_eq!(source, ConfigDirSource::EnvVar);
     }
@@ -1160,20 +1160,20 @@ scopes:
     #[test]
     fn with_source_at_default_anchors_to_repo_root() {
         let _lock = ENV_MUTEX.lock().unwrap();
-        std::env::remove_var("OMNI_DEV_CONFIG_DIR");
-        // A repo root with a `.git` boundary but no `.omni-dev`: walk-up stops at
+        std::env::remove_var("OMNI_VOICE_CONFIG_DIR");
+        // A repo root with a `.git` boundary but no `.omni-voice`: walk-up stops at
         // the boundary without escaping, so the default anchors to
-        // `repo_root/.omni-dev` (NOT the CWD-relative `.omni-dev`). This is the
+        // `repo_root/.omni-voice` (NOT the CWD-relative `.omni-voice`). This is the
         // distinguishing behavior of the `_at` variant vs. its CWD sibling.
         let tmp = tempfile::tempdir().unwrap();
         std::fs::create_dir(tmp.path().join(".git")).unwrap();
         let (path, source) = resolve_context_dir_with_source_at(None, tmp.path());
-        assert_eq!(path, tmp.path().join(".omni-dev"));
+        assert_eq!(path, tmp.path().join(".omni-voice"));
         assert_eq!(source, ConfigDirSource::Default);
         // The thin wrapper returns the same path, discarding the source.
         assert_eq!(
             resolve_context_dir_at(None, tmp.path()),
-            tmp.path().join(".omni-dev")
+            tmp.path().join(".omni-voice")
         );
     }
 
@@ -1186,7 +1186,7 @@ scopes:
 
     #[test]
     fn display_config_dir_source_env_var() {
-        assert_eq!(ConfigDirSource::EnvVar.to_string(), "OMNI_DEV_CONFIG_DIR");
+        assert_eq!(ConfigDirSource::EnvVar.to_string(), "OMNI_VOICE_CONFIG_DIR");
     }
 
     #[test]
@@ -1300,35 +1300,36 @@ scopes:
 
     #[test]
     fn display_local_override() {
-        let label = ConfigSourceLabel::LocalOverride(PathBuf::from(".omni-dev/local/scopes.yaml"));
+        let label =
+            ConfigSourceLabel::LocalOverride(PathBuf::from(".omni-voice/local/scopes.yaml"));
         assert_eq!(
             label.to_string(),
-            "Local override: .omni-dev/local/scopes.yaml"
+            "Local override: .omni-voice/local/scopes.yaml"
         );
     }
 
     #[test]
     fn display_project() {
-        let label = ConfigSourceLabel::Project(PathBuf::from(".omni-dev/scopes.yaml"));
-        assert_eq!(label.to_string(), "Project: .omni-dev/scopes.yaml");
+        let label = ConfigSourceLabel::Project(PathBuf::from(".omni-voice/scopes.yaml"));
+        assert_eq!(label.to_string(), "Project: .omni-voice/scopes.yaml");
     }
 
     #[test]
     fn display_global() {
-        let label = ConfigSourceLabel::Global(PathBuf::from("/home/user/.omni-dev/scopes.yaml"));
+        let label = ConfigSourceLabel::Global(PathBuf::from("/home/user/.omni-voice/scopes.yaml"));
         assert_eq!(
             label.to_string(),
-            "Global: /home/user/.omni-dev/scopes.yaml"
+            "Global: /home/user/.omni-voice/scopes.yaml"
         );
     }
 
     #[test]
     fn display_xdg() {
         let label =
-            ConfigSourceLabel::Xdg(PathBuf::from("/home/user/.config/omni-dev/scopes.yaml"));
+            ConfigSourceLabel::Xdg(PathBuf::from("/home/user/.config/omni-voice/scopes.yaml"));
         assert_eq!(
             label.to_string(),
-            "Global (XDG): /home/user/.config/omni-dev/scopes.yaml"
+            "Global (XDG): /home/user/.config/omni-voice/scopes.yaml"
         );
     }
 
@@ -1346,7 +1347,7 @@ scopes:
         std::env::set_var("XDG_CONFIG_HOME", "/tmp/xdg-test");
         let result = xdg_config_dir();
         std::env::remove_var("XDG_CONFIG_HOME");
-        assert_eq!(result, Some(PathBuf::from("/tmp/xdg-test/omni-dev")));
+        assert_eq!(result, Some(PathBuf::from("/tmp/xdg-test/omni-voice")));
     }
 
     #[test]
@@ -1355,9 +1356,9 @@ scopes:
         std::env::set_var("XDG_CONFIG_HOME", "");
         let result = xdg_config_dir();
         std::env::remove_var("XDG_CONFIG_HOME");
-        // Falls back to $HOME/.config/omni-dev
+        // Falls back to $HOME/.config/omni-voice
         if let Some(home) = dirs::home_dir() {
-            assert_eq!(result, Some(home.join(".config").join("omni-dev")));
+            assert_eq!(result, Some(home.join(".config").join("omni-voice")));
         }
     }
 
@@ -1367,7 +1368,7 @@ scopes:
         std::env::remove_var("XDG_CONFIG_HOME");
         let result = xdg_config_dir();
         if let Some(home) = dirs::home_dir() {
-            assert_eq!(result, Some(home.join(".config").join("omni-dev")));
+            assert_eq!(result, Some(home.join(".config").join("omni-voice")));
         }
     }
 
@@ -1381,7 +1382,7 @@ scopes:
             std::fs::create_dir_all("tmp")?;
             TempDir::new_in("tmp")?
         };
-        let xdg_omni = xdg_dir.path().join("omni-dev");
+        let xdg_omni = xdg_dir.path().join("omni-voice");
         std::fs::create_dir_all(&xdg_omni)?;
         std::fs::write(xdg_omni.join("commit-guidelines.md"), "xdg content")?;
 
@@ -1406,7 +1407,7 @@ scopes:
             std::fs::create_dir_all("tmp")?;
             TempDir::new_in("tmp")?
         };
-        let xdg_omni = xdg_dir.path().join("omni-dev");
+        let xdg_omni = xdg_dir.path().join("omni-voice");
         std::fs::create_dir_all(&xdg_omni)?;
         std::fs::write(xdg_omni.join("scopes.yaml"), "xdg")?;
 
@@ -1435,7 +1436,7 @@ scopes:
             std::fs::create_dir_all("tmp")?;
             TempDir::new_in("tmp")?
         };
-        let xdg_omni = xdg_dir.path().join("omni-dev");
+        let xdg_omni = xdg_dir.path().join("omni-voice");
         std::fs::create_dir_all(&xdg_omni)?;
         std::fs::write(xdg_omni.join("scopes.yaml"), "xdg")?;
 
@@ -1466,7 +1467,7 @@ scopes:
             std::fs::create_dir_all("tmp")?;
             TempDir::new_in("tmp")?
         };
-        let xdg_omni = xdg_dir.path().join("omni-dev");
+        let xdg_omni = xdg_dir.path().join("omni-voice");
         std::fs::create_dir_all(&xdg_omni)?;
         std::fs::write(xdg_omni.join("scopes.yaml"), "xdg")?;
 
@@ -1498,39 +1499,39 @@ scopes:
     }
 
     #[test]
-    fn walk_up_finds_omni_dev_in_start_dir() -> anyhow::Result<()> {
+    fn walk_up_finds_omni_voice_in_start_dir() -> anyhow::Result<()> {
         let repo = make_repo_tree()?;
         let sub = repo.path().join("packages").join("frontend");
         std::fs::create_dir_all(&sub)?;
-        std::fs::create_dir(sub.join(".omni-dev"))?;
+        std::fs::create_dir(sub.join(".omni-voice"))?;
 
         let result = walk_up_find_config_dir(&sub);
-        assert_eq!(result, Some(sub.join(".omni-dev")));
+        assert_eq!(result, Some(sub.join(".omni-voice")));
         Ok(())
     }
 
     #[test]
-    fn walk_up_finds_omni_dev_in_parent() -> anyhow::Result<()> {
+    fn walk_up_finds_omni_voice_in_parent() -> anyhow::Result<()> {
         let repo = make_repo_tree()?;
         let pkg = repo.path().join("packages").join("frontend");
         let src = pkg.join("src");
         std::fs::create_dir_all(&src)?;
-        std::fs::create_dir(pkg.join(".omni-dev"))?;
+        std::fs::create_dir(pkg.join(".omni-voice"))?;
 
         let result = walk_up_find_config_dir(&src);
-        assert_eq!(result, Some(pkg.join(".omni-dev")));
+        assert_eq!(result, Some(pkg.join(".omni-voice")));
         Ok(())
     }
 
     #[test]
-    fn walk_up_finds_omni_dev_at_repo_root() -> anyhow::Result<()> {
+    fn walk_up_finds_omni_voice_at_repo_root() -> anyhow::Result<()> {
         let repo = make_repo_tree()?;
         let deep = repo.path().join("a").join("b").join("c");
         std::fs::create_dir_all(&deep)?;
-        std::fs::create_dir(repo.path().join(".omni-dev"))?;
+        std::fs::create_dir(repo.path().join(".omni-voice"))?;
 
         let result = walk_up_find_config_dir(&deep);
-        assert_eq!(result, Some(repo.path().join(".omni-dev")));
+        assert_eq!(result, Some(repo.path().join(".omni-voice")));
         Ok(())
     }
 
@@ -1540,13 +1541,13 @@ scopes:
         let pkg = repo.path().join("packages").join("frontend");
         let src = pkg.join("src");
         std::fs::create_dir_all(&src)?;
-        // Both root and package have .omni-dev
-        std::fs::create_dir(repo.path().join(".omni-dev"))?;
-        std::fs::create_dir(pkg.join(".omni-dev"))?;
+        // Both root and package have .omni-voice
+        std::fs::create_dir(repo.path().join(".omni-voice"))?;
+        std::fs::create_dir(pkg.join(".omni-voice"))?;
 
         let result = walk_up_find_config_dir(&src);
-        // Nearest (packages/frontend/.omni-dev) should win
-        assert_eq!(result, Some(pkg.join(".omni-dev")));
+        // Nearest (packages/frontend/.omni-voice) should win
+        assert_eq!(result, Some(pkg.join(".omni-voice")));
         Ok(())
     }
 
@@ -1556,8 +1557,8 @@ scopes:
             std::fs::create_dir_all("tmp")?;
             TempDir::new_in("tmp")?
         };
-        // Parent has .omni-dev but is outside the repo
-        std::fs::create_dir(dir.path().join(".omni-dev"))?;
+        // Parent has .omni-voice but is outside the repo
+        std::fs::create_dir(dir.path().join(".omni-voice"))?;
         // Repo root is a subdirectory
         let repo_root = dir.path().join("repo");
         std::fs::create_dir_all(&repo_root)?;
@@ -1566,13 +1567,13 @@ scopes:
         std::fs::create_dir(&sub)?;
 
         let result = walk_up_find_config_dir(&sub);
-        // Should NOT find the .omni-dev above .git
+        // Should NOT find the .omni-voice above .git
         assert_eq!(result, None);
         Ok(())
     }
 
     #[test]
-    fn walk_up_returns_none_when_no_omni_dev() -> anyhow::Result<()> {
+    fn walk_up_returns_none_when_no_omni_voice() -> anyhow::Result<()> {
         let repo = make_repo_tree()?;
         let sub = repo.path().join("src");
         std::fs::create_dir(&sub)?;
@@ -1590,18 +1591,18 @@ scopes:
         };
         // .git as a file (worktree)
         std::fs::write(dir.path().join(".git"), "gitdir: /some/path")?;
-        std::fs::create_dir(dir.path().join(".omni-dev"))?;
+        std::fs::create_dir(dir.path().join(".omni-voice"))?;
         let sub = dir.path().join("src");
         std::fs::create_dir(&sub)?;
 
         let result = walk_up_find_config_dir(&sub);
-        assert_eq!(result, Some(dir.path().join(".omni-dev")));
+        assert_eq!(result, Some(dir.path().join(".omni-voice")));
         Ok(())
     }
 
     #[test]
-    fn walk_up_no_omni_dev_in_repo_returns_none() -> anyhow::Result<()> {
-        // Repo with .git but no .omni-dev anywhere
+    fn walk_up_no_omni_voice_in_repo_returns_none() -> anyhow::Result<()> {
+        // Repo with .git but no .omni-voice anywhere
         let repo = make_repo_tree()?;
         let sub = repo.path().join("a").join("b");
         std::fs::create_dir_all(&sub)?;

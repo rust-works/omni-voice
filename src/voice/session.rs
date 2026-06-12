@@ -1,9 +1,9 @@
-//! `~/.omni-dev/voice/<id>/` session directory I/O.
+//! `~/.omni-voice/voice/<id>/` session directory I/O.
 //!
 //! Lays out and reads the session directory format from #799:
 //!
 //! ```text
-//! ~/.omni-dev/voice/<session-id>/
+//! ~/.omni-voice/voice/<session-id>/
 //!   meta.yaml          # session config (this issue: last_reflected_event_id + ttl defaults)
 //!   transcript.jsonl   # append-only TranscriptEvent stream from `voice transcribe`
 //!   events.jsonl       # append-only Event stream from `voice reflect` (and later `voice review`)
@@ -12,7 +12,7 @@
 //!
 //! Shared with #804 (`voice review`), which reads the same `events.jsonl`
 //! to produce materialised markdown projections. The session root path is
-//! derived from `dirs::home_dir()` by default; the `OMNI_DEV_VOICE_ROOT`
+//! derived from `dirs::home_dir()` by default; the `OMNI_VOICE_VOICE_ROOT`
 //! environment variable overrides it (intended for tests, not a stable
 //! user-facing knob).
 
@@ -149,17 +149,17 @@ impl Session {
     }
 }
 
-/// Resolves the session root: `$OMNI_DEV_VOICE_ROOT` if set, else
-/// `~/.omni-dev/voice`.
+/// Resolves the session root: `$OMNI_VOICE_VOICE_ROOT` if set, else
+/// `~/.omni-voice/voice`.
 pub fn voice_root() -> Result<PathBuf> {
-    if let Ok(override_root) = std::env::var("OMNI_DEV_VOICE_ROOT") {
+    if let Ok(override_root) = std::env::var("OMNI_VOICE_VOICE_ROOT") {
         return Ok(PathBuf::from(override_root));
     }
     let home = dirs::home_dir().context(
-        "could not determine HOME directory for ~/.omni-dev/voice; \
-         set OMNI_DEV_VOICE_ROOT to override",
+        "could not determine HOME directory for ~/.omni-voice/voice; \
+         set OMNI_VOICE_VOICE_ROOT to override",
     )?;
-    Ok(home.join(".omni-dev").join("voice"))
+    Ok(home.join(".omni-voice").join("voice"))
 }
 
 /// Opens an existing session, or creates an empty one if the directory
@@ -631,13 +631,13 @@ mod tests {
     fn voice_root_respects_override_env_var() {
         // Env mutation is process-wide; restore on exit. No serial guard
         // here because no other test in this module reads/writes the var.
-        let original = std::env::var("OMNI_DEV_VOICE_ROOT").ok();
-        std::env::set_var("OMNI_DEV_VOICE_ROOT", "/tmp/overridden");
+        let original = std::env::var("OMNI_VOICE_VOICE_ROOT").ok();
+        std::env::set_var("OMNI_VOICE_VOICE_ROOT", "/tmp/overridden");
         let root = voice_root().unwrap();
         assert_eq!(root, PathBuf::from("/tmp/overridden"));
         match original {
-            Some(v) => std::env::set_var("OMNI_DEV_VOICE_ROOT", v),
-            None => std::env::remove_var("OMNI_DEV_VOICE_ROOT"),
+            Some(v) => std::env::set_var("OMNI_VOICE_VOICE_ROOT", v),
+            None => std::env::remove_var("OMNI_VOICE_VOICE_ROOT"),
         }
     }
 }

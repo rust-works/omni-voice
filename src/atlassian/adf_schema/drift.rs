@@ -13,7 +13,7 @@
 //! more refs). Any layout change upstream surfaces as a structured error or
 //! visible drift, not as a silent empty diff.
 //!
-//! [#731]: https://github.com/rust-works/omni-dev/issues/731
+//! [#731]: https://github.com/rust-works/omni-voice/issues/731
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::io::Read;
@@ -33,7 +33,7 @@ const NPM_LATEST_URL: &str = "https://registry.npmjs.org/@atlaskit/adf-schema/la
 /// Honoured by [`fetch_latest_drift_report`]. Used by integration tests to
 /// point the binary at a `wiremock` server, and available as an operational
 /// knob for teams running an npm mirror.
-pub const NPM_LATEST_URL_ENV: &str = "OMNI_DEV_ADF_SCHEMA_LATEST_URL";
+pub const NPM_LATEST_URL_ENV: &str = "OMNI_VOICE_ADF_SCHEMA_LATEST_URL";
 
 /// Per-parent drift: children that upstream now lists but the local snapshot
 /// does not (`added_children`), and children the local snapshot lists but
@@ -194,7 +194,7 @@ pub async fn fetch_latest_drift_report() -> Result<DriftReport> {
 async fn fetch_drift_report_from_url(latest_url: &str) -> Result<DriftReport> {
     let client = reqwest::Client::builder()
         .user_agent(concat!(
-            "omni-dev-adf-schema-drift/",
+            "omni-voice-adf-schema-drift/",
             env!("CARGO_PKG_VERSION")
         ))
         .build()

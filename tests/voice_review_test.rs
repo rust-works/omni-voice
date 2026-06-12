@@ -1,6 +1,6 @@
 //! Library-level snapshot tests for `voice review`.
 //!
-//! Exercises [`omni_dev::voice::reconcile::reconcile`] directly with
+//! Exercises [`omni_voice::voice::reconcile::reconcile`] directly with
 //! curated event-log fixtures and golden-snapshot checks on the
 //! rendered markdown — matching the issue's acceptance criterion that
 //! `reconcile()` is the unit-of-tests for projection plus TTL.
@@ -11,13 +11,13 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use chrono::{DateTime, TimeZone, Utc};
-use omni_dev::voice::det::CountingUlidRng;
-use omni_dev::voice::events::{
+use omni_voice::voice::det::CountingUlidRng;
+use omni_voice::voice::events::{
     DecisionRecord, Event, EventKind, ItemClass, ItemCreate, ItemUpdate, Priority, Provenance,
     ReflectionId,
 };
-use omni_dev::voice::reconcile::reconcile;
-use omni_dev::voice::session::TtlDefaults;
+use omni_voice::voice::reconcile::reconcile;
+use omni_voice::voice::session::TtlDefaults;
 
 fn fixed_now() -> DateTime<Utc> {
     Utc.with_ymd_and_hms(2026, 6, 1, 0, 0, 0).unwrap()

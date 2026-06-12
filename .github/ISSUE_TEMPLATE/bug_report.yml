@@ -53,7 +53,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: What version of omni-dev are you running?
+      description: What version of omni-voice are you running?
       options:
         - 0.1.0 (Default)
         - main branch
@@ -70,7 +70,7 @@ body:
       value: |
         - OS: [e.g. Ubuntu 20.04, macOS 13.0, Windows 11]
         - Rust version: [e.g. 1.70.0]
-        - omni-dev version: [e.g. 0.1.0]
+        - omni-voice version: [e.g. 0.1.0]
       render: markdown
     validations:
       required: true

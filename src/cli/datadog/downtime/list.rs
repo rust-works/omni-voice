@@ -1,4 +1,4 @@
-//! CLI command for `omni-dev datadog downtime list`.
+//! CLI command for `omni-voice datadog downtime list`.
 
 use anyhow::Result;
 use chrono::{DateTime, SecondsFormat, Utc};
@@ -225,7 +225,7 @@ mod tests {
 
         let guard = EnvGuard::take();
         let dir = with_empty_home(&guard);
-        let omni_dir = dir.path().join(".omni-dev");
+        let omni_dir = dir.path().join(".omni-voice");
         fs::create_dir_all(&omni_dir).unwrap();
         fs::write(
             omni_dir.join("settings.json"),

@@ -15,10 +15,10 @@ use std::pin::Pin;
 use std::sync::Mutex;
 
 use anyhow::Result;
-use omni_dev::claude::ai::{AiClient, AiClientMetadata};
-use omni_dev::voice::clock::FixedClock;
-use omni_dev::voice::det::CountingUlidRng;
-use omni_dev::voice::reflect::{run_reflect, ReflectOptions, TranscriptSource};
+use omni_voice::claude::ai::{AiClient, AiClientMetadata};
+use omni_voice::voice::clock::FixedClock;
+use omni_voice::voice::det::CountingUlidRng;
+use omni_voice::voice::reflect::{run_reflect, ReflectOptions, TranscriptSource};
 
 /// Minimal `AiClient` that returns a single canned response. Defined
 /// inline rather than reusing `src/claude/test_utils.rs` because that

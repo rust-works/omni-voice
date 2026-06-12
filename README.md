@@ -1,8 +1,8 @@
-# omni-dev
+# omni-voice
 
-[![Crates.io](https://img.shields.io/crates/v/omni-dev.svg)](https://crates.io/crates/omni-dev)
-[![Documentation](https://docs.rs/omni-dev/badge.svg)](https://docs.rs/omni-dev)
-[![Build Status](https://github.com/rust-works/omni-dev/workflows/CI/badge.svg)](https://github.com/rust-works/omni-dev/actions)
+[![Crates.io](https://img.shields.io/crates/v/omni-voice.svg)](https://crates.io/crates/omni-voice)
+[![Documentation](https://docs.rs/omni-voice/badge.svg)](https://docs.rs/omni-voice)
+[![Build Status](https://github.com/rust-works/omni-voice/workflows/CI/badge.svg)](https://github.com/rust-works/omni-voice/actions)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE)
 
 An intelligent Git commit message toolkit with AI-powered contextual
@@ -13,7 +13,7 @@ conventional commit formats with project-aware suggestions.
 
 [![asciicast](https://asciinema.org/a/eJJf5Aj8N26JoCaUsAFVH8dqz.svg)](https://asciinema.org/a/eJJf5Aj8N26JoCaUsAFVH8dqz)
 
-*Watch omni-dev transform messy commits into professional ones with AI-powered analysis*
+*Watch omni-voice transform messy commits into professional ones with AI-powered analysis*
 
 ## 30-Second Demo
 
@@ -21,7 +21,7 @@ Transform your commit messages and create professional PRs with AI intelligence:
 
 ```bash
 # Analyze and improve commit messages in your current branch
-omni-dev git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice git commit message twiddle 'origin/main..HEAD' --use-context
 
 # Before: "fix stuff", "wip", "update files"
 # After:  "feat(auth): implement OAuth2 authentication system"
@@ -29,7 +29,7 @@ omni-dev git commit message twiddle 'origin/main..HEAD' --use-context
 #         "fix(ui): resolve mobile responsive layout issues"
 
 # Create a professional PR with AI-generated description
-omni-dev git branch create pr
+omni-voice git branch create pr
 # 🎉 Generates comprehensive PR with detailed description, testing info, and more
 ```
 
@@ -57,13 +57,13 @@ omni-dev git branch create pr
 
 ```bash
 # Install from crates.io
-cargo install omni-dev
+cargo install omni-voice
 
 # Install with Nix
-nix profile install github:rust-works/omni-dev
+nix profile install github:rust-works/omni-voice
 
 # Install with Nix flakes (development)
-nix run github:rust-works/omni-dev
+nix run github:rust-works/omni-voice
 ```
 
 **Next step:** see [Getting Started](docs/getting-started.md) — a
@@ -73,13 +73,13 @@ commit. (For just the API-key reference, see
 
 #### Shell Completion
 
-`omni-dev completions <shell>` prints a completion script to stdout for
+`omni-voice completions <shell>` prints a completion script to stdout for
 `bash`, `zsh`, `fish`, `powershell`, or `elvish`. The quickest path is bash
 per-user:
 
 ```bash
 # Add to ~/.bashrc:
-eval "$(omni-dev completions bash)"
+eval "$(omni-voice completions bash)"
 ```
 
 See [docs/shell-completion.md](docs/shell-completion.md) for per-shell install
@@ -93,30 +93,30 @@ The star feature - intelligently improve your commit messages with real-time mod
 
 ```bash
 # Improve commits with contextual intelligence
-omni-dev git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice git commit message twiddle 'origin/main..HEAD' --use-context
 
 # Process large commit ranges with parallel processing
-omni-dev git commit message twiddle 'HEAD~20..HEAD' --concurrency 5
+omni-voice git commit message twiddle 'HEAD~20..HEAD' --concurrency 5
 
 # Save suggestions to file for review
-omni-dev git commit message twiddle 'HEAD~5..HEAD' \
+omni-voice git commit message twiddle 'HEAD~5..HEAD' \
   --save-only suggestions.yaml
 
 # Auto-apply improvements without confirmation
-omni-dev git commit message twiddle 'HEAD~3..HEAD' --auto-apply
+omni-voice git commit message twiddle 'HEAD~3..HEAD' --auto-apply
 ```
 
 ### 🔍 Analysis Commands
 
 ```bash
 # Analyze commits in detail (YAML output)
-omni-dev git commit message view 'HEAD~3..HEAD'
+omni-voice git commit message view 'HEAD~3..HEAD'
 
 # Analyze current branch vs main
-omni-dev git branch info main
+omni-voice git branch info main
 
 # Get comprehensive help
-omni-dev help-all
+omni-voice help-all
 ```
 
 ### 🚀 AI-Powered PR Creation
@@ -125,16 +125,16 @@ Create professional pull requests with AI-generated descriptions:
 
 ```bash
 # Generate and create PR with AI-powered description
-omni-dev git branch create pr
+omni-voice git branch create pr
 
 # Create PR with specific base branch
-omni-dev git branch create pr main
+omni-voice git branch create pr main
 
 # Save PR details to file without creating
-omni-dev git branch create pr --save-only pr-description.yaml
+omni-voice git branch create pr --save-only pr-description.yaml
 
 # Auto-create without confirmation
-omni-dev git branch create pr --auto-apply
+omni-voice git branch create pr --auto-apply
 ```
 
 ### 📝 Atlassian Integration
@@ -143,39 +143,39 @@ Read, write, and manage JIRA issues and Confluence pages from the command line:
 
 ```bash
 # Authenticate with Atlassian Cloud
-omni-dev atlassian auth login
+omni-voice atlassian auth login
 
 # Check authentication status
-omni-dev atlassian auth status
+omni-voice atlassian auth status
 
 # Fetch a JIRA issue as markdown
-omni-dev atlassian jira read PROJ-123
+omni-voice atlassian jira read PROJ-123
 
 # Fetch as raw ADF JSON
-omni-dev atlassian jira read PROJ-123 --format adf
+omni-voice atlassian jira read PROJ-123 --format adf
 
 # Push markdown changes back to JIRA
-omni-dev atlassian jira write PROJ-123 issue.md
+omni-voice atlassian jira write PROJ-123 issue.md
 
 # Interactive edit: fetch, edit in $EDITOR, push
-omni-dev atlassian jira edit PROJ-123
+omni-voice atlassian jira edit PROJ-123
 
 # Search issues with JQL
-omni-dev atlassian jira search --project PROJ --status Open
+omni-voice atlassian jira search --project PROJ --status Open
 
 # Create an issue
-omni-dev atlassian jira create issue.md --project PROJ --summary "Fix bug"
+omni-voice atlassian jira create issue.md --project PROJ --summary "Fix bug"
 
 # Transition an issue
-omni-dev atlassian jira transition PROJ-123 "In Progress"
+omni-voice atlassian jira transition PROJ-123 "In Progress"
 
 # Confluence: read, search, create pages
-omni-dev atlassian confluence read 12345
-omni-dev atlassian confluence search --space ENG --title auth
-omni-dev atlassian confluence create page.md --space ENG --title "New Page"
+omni-voice atlassian confluence read 12345
+omni-voice atlassian confluence search --space ENG --title auth
+omni-voice atlassian confluence create page.md --space ENG --title "New Page"
 
 # Convert markdown to ADF JSON (offline)
-omni-dev atlassian convert to-adf input.md
+omni-voice atlassian convert to-adf input.md
 ```
 
 ### 📊 Datadog Integration (read-only)
@@ -187,17 +187,17 @@ setup, rate-limit behaviour, and troubleshooting.
 
 ```bash
 # Configure Datadog API credentials (prompts for API key, APP key, and site)
-omni-dev datadog auth login
+omni-voice datadog auth login
 
 # Verify the credentials by calling /api/v1/validate
-omni-dev datadog auth status
+omni-voice datadog auth status
 
 # Query metrics, monitors, dashboards, logs, and SLOs
-omni-dev datadog metrics query --query 'avg:system.cpu.user{*}' --from 15m
-omni-dev datadog monitor list --tags env:prod
-omni-dev datadog dashboard list
-omni-dev datadog logs search --filter 'service:api status:error' --from 1h
-omni-dev datadog slo list --tags team:platform
+omni-voice datadog metrics query --query 'avg:system.cpu.user{*}' --from 15m
+omni-voice datadog monitor list --tags env:prod
+omni-voice datadog dashboard list
+omni-voice datadog logs search --filter 'service:api status:error' --from 1h
+omni-voice datadog slo list --tags team:platform
 ```
 
 `DATADOG_SITE` defaults to `datadoghq.com`. Other regions (`datadoghq.eu`,
@@ -220,20 +220,20 @@ for the full reference and the recipe for adding a new source.
 
 ```bash
 # Fetch captions for a YouTube video as SubRip (default).
-omni-dev transcript youtube fetch https://www.youtube.com/watch?v=jNQXAC9IVRw
+omni-voice transcript youtube fetch https://www.youtube.com/watch?v=jNQXAC9IVRw
 
 # WebVTT to a file, falling through to auto-generated captions if needed.
-omni-dev transcript youtube fetch jNQXAC9IVRw \
+omni-voice transcript youtube fetch jNQXAC9IVRw \
   --format vtt --auto --output me-at-the-zoo.vtt
 
 # Synthesise a translated track when no native French track exists.
-omni-dev transcript youtube fetch <url> --lang fr --translate fr
+omni-voice transcript youtube fetch <url> --lang fr --translate fr
 
 # List available caption tracks (manual + auto-generated).
-omni-dev transcript youtube list-langs <url>
+omni-voice transcript youtube list-langs <url>
 
 # Show video metadata (title, channel, duration, languages).
-omni-dev transcript youtube info <url> --output json
+omni-voice transcript youtube info <url> --output json
 ```
 
 `--format` accepts `srt`, `vtt`, `txt`, or `json`. Locators may be a
@@ -256,21 +256,21 @@ see [docs/browser-bridge.md](docs/browser-bridge.md) for the full guide and
 ```bash
 # Start the bridge; it prints the bound ports, a session token, and a JS
 # snippet to paste into the DevTools console of the authenticated tab.
-omni-dev browser bridge serve
+omni-voice browser bridge serve
 
 # Drive requests through the tab (token from the bridge's stdout).
 export OMNI_BRIDGE_TOKEN=<token printed by the bridge>
-omni-dev browser bridge request --url /loki/api/v1/labels
+omni-voice browser bridge request --url /loki/api/v1/labels
 
 # POST a JSON payload from a file, with a custom header.
-omni-dev browser bridge request --url /api/foo --method POST \
+omni-voice browser bridge request --url /api/foo --method POST \
   --body @payload.json --header "Accept: application/json"
 
 # Stream a long-lived endpoint (SSE / chunked) instead of buffering.
-omni-dev browser bridge request --url /api/events --stream
+omni-voice browser bridge request --url /api/events --stream
 
 # Route to a specific tab when several are connected (by id or origin).
-omni-dev browser bridge request --url /api/foo --target https://grafana.internal
+omni-voice browser bridge request --url /api/foo --target https://grafana.internal
 ```
 
 Supports binary and streaming response bodies, multi-tab routing via
@@ -281,24 +281,24 @@ overrides, and a transparent proxy for tools that speak plain HTTP.
 
 ```bash
 # Apply specific amendments from YAML file
-omni-dev git commit message amend amendments.yaml
+omni-voice git commit message amend amendments.yaml
 ```
 
 ### 🧩 Claude Code Slash-Commands
 
 Generate ready-to-use Claude Code slash-command templates into the
 project's `.claude/commands/` directory. Each template is a self-contained
-workflow that drives a multi-step omni-dev operation from inside a Claude
+workflow that drives a multi-step omni-voice operation from inside a Claude
 Code session.
 
 ```bash
 # Generate all templates: commit-twiddle, pr-create, pr-update
-omni-dev commands generate all
+omni-voice commands generate all
 
 # Or individually
-omni-dev commands generate commit-twiddle
-omni-dev commands generate pr-create
-omni-dev commands generate pr-update
+omni-voice commands generate commit-twiddle
+omni-voice commands generate pr-create
+omni-voice commands generate pr-update
 ```
 
 Each subcommand writes `.claude/commands/<name>.md`. Commit the files to
@@ -317,22 +317,22 @@ overwritten, unchanged chats are skipped.
 
 ```bash
 # Mirror ~/.claude/projects to ./history/ (one .jsonl per chat, grouped by project slug)
-omni-dev ai claude history sync --target ./history
+omni-voice ai claude history sync --target ./history
 
 # Limit to one project (encoded slug or decoded cwd path)
-omni-dev ai claude history sync --target ./history --project /Users/me/work/repo
+omni-voice ai claude history sync --target ./history --project /Users/me/work/repo
 
 # Only sessions touched in the last week
-omni-dev ai claude history sync --target ./history --since 7d
+omni-voice ai claude history sync --target ./history --since 7d
 
 # Preview without writing, then prune target files for sessions removed upstream
-omni-dev ai claude history sync --target ./history --dry-run --prune
+omni-voice ai claude history sync --target ./history --dry-run --prune
 
 # Render LLM-friendly markdown alongside the raw jsonl (one .md per session)
-omni-dev ai claude history sync --target ./history --output-format jsonl,markdown
+omni-voice ai claude history sync --target ./history --output-format jsonl,markdown
 
 # Markdown only — suitable for piping into a coaching LLM
-omni-dev ai claude history sync --target ./history --output-format markdown
+omni-voice ai claude history sync --target ./history --output-format markdown
 ```
 
 The export is a **behavioural transcript**, not a faithful archive. The
@@ -380,10 +380,10 @@ section for related commands (`ai chat`, `ai claude skills`).
 
 ### 🔌 MCP Server
 
-omni-dev ships an optional **Model Context Protocol** server so AI assistants
+omni-voice ships an optional **Model Context Protocol** server so AI assistants
 (Claude Desktop, Claude Code, the MCP Inspector, custom agents) can call
-omni-dev over stdio instead of shelling out to the CLI. The server is
-delivered as a second binary, `omni-dev-mcp`, gated behind the `mcp` Cargo
+omni-voice over stdio instead of shelling out to the CLI. The server is
+delivered as a second binary, `omni-voice-mcp`, gated behind the `mcp` Cargo
 feature (see [ADR-0021](docs/adrs/adr-0021.md)).
 
 Tools cover six domains:
@@ -406,7 +406,7 @@ Resources exposed via URI templates:
 | `jira://issue/{key}.adf`        | JIRA issue body as ADF           |
 | `confluence://page/{id}`        | Confluence page as JFM           |
 | `confluence://page/{id}.adf`    | Confluence page body as ADF      |
-| `omni-dev://specs/{name}`       | Embedded reference specs (e.g. `jfm`) |
+| `omni-voice://specs/{name}`       | Embedded reference specs (e.g. `jfm`) |
 
 See [docs/mcp.md](docs/mcp.md) for the full tool catalog, resource
 reference, cross-cutting parameters (`output_file`, `confirm`), and
@@ -415,11 +415,11 @@ troubleshooting.
 #### Install
 
 ```bash
-cargo install omni-dev --features mcp
+cargo install omni-voice --features mcp
 ```
 
-This adds a second binary, `omni-dev-mcp`, alongside the regular `omni-dev`
-CLI. The default `cargo install omni-dev` build is unchanged — no MCP
+This adds a second binary, `omni-voice-mcp`, alongside the regular `omni-voice`
+CLI. The default `cargo install omni-voice` build is unchanged — no MCP
 dependencies are pulled in unless the `mcp` feature is enabled.
 
 #### Claude Desktop
@@ -430,8 +430,8 @@ macOS (or `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
 ```json
 {
   "mcpServers": {
-    "omni-dev": {
-      "command": "omni-dev-mcp"
+    "omni-voice": {
+      "command": "omni-voice-mcp"
     }
   }
 }
@@ -444,8 +444,8 @@ Per-project — create `.mcp.json` at the repo root:
 ```json
 {
   "mcpServers": {
-    "omni-dev": {
-      "command": "omni-dev-mcp"
+    "omni-voice": {
+      "command": "omni-voice-mcp"
     }
   }
 }
@@ -454,13 +454,13 @@ Per-project — create `.mcp.json` at the repo root:
 Or register globally with the Claude Code CLI:
 
 ```bash
-claude mcp add omni-dev omni-dev-mcp
+claude mcp add omni-voice omni-voice-mcp
 ```
 
 #### Smoke-test with the MCP Inspector
 
 ```bash
-npx @modelcontextprotocol/inspector omni-dev-mcp
+npx @modelcontextprotocol/inspector omni-voice-mcp
 ```
 
 The Inspector opens a browser UI where you can list tools and resources,
@@ -474,25 +474,25 @@ repository"), see [docs/mcp.md#troubleshooting](docs/mcp.md#troubleshooting).
 
 ```bash
 # Show supported AI models and their specifications
-omni-dev config models show
+omni-voice config models show
 
 # View model information with token limits and capabilities
-omni-dev config models show | grep -A5 "claude-opus-4.1"
+omni-voice config models show | grep -A5 "claude-opus-4.1"
 ```
 
 ## 🧠 Contextual Intelligence
 
-omni-dev understands your project context to provide better suggestions:
+omni-voice understands your project context to provide better suggestions:
 
 ### Project Configuration
 
-Create `.omni-dev/` directory in your repo root:
+Create `.omni-voice/` directory in your repo root:
 
 ```bash
-mkdir .omni-dev
+mkdir .omni-voice
 ```
 
-#### Scope Definitions (`.omni-dev/scopes.yaml`)
+#### Scope Definitions (`.omni-voice/scopes.yaml`)
 
 ```yaml
 scopes:
@@ -507,7 +507,7 @@ scopes:
     file_patterns: ["src/api/**", "handlers/**"]
 ```
 
-#### Commit Guidelines (`.omni-dev/commit-guidelines.md`)
+#### Commit Guidelines (`.omni-voice/commit-guidelines.md`)
 
 ```markdown
 # Project Commit Guidelines
@@ -527,9 +527,9 @@ scopes:
 
 ### Intelligent Context Detection
 
-omni-dev automatically detects:
+omni-voice automatically detects:
 
-- **Project Conventions**: From `.omni-dev/`, `CONTRIBUTING.md`
+- **Project Conventions**: From `.omni-voice/`, `CONTRIBUTING.md`
 - **Work Patterns**: Feature development, bug fixes, documentation,
   refactoring
 - **Branch Context**: Extracts work type from branch names
@@ -544,10 +544,10 @@ Large commit ranges are automatically split into manageable batches:
 
 ```bash
 # Processes 50 commits in batches of 4 (default)
-omni-dev git commit message twiddle 'HEAD~50..HEAD' --use-context
+omni-voice git commit message twiddle 'HEAD~50..HEAD' --use-context
 
 # Custom concurrency for very large ranges
-omni-dev git commit message twiddle 'main..HEAD' --concurrency 2
+omni-voice git commit message twiddle 'main..HEAD' --concurrency 2
 ```
 
 ### Command Options
@@ -595,10 +595,10 @@ git commit -m "fix stuff"
 git commit -m "add more features"
 
 # 3. Before merging, improve all commit messages
-omni-dev git commit message twiddle 'main..HEAD' --use-context
+omni-voice git commit message twiddle 'main..HEAD' --use-context
 
 # 4. Create professional PR with AI-generated description
-omni-dev git branch create pr
+omni-voice git branch create pr
 
 # ✅ Professional commit history + comprehensive PR description ready for review
 ```
@@ -612,8 +612,8 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/rust-works/omni-dev.git
-   cd omni-dev
+   git clone https://github.com/rust-works/omni-voice.git
+   cd omni-voice
    ```
 
 2. Install Rust (if you haven't already):
@@ -649,7 +649,7 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 - **[User Guide](docs/user-guide.md)** - Comprehensive usage guide with examples
 - **[Configuration Guide](docs/configuration.md)** - Set up contextual
   intelligence
-- **[API Documentation](https://docs.rs/omni-dev)** - Rust API reference
+- **[API Documentation](https://docs.rs/omni-voice)** - Rust API reference
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and
   solutions
 - **[Examples](docs/examples.md)** - Real-world usage examples
@@ -662,22 +662,22 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
   - See [Authentication](docs/configuration.md#authentication) for
     setup (env var, `.env`, or CI/CD secrets)
 - **AI Model Selection**: Optional configuration for specific Claude models
-  - View available models: `omni-dev config models show`
-  - Configure via `~/.omni-dev/settings.json` or `ANTHROPIC_MODEL` environment variable
+  - View available models: `omni-voice config models show`
+  - Configure via `~/.omni-voice/settings.json` or `ANTHROPIC_MODEL` environment variable
   - Supports standard identifiers and Bedrock-style formats
 - **Atlassian Credentials** (for JIRA/Confluence features): Instance URL, email, and
   [API token](https://id.atlassian.com/manage-profile/security/api-tokens)
-  - Configure with: `omni-dev atlassian auth login`
+  - Configure with: `omni-voice atlassian auth login`
 - **Datadog Credentials** (for Datadog features): API key, application key, and site
-  - Configure with: `omni-dev datadog auth login`
+  - Configure with: `omni-voice datadog auth login`
 - **Git**: Any modern version
 
 ### AI backend selection
 
-omni-dev supports five AI backends, selected by env var or the
+omni-voice supports five AI backends, selected by env var or the
 `--ai-backend` flag (priority order, first match wins):
 
-1. `--ai-backend claude-cli` / `OMNI_DEV_AI_BACKEND=claude-cli` — sandboxed
+1. `--ai-backend claude-cli` / `OMNI_VOICE_AI_BACKEND=claude-cli` — sandboxed
    `claude -p` subprocess that reuses your Claude Code session.
 2. `USE_OLLAMA=true` — local Ollama or LM Studio server.
 3. `USE_OPENAI=true` — OpenAI Chat Completions API.
@@ -694,14 +694,14 @@ model selection, the Claude CLI sandbox and its escape hatches
 For troubleshooting and detailed logging, use the `RUST_LOG` environment variable:
 
 ```bash
-# Enable debug logging for omni-dev components
-RUST_LOG=omni_dev=debug omni-dev git commit message twiddle ...
+# Enable debug logging for omni-voice components
+RUST_LOG=omni_voice=debug omni-voice git commit message twiddle ...
 
 # Debug specific modules (e.g., context discovery)  
-RUST_LOG=omni_dev::claude::context::discovery=debug omni-dev git commit message twiddle ...
+RUST_LOG=omni_voice::claude::context::discovery=debug omni-voice git commit message twiddle ...
 
 # Show only errors and warnings
-RUST_LOG=warn omni-dev git commit message twiddle ...
+RUST_LOG=warn omni-voice git commit message twiddle ...
 ```
 
 See [Troubleshooting Guide](docs/troubleshooting.md) for detailed debugging information.
@@ -717,8 +717,8 @@ This project is licensed under the BSD 3-Clause License - see the
 
 ## Support
 
-- 📋 [Issues](https://github.com/rust-works/omni-dev/issues)
-- 💬 [Discussions](https://github.com/rust-works/omni-dev/discussions)
+- 📋 [Issues](https://github.com/rust-works/omni-voice/issues)
+- 💬 [Discussions](https://github.com/rust-works/omni-voice/discussions)
 
 ## Acknowledgments
 

@@ -56,10 +56,10 @@ pub fn check_ai_credentials(model_override: Option<&str>) -> Result<AiCredential
     // the existing USE_* flags if multiple are set. Credentials for this
     // backend live inside the `claude` binary's own auth state, so we just
     // verify the binary is on PATH.
-    if let Ok(val) = get_env_var("OMNI_DEV_AI_BACKEND") {
+    if let Ok(val) = get_env_var("OMNI_VOICE_AI_BACKEND") {
         if matches!(val.as_str(), "claude-cli" | "claude_cli") {
             let binary =
-                get_env_var("OMNI_DEV_CLAUDE_CLI_BIN").unwrap_or_else(|_| "claude".to_string());
+                get_env_var("OMNI_VOICE_CLAUDE_CLI_BIN").unwrap_or_else(|_| "claude".to_string());
             let probe = std::process::Command::new(&binary)
                 .arg("--version")
                 .output();
@@ -85,7 +85,7 @@ pub fn check_ai_credentials(model_override: Option<&str>) -> Result<AiCredential
                 _ => bail!(
                     "Claude Code CLI not available at '{binary}'.\n\
                      Install it from https://github.com/anthropics/claude-code \
-                     or set OMNI_DEV_CLAUDE_CLI_BIN to its path."
+                     or set OMNI_VOICE_CLAUDE_CLI_BIN to its path."
                 ),
             }
         }
@@ -508,8 +508,8 @@ mod tests {
         guard.remove("ANTHROPIC_MODEL");
         guard.remove("CLAUDE_MODEL");
         guard.remove("CLAUDE_CODE_MODEL");
-        guard.set("OMNI_DEV_AI_BACKEND", "claude-cli");
-        guard.set("OMNI_DEV_CLAUDE_CLI_BIN", shim.to_str().unwrap());
+        guard.set("OMNI_VOICE_AI_BACKEND", "claude-cli");
+        guard.set("OMNI_VOICE_CLAUDE_CLI_BIN", shim.to_str().unwrap());
 
         let info = check_ai_credentials(None).unwrap();
         assert_eq!(info.provider, AiProvider::ClaudeCli);
@@ -529,8 +529,8 @@ mod tests {
         guard.remove("CLAUDE_CODE_USE_BEDROCK");
         guard.remove("ANTHROPIC_MODEL");
         guard.remove("CLAUDE_CODE_MODEL");
-        guard.set("OMNI_DEV_AI_BACKEND", "claude-cli");
-        guard.set("OMNI_DEV_CLAUDE_CLI_BIN", shim.to_str().unwrap());
+        guard.set("OMNI_VOICE_AI_BACKEND", "claude-cli");
+        guard.set("OMNI_VOICE_CLAUDE_CLI_BIN", shim.to_str().unwrap());
         guard.set("CLAUDE_MODEL", "haiku");
 
         let info = check_ai_credentials(None).unwrap();
@@ -544,8 +544,11 @@ mod tests {
         guard.remove("USE_OPENAI");
         guard.remove("USE_OLLAMA");
         guard.remove("CLAUDE_CODE_USE_BEDROCK");
-        guard.set("OMNI_DEV_AI_BACKEND", "claude-cli");
-        guard.set("OMNI_DEV_CLAUDE_CLI_BIN", "/nonexistent/claude-binary-xyz");
+        guard.set("OMNI_VOICE_AI_BACKEND", "claude-cli");
+        guard.set(
+            "OMNI_VOICE_CLAUDE_CLI_BIN",
+            "/nonexistent/claude-binary-xyz",
+        );
 
         let err = check_ai_credentials(None).expect_err("expected missing-binary error");
         let chain = format!("{err:#}");
@@ -564,8 +567,11 @@ mod tests {
         guard.remove("USE_OPENAI");
         guard.remove("USE_OLLAMA");
         guard.remove("CLAUDE_CODE_USE_BEDROCK");
-        guard.set("OMNI_DEV_AI_BACKEND", "claude_cli");
-        guard.set("OMNI_DEV_CLAUDE_CLI_BIN", "/nonexistent/claude-binary-xyz");
+        guard.set("OMNI_VOICE_AI_BACKEND", "claude_cli");
+        guard.set(
+            "OMNI_VOICE_CLAUDE_CLI_BIN",
+            "/nonexistent/claude-binary-xyz",
+        );
 
         let err = check_ai_credentials(None).expect_err("expected missing-binary error");
         let chain = format!("{err:#}");

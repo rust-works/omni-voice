@@ -1,4 +1,4 @@
-//! `omni-dev transcript youtube list-langs` — show all caption tracks on a
+//! `omni-voice transcript youtube list-langs` — show all caption tracks on a
 //! video.
 
 use anyhow::{Context, Result};

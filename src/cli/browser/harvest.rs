@@ -1,4 +1,4 @@
-//! `omni-dev browser bridge harvest <platform> <object>` — best-effort
+//! `omni-voice browser bridge harvest <platform> <object>` — best-effort
 //! harvesters that page a logged-in tab's **own** data out through the bridge.
 
 use std::path::PathBuf;

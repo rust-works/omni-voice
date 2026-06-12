@@ -1,7 +1,7 @@
 use std::process;
 
 use clap::Parser;
-use omni_dev::Cli;
+use omni_voice::Cli;
 
 #[tokio::main]
 async fn main() {

@@ -49,8 +49,8 @@ jobs:
     - uses: Swatinem/rust-cache@v2
     - name: Install ALSA headers for cpal
       run: sudo apt-get update && sudo apt-get install -y libasound2-dev
-    - name: Build omni-dev-mcp (release)
-      run: cargo build --release --features mcp --bin omni-dev-mcp
+    - name: Build omni-voice-mcp (release)
+      run: cargo build --release --features mcp --bin omni-voice-mcp
 
   fmt:
     name: Rustfmt
@@ -119,7 +119,7 @@ jobs:
       uses: taiki-e/install-action@cargo-llvm-cov
     # Every cargo step below sources cargo-llvm-cov's instrumentation env (rustc
     # wrapper, flags, profile path) so they all share ONE set of dependency
-    # artifacts: the tests build them, and the omni-dev binary build reuses them
+    # artifacts: the tests build them, and the omni-voice binary build reuses them
     # (a plain `cargo build` differs in RUSTC_WRAPPER and would recompile the
     # whole tree). `show-env` is deterministic, so sourcing it per step
     # re-establishes the same env without leaking it into the worktree fallback
@@ -132,7 +132,7 @@ jobs:
       id: whisper-cache
       uses: actions/cache@v5
       with:
-        path: ~/.omni-dev/voice/models/whisper-tiny.en
+        path: ~/.omni-voice/voice/models/whisper-tiny.en
         key: whisper-tiny-en-refs-pr-15
     - name: Run tests with coverage
       run: |
@@ -145,7 +145,7 @@ jobs:
       run: |
         # shellcheck disable=SC1090
         source <(cargo llvm-cov show-env --sh)
-        cargo run --all-features --bin omni-dev -- voice install-model
+        cargo run --all-features --bin omni-voice -- voice install-model
     - name: Run model-gated voice tests with coverage
       # Covers the candle Whisper inference path (WhisperEngine and the
       # streaming backend's real-decode seam), which the default suite
@@ -169,7 +169,7 @@ jobs:
         cargo llvm-cov report --codecov --output-path codecov.json
     - name: Generate head coverage report (lcov)
       # Per-line lcov for the head commit. This is the input to
-      # `omni-dev coverage diff`: it drives patch coverage (of the lines this PR
+      # `omni-voice coverage diff`: it drives patch coverage (of the lines this PR
       # added, how many are covered — needs only the head report + diff) and,
       # paired with the merge-base baseline below, the per-file deltas and
       # indirect-change detection. Published as the baseline on `main` for PRs.
@@ -192,7 +192,7 @@ jobs:
           echo '```'
         } >> "$GITHUB_STEP_SUMMARY"
     # No separate binary build: `cargo test` above already compiled the
-    # `omni-dev` executable (target/debug/omni-dev, part of the test build graph)
+    # `omni-voice` executable (target/debug/omni-voice, part of the test build graph)
     # with the same instrumentation env. The PR-comment step below runs it
     # directly. Building it separately with `cargo build --bin` would recompile a
     # dozen crates whose features differ once dev-dependencies drop out.
@@ -246,7 +246,7 @@ jobs:
             && cargo llvm-cov report --lcov --output-path coverage-head.lcov )
         mkdir -p baseline
         # Rewrite the worktree's absolute SF paths to the main workspace prefix so
-        # `omni-dev coverage diff` strips one prefix for both head and baseline.
+        # `omni-voice coverage diff` strips one prefix for both head and baseline.
         sed "s#$(cd ../base && pwd)/#$GITHUB_WORKSPACE/#g" \
           ../base/coverage-head.lcov > baseline/coverage-head.lcov
     - name: Build PR coverage comment
@@ -278,7 +278,7 @@ jobs:
         if [ -f baseline/coverage-head.lcov ]; then
           args+=(--baseline-report baseline/coverage-head.lcov)
         fi
-        ./target/debug/omni-dev "${args[@]}" > coverage.md
+        ./target/debug/omni-voice "${args[@]}" > coverage.md
     - name: Comment coverage on PR
       if: github.event_name == 'pull_request'
       uses: marocchino/sticky-pull-request-comment@v3

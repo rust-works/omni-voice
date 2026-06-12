@@ -1,14 +1,14 @@
-//! Binary entry point for the omni-dev MCP server.
+//! Binary entry point for the omni-voice MCP server.
 //!
 //! Speaks the Model Context Protocol over stdio so AI assistants can
-//! invoke omni-dev's business logic as MCP tools. See [ADR-0021].
+//! invoke omni-voice's business logic as MCP tools. See [ADR-0021].
 //!
-//! All non-trivial logic lives in `omni_dev::mcp::runtime` so it can be
+//! All non-trivial logic lives in `omni_voice::mcp::runtime` so it can be
 //! exercised by library tests; this binary is intentionally a thin shim.
 
 use std::process;
 
-use omni_dev::mcp;
+use omni_voice::mcp;
 use rmcp::transport::stdio;
 
 #[tokio::main]

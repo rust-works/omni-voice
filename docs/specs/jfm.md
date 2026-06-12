@@ -233,7 +233,7 @@ locally with a clear diagnosis instead of producing an opaque HTTP 500:
 - `adf_validated::ValidatedAdfDocument::try_new` is the only constructor for
   the `ValidatedAdfDocument` newtype that the Confluence and JIRA write APIs
   accept, making "I forgot to validate" a compile error.
-- `omni-dev confluence write` and `omni-dev confluence create` (and their
+- `omni-voice confluence write` and `omni-voice confluence create` (and their
   MCP tool equivalents) print every violation via the dry-run helper before
   any network call.
 - On HTTP 500 from a Confluence write that did pass local validation, the
@@ -637,7 +637,7 @@ markdown parser would otherwise reinterpret the content.
 - **Method**: HTTP Basic Auth (base64-encoded `email:api_token`)
 - **Credential sources** (checked in order):
   1. Environment variables
-  2. `~/.omni-dev/settings.json` `env` map
+  2. `~/.omni-voice/settings.json` `env` map
 - **Required keys**:
   - `ATLASSIAN_INSTANCE_URL`
   - `ATLASSIAN_EMAIL`

@@ -2716,8 +2716,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "omni-dev"
-version = "0.28.0"
+name = "omni-voice"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",

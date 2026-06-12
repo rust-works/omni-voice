@@ -8,7 +8,7 @@ use rmcp::{
 use serde::Deserialize;
 
 use super::error::tool_error;
-use super::server::OmniDevServer;
+use super::server::OmniVoiceServer;
 use crate::cli::ai::{self, SkillsFormat};
 
 /// Parameters for `ai_chat`.
@@ -68,13 +68,13 @@ pub struct ClaudeSkillsStatusParams {
 
 #[allow(missing_docs)] // #[tool_router] generates a pub `ai_tool_router` fn.
 #[tool_router(router = ai_tool_router, vis = "pub")]
-impl OmniDevServer {
+impl OmniVoiceServer {
     /// Single-turn AI chat. Returns the assistant's response as text.
     #[tool(
         description = "Send a single message to the configured AI (Claude/OpenAI/Ollama/Bedrock) \
                        and return its response. Non-streaming, single-turn. On missing credentials, \
                        returns a tool error containing the same diagnostic the CLI would print. \
-                       Mirrors `omni-dev ai chat` in one-shot form."
+                       Mirrors `omni-voice ai chat` in one-shot form."
     )]
     pub async fn ai_chat(
         &self,
@@ -92,7 +92,7 @@ impl OmniDevServer {
                        current working directory) into target worktrees. MUTATES THE FILESYSTEM: \
                        creates symlinks inside `.claude/skills/` and upserts a managed block in \
                        `.git/info/exclude`. Operates relative to the server process's cwd — not \
-                       cross-project. Mirrors `omni-dev ai claude skills sync`."
+                       cross-project. Mirrors `omni-voice ai claude skills sync`."
     )]
     pub async fn claude_skills_sync(
         &self,
@@ -111,7 +111,7 @@ impl OmniDevServer {
     #[tool(
         description = "Remove skill symlinks and the managed exclude block created by a prior \
                        `claude_skills_sync`. MUTATES THE FILESYSTEM. Operates relative to the \
-                       server process's cwd. Mirrors `omni-dev ai claude skills clean`."
+                       server process's cwd. Mirrors `omni-voice ai claude skills clean`."
     )]
     pub async fn claude_skills_clean(
         &self,
@@ -130,7 +130,7 @@ impl OmniDevServer {
     #[tool(
         description = "Report symlinks and managed exclude-block entries left by prior \
                        `claude_skills_sync` runs. Read-only. Operates relative to the server \
-                       process's cwd. Mirrors `omni-dev ai claude skills status`."
+                       process's cwd. Mirrors `omni-voice ai claude skills status`."
     )]
     pub async fn claude_skills_status(
         &self,
@@ -302,7 +302,7 @@ mod tests {
         std::env::set_var("OLLAMA_MODEL", "llama2");
         std::env::set_var("OLLAMA_BASE_URL", mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .ai_chat(Parameters(AiChatParams {
                 message: "hi".to_string(),
@@ -330,7 +330,7 @@ mod tests {
             std::env::remove_var(k);
         }
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let err = server
             .ai_chat(Parameters(AiChatParams {
                 message: "hi".to_string(),

@@ -22,7 +22,7 @@
   <text x="60" y="220"
         font-family="Helvetica, Arial, sans-serif"
         font-size="76" font-weight="800"
-        fill="url(#accent)">omni-dev</text>
+        fill="url(#accent)">omni-voice</text>
 
   <!-- Tagline -->
   <text x="60" y="280"
@@ -85,7 +85,7 @@
   <line x1="510" y1="310" x2="1190" y2="310" stroke="#21262d" stroke-width="1"/>
   <text x="850" y="334"
         font-family="Helvetica, Arial, sans-serif"
-        font-size="14" fill="#6e7681" text-anchor="middle">↓  omni-dev amend  ↓</text>
+        font-size="14" fill="#6e7681" text-anchor="middle">↓  omni-voice amend  ↓</text>
 
   <!-- AFTER label -->
   <text x="510" y="378"
@@ -128,7 +128,7 @@
   <line x1="60" y1="580" x2="1220" y2="580" stroke="#21262d" stroke-width="1"/>
   <text x="60" y="610"
         font-family="Menlo, Consolas, monospace"
-        font-size="18" fill="#e6edf3">$ cargo install omni-dev</text>
+        font-size="18" fill="#e6edf3">$ cargo install omni-voice</text>
   <text x="1220" y="610"
         font-family="Helvetica, Arial, sans-serif"
         font-size="16" fill="#8b949e" text-anchor="end">BSD-3-Clause  ·  Built with Rust 🦀</text>

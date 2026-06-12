@@ -9,7 +9,7 @@
 //! output.
 //!
 //! Per-call client construction (rather than a shared client cached on
-//! `OmniDevServer`) mirrors the Atlassian tools and lets credential changes
+//! `OmniVoiceServer`) mirrors the Atlassian tools and lets credential changes
 //! take effect without restarting the MCP server.
 
 use anyhow::{Context, Result};
@@ -36,7 +36,7 @@ use crate::datadog::time::parse_time_range;
 use crate::datadog::types::SortOrder;
 
 use super::error::tool_error;
-use super::server::OmniDevServer;
+use super::server::OmniVoiceServer;
 
 // ── Parameter structs ───────────────────────────────────────────────
 
@@ -226,7 +226,7 @@ pub struct DatadogLogsSearchParams {
 
 #[allow(missing_docs)] // #[tool_router] generates a pub `datadog_tool_router` fn.
 #[tool_router(router = datadog_tool_router, vis = "pub")]
-impl OmniDevServer {
+impl OmniVoiceServer {
     /// Reports which Datadog credential scopes have credentials configured.
     ///
     /// Boolean presence flags only — never returns secret values.
@@ -247,7 +247,7 @@ impl OmniDevServer {
     /// Tool: execute a point-in-time Datadog metrics timeseries query.
     #[tool(
         description = "Execute a point-in-time Datadog metrics timeseries query. \
-                       Mirrors `omni-dev datadog metrics query`. Returns YAML matching \
+                       Mirrors `omni-voice datadog metrics query`. Returns YAML matching \
                        the CLI `-o yaml` output (status, from_date, to_date, series)."
     )]
     pub async fn datadog_metrics_query(
@@ -262,7 +262,7 @@ impl OmniDevServer {
     #[tool(
         description = "List Datadog monitors with optional name / tags filters. \
                        `limit` of 0 (or omitted) auto-paginates up to 10000. \
-                       Mirrors `omni-dev datadog monitor list`. Output is YAML."
+                       Mirrors `omni-voice datadog monitor list`. Output is YAML."
     )]
     pub async fn datadog_monitor_list(
         &self,
@@ -274,7 +274,7 @@ impl OmniDevServer {
 
     /// Tool: fetch a single Datadog monitor by id.
     #[tool(description = "Fetch a single Datadog monitor by numeric id. \
-                       Mirrors `omni-dev datadog monitor get`. Output is YAML.")]
+                       Mirrors `omni-voice datadog monitor get`. Output is YAML.")]
     pub async fn datadog_monitor_get(
         &self,
         Parameters(params): Parameters<DatadogMonitorGetParams>,
@@ -288,7 +288,7 @@ impl OmniDevServer {
     /// Tool: free-text / faceted search across Datadog monitors.
     #[tool(description = "Free-text / faceted search across Datadog monitors. \
                        `limit` of 0 (or omitted) auto-paginates up to 10000. \
-                       Mirrors `omni-dev datadog monitor search`. Output is YAML.")]
+                       Mirrors `omni-voice datadog monitor search`. Output is YAML.")]
     pub async fn datadog_monitor_search(
         &self,
         Parameters(params): Parameters<DatadogMonitorSearchParams>,
@@ -301,7 +301,7 @@ impl OmniDevServer {
     #[tool(
         description = "List Datadog dashboards. `filter_shared` (boolean, optional) \
                        restricts to shared / non-shared dashboards. \
-                       Mirrors `omni-dev datadog dashboard list`. Output is YAML."
+                       Mirrors `omni-voice datadog dashboard list`. Output is YAML."
     )]
     pub async fn datadog_dashboard_list(
         &self,
@@ -314,7 +314,7 @@ impl OmniDevServer {
     /// Tool: fetch a single Datadog dashboard definition by id.
     #[tool(description = "Fetch a single Datadog dashboard by id (string). \
                        Returns the full definition including widgets. \
-                       Mirrors `omni-dev datadog dashboard get`. Output is YAML.")]
+                       Mirrors `omni-voice datadog dashboard get`. Output is YAML.")]
     pub async fn datadog_dashboard_get(
         &self,
         Parameters(params): Parameters<DatadogDashboardGetParams>,
@@ -330,7 +330,7 @@ impl OmniDevServer {
         description = "Search Datadog log events. `limit` of 0 (or omitted) auto-paginates \
                        across cursor pages up to 10000; any non-zero value caps the total at \
                        that count. `sort` is `timestamp-asc` or `timestamp-desc` (default). \
-                       Mirrors `omni-dev datadog logs search`. Output is YAML."
+                       Mirrors `omni-voice datadog logs search`. Output is YAML."
     )]
     pub async fn datadog_logs_search(
         &self,
@@ -346,7 +346,7 @@ impl OmniDevServer {
                        cursor pages up to 10000; any non-zero value caps the total at that \
                        count. `from` / `to` accept relative shorthand (`15m`, `1h`), `now`, \
                        RFC 3339, or Unix epoch seconds. Mirrors \
-                       `omni-dev datadog events list`. Output is YAML."
+                       `omni-voice datadog events list`. Output is YAML."
     )]
     pub async fn datadog_events_list(
         &self,
@@ -359,7 +359,7 @@ impl OmniDevServer {
     /// Tool: list Datadog SLOs.
     #[tool(
         description = "List Datadog Service Level Objectives. `limit` of 0 (or omitted) \
-                       auto-paginates up to 10000. Mirrors `omni-dev datadog slo list`. \
+                       auto-paginates up to 10000. Mirrors `omni-voice datadog slo list`. \
                        Output is YAML."
     )]
     pub async fn datadog_slo_list(
@@ -372,7 +372,7 @@ impl OmniDevServer {
 
     /// Tool: fetch a single SLO by id.
     #[tool(description = "Fetch a single Datadog SLO by id (string). \
-                       Mirrors `omni-dev datadog slo get`. Output is YAML.")]
+                       Mirrors `omni-voice datadog slo get`. Output is YAML.")]
     pub async fn datadog_slo_get(
         &self,
         Parameters(params): Parameters<DatadogSloGetParams>,
@@ -384,7 +384,7 @@ impl OmniDevServer {
     /// Tool: list Datadog reporting hosts.
     #[tool(
         description = "List Datadog reporting hosts. `limit` of 0 (or omitted) \
-                       auto-paginates up to 10000. Mirrors `omni-dev datadog hosts list`. \
+                       auto-paginates up to 10000. Mirrors `omni-voice datadog hosts list`. \
                        Output is YAML."
     )]
     pub async fn datadog_hosts_list(
@@ -399,7 +399,7 @@ impl OmniDevServer {
     #[tool(
         description = "List Datadog scheduled downtimes. `active_only` (boolean, optional) \
                        restricts to currently-active downtimes. Mirrors \
-                       `omni-dev datadog downtime list`. Output is YAML."
+                       `omni-voice datadog downtime list`. Output is YAML."
     )]
     pub async fn datadog_downtime_list(
         &self,
@@ -414,7 +414,7 @@ impl OmniDevServer {
         description = "List metrics in the Datadog catalog (`/api/v1/metrics`). Distinct \
                        from `datadog_metrics_query`: returns metric *names* ingested since \
                        `from`, optionally filtered by `host`. Mirrors \
-                       `omni-dev datadog metrics catalog list`. Output is YAML."
+                       `omni-voice datadog metrics catalog list`. Output is YAML."
     )]
     pub async fn datadog_metrics_catalog_list(
         &self,
@@ -629,7 +629,7 @@ mod tests {
     /// Writes a minimal Datadog settings.json + sets DATADOG_API_URL so
     /// that every `create_client()` call is routed to the wiremock server.
     fn configure_credentials_and_api_url(home: &std::path::Path, api_url: &str) {
-        let omni_dir = home.join(".omni-dev");
+        let omni_dir = home.join(".omni-voice");
         fs::create_dir_all(&omni_dir).unwrap();
         fs::write(
             omni_dir.join("settings.json"),
@@ -729,7 +729,7 @@ mod tests {
     fn run_auth_status_never_emits_secret_values() {
         let guard = EnvGuard::take();
         let dir = with_empty_home(&guard);
-        let omni_dir = dir.path().join(".omni-dev");
+        let omni_dir = dir.path().join(".omni-voice");
         fs::create_dir_all(&omni_dir).unwrap();
         fs::write(
             omni_dir.join("settings.json"),
@@ -1149,7 +1149,7 @@ mod tests {
     async fn datadog_auth_status_handler_returns_yaml_no_secrets() {
         let guard = EnvGuard::take();
         let dir = with_empty_home(&guard);
-        let omni_dir = dir.path().join(".omni-dev");
+        let omni_dir = dir.path().join(".omni-voice");
         fs::create_dir_all(&omni_dir).unwrap();
         fs::write(
             omni_dir.join("settings.json"),
@@ -1164,7 +1164,7 @@ mod tests {
         std::env::remove_var(DATADOG_APP_KEY);
         std::env::remove_var(DATADOG_SITE);
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_auth_status(Parameters(DatadogAuthStatusParams::default()))
             .await
@@ -1187,7 +1187,7 @@ mod tests {
         let guard = EnvGuard::take();
         let _dir = with_empty_home(&guard);
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let err = server
             .datadog_metrics_query(Parameters(DatadogMetricsQueryParams {
                 query: "m".to_string(),
@@ -1204,7 +1204,7 @@ mod tests {
         let guard = EnvGuard::take();
         let _dir = with_empty_home(&guard);
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let err = server
             .datadog_logs_search(Parameters(DatadogLogsSearchParams {
                 filter: "*".to_string(),
@@ -1243,7 +1243,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_metrics_query(Parameters(DatadogMetricsQueryParams {
                 query: "avg:system.cpu.user{*}".to_string(),
@@ -1273,7 +1273,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_monitor_list(Parameters(DatadogMonitorListParams {
                 limit: Some(5),
@@ -1299,7 +1299,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_monitor_get(Parameters(DatadogMonitorGetParams { monitor_id: 42 }))
             .await
@@ -1326,7 +1326,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_monitor_search(Parameters(DatadogMonitorSearchParams {
                 query: "status:ok".to_string(),
@@ -1354,7 +1354,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_dashboard_list(Parameters(DatadogDashboardListParams::default()))
             .await
@@ -1380,7 +1380,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_dashboard_get(Parameters(DatadogDashboardGetParams {
                 dashboard_id: "zzz".to_string(),
@@ -1406,7 +1406,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_logs_search(Parameters(DatadogLogsSearchParams {
                 filter: "service:api".to_string(),
@@ -1469,7 +1469,7 @@ mod tests {
 
     #[test]
     fn datadog_tool_router_registers_all_tools() {
-        let router = OmniDevServer::datadog_tool_router();
+        let router = OmniVoiceServer::datadog_tool_router();
         for name in [
             // Phase 1
             "datadog_auth_status",
@@ -1591,7 +1591,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_events_list(Parameters(DatadogEventsListParams {
                 filter: None,
@@ -1715,7 +1715,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_slo_list(Parameters(DatadogSloListParams {
                 limit: Some(5),
@@ -1741,7 +1741,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_slo_get(Parameters(DatadogSloGetParams {
                 slo_id: "abc".into(),
@@ -1757,7 +1757,7 @@ mod tests {
         let guard = EnvGuard::take();
         let _dir = with_empty_home(&guard);
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let err = server
             .datadog_slo_list(Parameters(DatadogSloListParams::default()))
             .await
@@ -1844,7 +1844,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_hosts_list(Parameters(DatadogHostsListParams {
                 limit: Some(5),
@@ -1924,7 +1924,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_downtime_list(Parameters(DatadogDowntimeListParams::default()))
             .await
@@ -1984,7 +1984,7 @@ mod tests {
         let dir = with_empty_home(&guard);
         configure_credentials_and_api_url(dir.path(), &server_mock.uri());
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let result = server
             .datadog_metrics_catalog_list(Parameters(DatadogMetricsCatalogListParams::default()))
             .await

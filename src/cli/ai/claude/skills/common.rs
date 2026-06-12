@@ -17,10 +17,10 @@ pub(super) const EXCLUDE_PREFIX: &str = ".claude/skills/";
 /// Opening marker for the managed block inside `.git/info/exclude`. Changing
 /// this string would orphan blocks written by prior versions — forward
 /// compatibility commitment.
-pub(super) const BLOCK_BEGIN: &str = "# BEGIN omni-dev-skills (managed — do not edit)";
+pub(super) const BLOCK_BEGIN: &str = "# BEGIN omni-voice-skills (managed — do not edit)";
 
 /// Closing marker for the managed block inside `.git/info/exclude`.
-pub(super) const BLOCK_END: &str = "# END omni-dev-skills";
+pub(super) const BLOCK_END: &str = "# END omni-voice-skills";
 
 /// Output format shared by `sync`, `clean`, and `status`.
 #[derive(ValueEnum, Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]

@@ -1,11 +1,11 @@
 # Browser Bridge
 
-`omni-dev browser bridge serve` runs a long-lived local process that lets you drive
+`omni-voice browser bridge serve` runs a long-lived local process that lets you drive
 HTTP requests **through an authenticated browser tab**. When you are
 investigating internal services (Grafana/Loki, internal dashboards, SSO-gated
 admin panels), the browser holds authenticated sessions — SSO, OAuth, session
 cookies — that are hard to replicate programmatically. The bridge lets
-`omni-dev` (or a local tool you control) issue requests inside the browser's
+`omni-voice` (or a local tool you control) issue requests inside the browser's
 authenticated context **without exfiltrating cookies or tokens**.
 
 This is a *confused deputy by design*: the bridge borrows the browser's
@@ -37,7 +37,7 @@ add-on — both planes are authenticated and default-closed. See
    HTTP + bearer token + X-Omni-Bridge      WebSocket + token subprotocol
               │                                          │
               ▼                                          ▼
-  ┌───────────────────────────── omni-dev browser bridge ─────────────────────┐
+  ┌───────────────────────────── omni-voice browser bridge ─────────────────────┐
   │   HTTP control plane            id-correlator           WebSocket plane    │
   │   127.0.0.1:9998      ───►   pending: id → oneshot   ───►   127.0.0.1:9999 │
   │   (axum)              ◄───   resolve on WS reply     ◄───   (tungstenite)  │
@@ -54,7 +54,7 @@ the HTTP response.**
 1. Start the bridge:
 
    ```bash
-   omni-dev browser bridge serve
+   omni-voice browser bridge serve
    ```
 
    It prints the bound ports, the generated session token, and a ready-to-paste
@@ -68,7 +68,7 @@ the HTTP response.**
 
    ```bash
    export OMNI_BRIDGE_TOKEN=<token printed by the bridge>
-   omni-dev browser bridge request --url /loki/api/v1/labels
+   omni-voice browser bridge request --url /loki/api/v1/labels
    ```
 
 The bridge works only while the tab is open and the snippet is running.
@@ -108,16 +108,16 @@ curl -s -H "Authorization: Bearer $T" -H "X-Omni-Bridge: 1" \
 
 ## The `request` thin client
 
-`omni-dev browser bridge request` reads the token (from `OMNI_BRIDGE_TOKEN` or
+`omni-voice browser bridge request` reads the token (from `OMNI_BRIDGE_TOKEN` or
 `--token-file`), adds the required headers, POSTs to `/__bridge/request` on a
 *running* bridge, and prints the response envelope:
 
 ```bash
-omni-dev browser bridge request --url /loki/api/v1/labels --method GET
-omni-dev browser bridge request --url /api/foo --method POST --body @payload.json
-omni-dev browser bridge request --control-port 9998 --url /api/foo   # custom port
-omni-dev browser bridge request --url /api/foo --header "Accept: application/json"
-omni-dev browser bridge request --url https://cdn.example.com/x.js --credentials omit
+omni-voice browser bridge request --url /loki/api/v1/labels --method GET
+omni-voice browser bridge request --url /api/foo --method POST --body @payload.json
+omni-voice browser bridge request --control-port 9998 --url /api/foo   # custom port
+omni-voice browser bridge request --url /api/foo --header "Accept: application/json"
+omni-voice browser bridge request --url https://cdn.example.com/x.js --credentials omit
 ```
 
 `--body @file` reads the body from a file; otherwise the value is sent verbatim.
@@ -140,7 +140,7 @@ log-tail) instead of buffering the whole response: the decoded body bytes are
 written to stdout as they arrive, and the head status is printed to stderr.
 
 ```bash
-omni-dev browser bridge request --stream --url /events | your-consumer   # SSE / chunked
+omni-voice browser bridge request --stream --url /events | your-consumer   # SSE / chunked
 ```
 
 ## Routing to a specific tab
@@ -173,8 +173,8 @@ id** (canonical, always unambiguous) or an **`Origin`** that uniquely matches on
 tab:
 
 ```bash
-omni-dev browser bridge request --target 2 --url /api/foo                # by id
-omni-dev browser bridge request --target https://admin.internal --url /x # by origin
+omni-voice browser bridge request --target 2 --url /api/foo                # by id
+omni-voice browser bridge request --target https://admin.internal --url /x # by origin
 curl "${H[@]}" -H "X-Omni-Bridge-Target: 1" http://localhost:9998/api/foo
 ```
 
@@ -282,7 +282,7 @@ Pass `0` to either port flag to let the OS assign a free port; the bridge reads
 back the actual port and reflects it in the printed instructions and snippet:
 
 ```bash
-omni-dev browser bridge serve --ws-port 0 --control-port 0
+omni-voice browser bridge serve --ws-port 0 --control-port 0
 ```
 
 This is useful when the defaults are taken, or when running several bridges.
@@ -311,7 +311,7 @@ the bridge buffers full bodies under `--request-timeout`. For genuinely streamin
 endpoints (Grafana Live, SSE, chunked APIs), opt into streaming with `--stream` /
 `?__stream=1` (see [Streaming responses](#streaming-responses)) instead of
 paginating. The `POST /api/ds/query` form is also supported via
-`omni-dev browser bridge request --method POST`.
+`omni-voice browser bridge request --method POST`.
 
 A canonical drain loop using the `request` thin client and `jq` (the bridge
 prints the response envelope as JSON; the upstream body is the envelope's
@@ -324,7 +324,7 @@ END=$(date +%s)000000000   # now, in nanoseconds
 LIMIT=5000
 
 while :; do
-  page=$(omni-dev browser bridge request \
+  page=$(omni-voice browser bridge request \
     --url "/api/datasources/proxy/uid/${DS_UID}/loki/api/v1/query_range?query=${QUERY}&end=${END}&limit=${LIMIT}&direction=backward")
 
   # The upstream JSON is the envelope's `body` string; parse it once.
@@ -356,23 +356,23 @@ id from a lazily-loaded cross-origin bundle, then replay a paginating GraphQL
 query — that it is packaged as a built-in command tree:
 
 ```
-omni-dev browser bridge harvest <platform> <object>
+omni-voice browser bridge harvest <platform> <object>
 ```
 
 Today the only target is your **own** Facebook timeline:
 
 ```bash
 # Page your whole timeline to a file, newest-first, one JSON post per line:
-omni-dev browser bridge harvest facebook posts --output my-posts.jsonl
+omni-voice browser bridge harvest facebook posts --output my-posts.jsonl
 
 # Sample the most recent 20 posts to stdout:
-omni-dev browser bridge harvest facebook posts --limit 20
+omni-voice browser bridge harvest facebook posts --limit 20
 
 # Incremental archive: stop once posts predate a cutoff (Unix seconds or ISO-8601):
-omni-dev browser bridge harvest facebook posts --since 2024-01-01T00:00:00Z
+omni-voice browser bridge harvest facebook posts --since 2024-01-01T00:00:00Z
 
 # Resume a run interrupted by a 504 / token rotation from its saved cursor:
-omni-dev browser bridge harvest facebook posts --output my-posts.jsonl --resume run.state
+omni-voice browser bridge harvest facebook posts --output my-posts.jsonl --resume run.state
 ```
 
 Each post is `{ id, creation_time, text, url, shared_link }`. `--format jsonl`

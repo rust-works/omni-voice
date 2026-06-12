@@ -1,4 +1,4 @@
-//! `omni-dev git commit message staged` — generate a Conventional Commits
+//! `omni-voice git commit message staged` — generate a Conventional Commits
 //! message from staged changes via the configured AI backend and (by default)
 //! commit them.
 //!
@@ -13,7 +13,7 @@ use std::process::{Command, Stdio};
 use super::parse_beta_header;
 use crate::data::context::ScopeDefinition;
 
-/// `omni-dev git commit message staged` CLI command.
+/// `omni-voice git commit message staged` CLI command.
 #[derive(Parser)]
 pub struct StagedCommand {
     /// Print the generated message to stdout instead of committing.
@@ -508,7 +508,7 @@ mod tests {
     /// "No silent mix" guard: `read_staged_diff` reads the staged diff from the
     /// INJECTED repo, not the process CWD. We stage a uniquely-marked file in
     /// the temp repo, run with that repo injected (the process CWD is the
-    /// omni-dev checkout), and assert the marker reached the AI prompt.
+    /// omni-voice checkout), and assert the marker reached the AI prompt.
     #[tokio::test]
     async fn run_staged_with_client_reads_diff_from_injected_repo() {
         let temp_dir = init_repo_with_staged_change();

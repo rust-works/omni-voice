@@ -1,4 +1,4 @@
-allowed-tools: [Bash(mkdir *), Read, Write, Edit, "omni-dev *"]
+allowed-tools: [Bash(mkdir *), Read, Write, Edit, "omni-voice *"]
 argument-hint: [range]
 description: Update existing pull request
 model: claude-opus-4.1
@@ -9,7 +9,7 @@ model: claude-opus-4.1
 Run this command:
 
 ```bash
-omni-dev git branch info
+omni-voice git branch info
 ```
 
 ## Step 2
@@ -49,4 +49,4 @@ the `.ai/scratch` directory.
 Use the GitHub CLI to update the existing PR.
 
 # Troubleshooting
-If the `omni-dev` tool is not installed, then install this: https://crates.io/crates/omni-dev (at least `v0.3.0`).
+If the `omni-voice` tool is not installed, then install this: https://crates.io/crates/omni-voice (at least `v0.3.0`).

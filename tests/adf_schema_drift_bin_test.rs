@@ -1,6 +1,6 @@
 //! Integration tests for the `adf-schema-drift` binary.
 //!
-//! Spawns the compiled binary as a subprocess with `OMNI_DEV_ADF_SCHEMA_LATEST_URL`
+//! Spawns the compiled binary as a subprocess with `OMNI_VOICE_ADF_SCHEMA_LATEST_URL`
 //! pointing at a `wiremock` server, exercising end-to-end the fetch flow,
 //! the `process_report` orchestration in `main`, and the `$GITHUB_OUTPUT`
 //! signalling.
@@ -10,7 +10,7 @@
 use std::io::Write;
 use std::process::Command;
 
-use omni_dev::atlassian::adf_schema::drift::NPM_LATEST_URL_ENV;
+use omni_voice::atlassian::adf_schema::drift::NPM_LATEST_URL_ENV;
 use serde_json::json;
 
 fn build_synthetic_tarball(entries: &[(&str, &[u8])]) -> Vec<u8> {

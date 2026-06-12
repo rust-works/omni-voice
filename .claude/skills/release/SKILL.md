@@ -5,7 +5,7 @@ description: Automates the release process for this Rust project. Use when creat
 
 # Automated Release Skill
 
-This skill performs the complete end-to-end release process for omni-dev, from version bump to verified publication.
+This skill performs the complete end-to-end release process for omni-voice, from version bump to verified publication.
 
 ## Execution Steps
 
@@ -61,8 +61,8 @@ This skill performs the complete end-to-end release process for omni-dev, from v
      - **CI/CD**: Build/workflow changes
    - Update version comparison links at bottom:
      ```markdown
-     [Unreleased]: https://github.com/rust-works/omni-dev/compare/vX.Y.Z...HEAD
-     [X.Y.Z]: https://github.com/rust-works/omni-dev/compare/vPREV...vX.Y.Z
+     [Unreleased]: https://github.com/rust-works/omni-voice/compare/vX.Y.Z...HEAD
+     [X.Y.Z]: https://github.com/rust-works/omni-voice/compare/vPREV...vX.Y.Z
      ```
 
 ### Phase 3: Version Update
@@ -140,7 +140,7 @@ This skill performs the complete end-to-end release process for omni-dev, from v
 
 17. **Verify crates.io Publication**
     ```bash
-    cargo search omni-dev
+    cargo search omni-voice
     ```
 
 18. **Report Success**
@@ -157,7 +157,7 @@ This skill performs the complete end-to-end release process for omni-dev, from v
 
     Display to the user:
     - The short release SHA: `git rev-parse --short vX.Y.Z`
-    - The admin URL: <https://glama.ai/mcp/servers/rust-works/omni-dev/admin/dockerfile>
+    - The admin URL: <https://glama.ai/mcp/servers/rust-works/omni-voice/admin/dockerfile>
     - A pointer to the procedure: `docs/glama-listing.md`
 
     Do not block on this — it's an out-of-band manual step the human performs after the automated release lands.
@@ -214,7 +214,7 @@ gh run view <run_id> --log-failed
 gh release view vX.Y.Z
 
 # Check crates.io
-cargo search omni-dev
+cargo search omni-voice
 ```
 
 ## Rollback Procedure

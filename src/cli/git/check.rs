@@ -22,7 +22,7 @@ pub struct CheckCommand {
     #[arg(long, value_name = "KEY:VALUE")]
     pub beta_header: Option<String>,
 
-    /// Path to custom context directory (defaults to .omni-dev/).
+    /// Path to custom context directory (defaults to .omni-voice/).
     #[arg(long)]
     pub context_dir: Option<std::path::PathBuf>,
 
@@ -265,7 +265,7 @@ impl CheckCommand {
 
         // Create version information
         let versions = Some(VersionInfo {
-            omni_dev: env!("CARGO_PKG_VERSION").to_string(),
+            omni_voice: env!("CARGO_PKG_VERSION").to_string(),
         });
 
         // Get AI scratch directory
@@ -911,7 +911,7 @@ pub struct CheckOutcome {
     pub exit_code: i32,
 }
 
-/// Non-interactive core for `omni-dev git commit message check`.
+/// Non-interactive core for `omni-voice git commit message check`.
 ///
 /// Shared by the CLI (which prints the report and uses the exit code) and the
 /// MCP server (which returns the structured outcome to the caller). Always
@@ -996,7 +996,7 @@ pub(crate) async fn run_check_with_client(
 
     let mut repo_view = RepositoryView {
         versions: Some(VersionInfo {
-            omni_dev: env!("CARGO_PKG_VERSION").to_string(),
+            omni_voice: env!("CARGO_PKG_VERSION").to_string(),
         }),
         explanation: FieldExplanation::default(),
         working_directory,
@@ -1245,13 +1245,13 @@ mod run_check_tests {
     }
 
     /// "No silent mix" guard: default commit guidelines are loaded from the
-    /// INJECTED repo's `.omni-dev/commit-guidelines.md`, not the process CWD.
+    /// INJECTED repo's `.omni-voice/commit-guidelines.md`, not the process CWD.
     /// We write a distinctive marker into the temp repo's guidelines and assert
     /// it reaches the AI prompt.
     #[tokio::test]
     async fn run_check_with_client_loads_guidelines_from_injected_repo() {
         let temp_dir = init_test_repo();
-        let omni_dir = temp_dir.path().join(".omni-dev");
+        let omni_dir = temp_dir.path().join(".omni-voice");
         std::fs::create_dir_all(&omni_dir).unwrap();
         std::fs::write(
             omni_dir.join("commit-guidelines.md"),

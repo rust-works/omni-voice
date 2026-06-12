@@ -16,7 +16,7 @@ use tokio_util::sync::CancellationToken;
 
 use super::cancel::spawn_blocking_cancellable;
 use super::error::tool_error;
-use super::server::OmniDevServer;
+use super::server::OmniVoiceServer;
 use super::truncate::{truncate_response, DEFAULT_MAX_RESPONSE_BYTES};
 use super::validate::{validate_range, validate_repo_path};
 
@@ -50,7 +50,7 @@ pub struct GitCheckCommitsParams {
     /// Commit range to check (e.g., `HEAD~3..HEAD`, `abc123..def456`).
     pub range: String,
     /// Optional explicit path to the guidelines file. When omitted the tool
-    /// falls back to `.omni-dev/commit-guidelines.md` via the standard
+    /// falls back to `.omni-voice/commit-guidelines.md` via the standard
     /// resolution chain.
     #[serde(default)]
     pub guidelines_path: Option<String>,
@@ -116,11 +116,11 @@ pub struct GitCreatePrParams {
 
 #[allow(missing_docs)] // #[tool_router] generates a pub `git_tool_router` fn.
 #[tool_router(router = git_tool_router, vis = "pub")]
-impl OmniDevServer {
+impl OmniVoiceServer {
     /// Tool: analyse commits in a range and return repository information as YAML.
     #[tool(
         description = "Analyze commits in a range and return repository information as YAML. \
-                       Mirrors `omni-dev git commit message view`."
+                       Mirrors `omni-voice git commit message view`."
     )]
     pub async fn git_view_commits(
         &self,
@@ -151,7 +151,7 @@ impl OmniDevServer {
     /// Tool: analyse branch commits and return repository info as YAML.
     #[tool(
         description = "Analyze branch commits against a base and return repository information \
-                       as YAML. Mirrors `omni-dev git branch info`."
+                       as YAML. Mirrors `omni-voice git branch info`."
     )]
     pub async fn git_branch_info(
         &self,
@@ -173,7 +173,7 @@ impl OmniDevServer {
     /// Tool: validate commit messages against guidelines.
     #[tool(
         description = "Validate commit messages in a range against commit guidelines. \
-                       Mirrors `omni-dev git commit message check`. Returns a YAML payload with \
+                       Mirrors `omni-voice git commit message check`. Returns a YAML payload with \
                        the full CheckReport, a pass/fail summary, and the exit code the CLI \
                        would use (honouring `strict`)."
     )]
@@ -199,7 +199,7 @@ impl OmniDevServer {
     /// Tool: AI-powered commit message improvement.
     #[tool(
         description = "Generate improved commit messages for a range and (by default) apply \
-                       them. Mirrors `omni-dev git commit message twiddle --auto-apply`. Set \
+                       them. Mirrors `omni-voice git commit message twiddle --auto-apply`. Set \
                        `dry_run = true` to return the proposed amendments as YAML without \
                        applying them. The editor is never started from this tool."
     )]
@@ -226,7 +226,7 @@ impl OmniDevServer {
     #[tool(
         description = "Generate a Conventional Commits message from the currently staged diff \
                        and (by default) commit it via `git commit -m`. Mirrors \
-                       `omni-dev git commit message staged`. Set `print_only = true` to return \
+                       `omni-voice git commit message staged`. Set `print_only = true` to return \
                        the generated message without committing."
     )]
     pub async fn git_staged_commit(
@@ -255,7 +255,7 @@ impl OmniDevServer {
     /// Tool: generate a PR title + description via the AI.
     #[tool(
         description = "Generate an AI-drafted pull request title and description for the \
-                       current branch. Mirrors `omni-dev git branch create pr` in its \
+                       current branch. Mirrors `omni-voice git branch create pr` in its \
                        content-generation phase — this tool returns the proposed PR content as \
                        YAML and does NOT push the branch or invoke `gh pr create`."
     )]
@@ -479,10 +479,10 @@ mod tests {
 
     #[tokio::test]
     async fn git_branch_info_handler_invalid_repo_path_returns_tool_error() {
-        use crate::mcp::server::OmniDevServer;
+        use crate::mcp::server::OmniVoiceServer;
         use rmcp::handler::server::wrapper::Parameters;
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let params = GitBranchInfoParams {
             branch: None,
             repo_path: Some("/no/such/path/for/mcp/test".to_string()),
@@ -496,10 +496,10 @@ mod tests {
 
     #[tokio::test]
     async fn git_check_commits_handler_invalid_repo_path_returns_tool_error() {
-        use crate::mcp::server::OmniDevServer;
+        use crate::mcp::server::OmniVoiceServer;
         use rmcp::handler::server::wrapper::Parameters;
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let params = GitCheckCommitsParams {
             range: "HEAD".to_string(),
             guidelines_path: None,
@@ -516,10 +516,10 @@ mod tests {
 
     #[tokio::test]
     async fn git_twiddle_commits_handler_invalid_repo_path_returns_tool_error() {
-        use crate::mcp::server::OmniDevServer;
+        use crate::mcp::server::OmniVoiceServer;
         use rmcp::handler::server::wrapper::Parameters;
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let params = GitTwiddleCommitsParams {
             range: None,
             model: None,
@@ -535,10 +535,10 @@ mod tests {
 
     #[tokio::test]
     async fn git_staged_commit_handler_invalid_repo_path_returns_tool_error() {
-        use crate::mcp::server::OmniDevServer;
+        use crate::mcp::server::OmniVoiceServer;
         use rmcp::handler::server::wrapper::Parameters;
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let params = GitStagedCommitParams {
             print_only: true,
             model: None,
@@ -553,10 +553,10 @@ mod tests {
 
     #[tokio::test]
     async fn git_create_pr_handler_invalid_repo_path_returns_tool_error() {
-        use crate::mcp::server::OmniDevServer;
+        use crate::mcp::server::OmniVoiceServer;
         use rmcp::handler::server::wrapper::Parameters;
 
-        let server = OmniDevServer::new();
+        let server = OmniVoiceServer::new();
         let params = GitCreatePrParams {
             model: None,
             base_branch: None,

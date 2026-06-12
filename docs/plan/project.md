@@ -1,4 +1,4 @@
-# Project Plan: omni-dev CLI Git Tools
+# Project Plan: omni-voice CLI Git Tools
 
 **Status:** Historical — describes the initial CLI design before Atlassian, MCP, and AI providers existed; kept for institutional memory.
 
@@ -6,8 +6,8 @@
 
 This project implements a CLI tool that provides the functionality of the existing `.claude/commands/twiddle-msg` bash script but with a Rust-based CLI interface. The tool will support two main subcommands:
 
-- `omni-dev git commit message view [commit-range]` - Analyze git commits and output comprehensive repository information in YAML format
-- `omni-dev git commit message amend <yaml-file>` - Amend commit messages based on a YAML configuration file
+- `omni-voice git commit message view [commit-range]` - Analyze git commits and output comprehensive repository information in YAML format
+- `omni-voice git commit message amend <yaml-file>` - Amend commit messages based on a YAML configuration file
 
 ## Project Architecture
 
@@ -84,15 +84,15 @@ chrono = { version = "0.4", features = ["serde"] }
 
 #### CLI Interface Structure
 ```
-omni-dev git commit message <subcommand> [options] [args...]
+omni-voice git commit message <subcommand> [options] [args...]
 
 Subcommands:
   view [commit-range]    Output commit analysis in YAML format
   amend <yaml-file>      Amend commits with messages from YAML file
 
 Examples:
-  omni-dev git commit message view HEAD~3..HEAD
-  omni-dev git commit message amend amendments.yml
+  omni-voice git commit message view HEAD~3..HEAD
+  omni-voice git commit message amend amendments.yml
 ```
 
 #### YAML Amendment File Format

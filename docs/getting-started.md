@@ -1,14 +1,14 @@
-# Getting Started with omni-dev
+# Getting Started with omni-voice
 
-omni-dev improves your git commit messages with AI. This guide takes you
+omni-voice improves your git commit messages with AI. This guide takes you
 from zero to your first AI-improved commit in under 10 minutes.
 
 ## What you'll do
 
-1. Install the `omni-dev` binary.
+1. Install the `omni-voice` binary.
 2. Set up authentication for the default Anthropic backend.
-3. Create a minimal `.omni-dev/` configuration directory.
-4. Run `omni-dev git commit message twiddle` on a real commit range and
+3. Create a minimal `.omni-voice/` configuration directory.
+4. Run `omni-voice git commit message twiddle` on a real commit range and
    apply the suggested improvement.
 
 By the end you'll know the core `view` → `twiddle` → `check` workflow and
@@ -25,26 +25,26 @@ where to dig deeper.
   [user-guide.md](user-guide.md#your-first-improvement) walks through
   that case.)
 
-## 1. Install omni-dev
+## 1. Install omni-voice
 
 ```bash
-cargo install omni-dev
+cargo install omni-voice
 ```
 
 Verify the install:
 
 ```bash
-omni-dev --version
+omni-voice --version
 ```
 
-If `omni-dev` isn't found, ensure `$HOME/.cargo/bin` is on your `PATH`.
+If `omni-voice` isn't found, ensure `$HOME/.cargo/bin` is on your `PATH`.
 
 Alternative install methods (Nix, binary cache) are documented in
 [README.md#installation](../README.md#-quick-start).
 
 ## 2. Authenticate
 
-omni-dev uses Anthropic's Claude API by default. Get a key from the
+omni-voice uses Anthropic's Claude API by default. Get a key from the
 [Anthropic Console](https://console.anthropic.com/) and export it:
 
 ```bash
@@ -70,14 +70,14 @@ Full reference (`.env` files, CI/CD secrets, troubleshooting): see
 
 ## 3. Initialise project context
 
-omni-dev reads project conventions from a `.omni-dev/` directory at your
+omni-voice reads project conventions from a `.omni-voice/` directory at your
 repo root. Create the minimum two files:
 
 ```bash
-mkdir .omni-dev
+mkdir .omni-voice
 ```
 
-**`.omni-dev/scopes.yaml`** — what parts of your codebase the AI can
+**`.omni-voice/scopes.yaml`** — what parts of your codebase the AI can
 reference in commit scopes:
 
 ```yaml
@@ -90,7 +90,7 @@ scopes:
       - "src/**"
 ```
 
-**`.omni-dev/commit-guidelines.md`** — your team's conventions in prose:
+**`.omni-voice/commit-guidelines.md`** — your team's conventions in prose:
 
 ```markdown
 # Commit Guidelines
@@ -99,29 +99,29 @@ Use conventional commits: `type(scope): description`.
 Types we use: feat, fix, docs, chore, refactor, test.
 ```
 
-That's enough for omni-dev to bias suggestions toward your project. For
+That's enough for omni-voice to bias suggestions toward your project. For
 the full schema (multiple scopes, `file_patterns`, local overrides,
 monorepo setups) see the [Configuration Guide](configuration.md) and
 [Configuration Best Practices](configuration-best-practices.md).
-<!-- TODO: replace with link to .omni-dev contract doc once issue #765 lands -->
+<!-- TODO: replace with link to .omni-voice contract doc once issue #765 lands -->
 
 ## 4. Improve your first commit
 
 Make sure you're on a feature branch with at least one commit ahead of
-`main`, and that `git status` is clean (omni-dev can't amend commits with
+`main`, and that `git status` is clean (omni-voice can't amend commits with
 uncommitted changes).
 
 Run `twiddle` against the range:
 
 ```bash
-omni-dev git commit message twiddle 'origin/main..HEAD'
+omni-voice git commit message twiddle 'origin/main..HEAD'
 ```
 
 Quote the range — the `..` confuses some shells if left bare.
 
 What to expect:
 
-1. omni-dev prints model info and analyses each commit in the range.
+1. omni-voice prints model info and analyses each commit in the range.
 2. For each commit it shows a suggested rewritten message with a
    before/after diff. For example:
 

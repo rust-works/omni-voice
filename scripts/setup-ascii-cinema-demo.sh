@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# ASCII Cinema Demo Setup Script for omni-dev
-# This creates a demo repository with messy commits to showcase omni-dev's capabilities
+# ASCII Cinema Demo Setup Script for omni-voice
+# This creates a demo repository with messy commits to showcase omni-voice's capabilities
 
 set -e
 
 # Create cinema directory if it doesn't exist
 CINEMA_DIR="cinema"
-DEMO_DIR="$CINEMA_DIR/omni-dev-demo"
+DEMO_DIR="$CINEMA_DIR/omni-voice-demo"
 
-echo "🎬 Setting up omni-dev demo environment..."
+echo "🎬 Setting up omni-voice demo environment..."
 
 # Create cinema directory if it doesn't exist
 mkdir -p "$CINEMA_DIR"
@@ -31,7 +31,7 @@ mkdir -p src/auth src/api src/ui docs tests
 cat > README.md << 'EOF'
 # Demo Project
 
-A sample web application for demonstrating omni-dev capabilities.
+A sample web application for demonstrating omni-voice capabilities.
 
 ## Features
 - User authentication
@@ -161,7 +161,7 @@ git commit -m "Initial project setup"
 # Create main branch and push (simulate remote)
 git branch -M main
 
-# Now create messy commits to demonstrate omni-dev
+# Now create messy commits to demonstrate omni-voice
 echo "console.log('debug');" >> src/auth/oauth.js
 git add .
 git commit -m "wip"
@@ -223,5 +223,5 @@ git log --oneline
 
 echo ""
 echo "🎬 Ready to record ASCII cinema demo!"
-echo "💡 Start recording with: asciinema rec ../../cinema/omni-dev-demo.cast"
+echo "💡 Start recording with: asciinema rec ../../cinema/omni-voice-demo.cast"
 echo "🚀 Then run: ../../scripts/run-ascii-cinema-demo.sh"

@@ -66,10 +66,10 @@ impl LoginCommand {
         };
 
         auth::save_credentials(&credentials)?;
-        println!("\nCredentials saved to ~/.omni-dev/settings.json");
+        println!("\nCredentials saved to ~/.omni-voice/settings.json");
         println!("  Instance: {instance_url}");
         println!("  Email: {email}");
-        println!("\nRun `omni-dev atlassian auth status` to verify.");
+        println!("\nRun `omni-voice atlassian auth status` to verify.");
 
         Ok(())
     }

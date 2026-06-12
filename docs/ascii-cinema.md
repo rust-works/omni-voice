@@ -1,6 +1,6 @@
-# ASCII Cinema Demo for omni-dev
+# ASCII Cinema Demo for omni-voice
 
-This guide explains how to create and record compelling ASCII cinema demos showcasing omni-dev's capabilities.
+This guide explains how to create and record compelling ASCII cinema demos showcasing omni-voice's capabilities.
 
 ## Quick Start
 
@@ -25,10 +25,10 @@ This guide explains how to create and record compelling ASCII cinema demos showc
 3. **Record the demo**:
    ```bash
    # Start recording
-   asciinema rec cinema/omni-dev-demo.cast --title "omni-dev: AI-Powered Git Commit Toolkit"
+   asciinema rec cinema/omni-voice-demo.cast --title "omni-voice: AI-Powered Git Commit Toolkit"
    
    # Navigate to demo repository
-   cd cinema/omni-dev-demo
+   cd cinema/omni-voice-demo
    
    # Run the demo script
    ../../scripts/run-ascii-cinema-demo.sh
@@ -38,18 +38,18 @@ This guide explains how to create and record compelling ASCII cinema demos showc
 
 4. **Upload to asciinema.org**:
    ```bash
-   asciinema upload cinema/omni-dev-demo.cast
+   asciinema upload cinema/omni-voice-demo.cast
    ```
 
 ## File Structure
 
 ```
-omni-dev/
+omni-voice/
 ├── scripts/
 │   ├── setup-ascii-cinema-demo.sh    # Creates demo repository
 │   └── run-ascii-cinema-demo.sh      # Demo presentation script
 ├── cinema/                           # Created by scripts (ignored by git)
-│   ├── omni-dev-demo/               # Demo repository
+│   ├── omni-voice-demo/               # Demo repository
 │   └── *.cast                       # Recording files
 └── docs/
     └── ascii-cinema.md              # This documentation
@@ -57,33 +57,33 @@ omni-dev/
 
 ## Demo Structure
 
-The demo showcases omni-dev's key features in ~3 minutes:
+The demo showcases omni-voice's key features in ~3 minutes:
 
 ### 1. **Messy Commit History** (30s)
 - Shows realistic bad commit messages ("wip", "fix stuff", "asdf")
-- Demonstrates the problem omni-dev solves
+- Demonstrates the problem omni-voice solves
 
 ### 2. **AI-Powered Transformation** (60s)
-- Uses `omni-dev git commit message twiddle` to improve commits
+- Uses `omni-voice git commit message twiddle` to improve commits
 - Shows AI analyzing code changes and generating meaningful messages
 - Transforms into conventional commit format
 
 ### 3. **Commit Analysis** (30s)
-- Demonstrates `omni-dev git commit analyze` for detailed insights
+- Demonstrates `omni-voice git commit analyze` for detailed insights
 - Shows commit quality metrics and conventional commit validation
 
 ### 4. **Branch Analysis** (30s)
-- Uses `omni-dev git branch analyze` for overall branch quality
+- Uses `omni-voice git branch analyze` for overall branch quality
 - Displays statistics and quality ratings
 
 ### 5. **Professional PR Creation** (45s)
-- Shows `omni-dev git branch create pr` generating comprehensive PR descriptions
+- Shows `omni-voice git branch create pr` generating comprehensive PR descriptions
 - Demonstrates AI-powered documentation and testing checklists
 
 ## Recording Tips
 
 ### Before Recording
-- [ ] Ensure omni-dev is installed and working
+- [ ] Ensure omni-voice is installed and working
 - [ ] Set up Claude API key: `export CLAUDE_API_KEY="your-key"`
 - [ ] Test all commands work in your environment
 - [ ] Clear terminal and set comfortable font size
@@ -127,7 +127,7 @@ Create variations for different audiences:
 ### Asciinema.org
 ```bash
 # Upload and get shareable URL
-asciinema upload cinema/omni-dev-demo.cast
+asciinema upload cinema/omni-voice-demo.cast
 
 # Embed in README
 [![asciicast](https://asciinema.org/a/your-id.svg)](https://asciinema.org/a/your-id)
@@ -140,7 +140,7 @@ Add to main README.md:
 
 [![asciicast](https://asciinema.org/a/your-id.svg)](https://asciinema.org/a/your-id)
 
-*Watch omni-dev transform messy commits into professional ones with AI-powered analysis*
+*Watch omni-voice transform messy commits into professional ones with AI-powered analysis*
 ```
 
 ### Social Media
@@ -158,17 +158,17 @@ Add to main README.md:
 ./scripts/setup-ascii-cinema-demo.sh
 
 # 2. Start recording
-asciinema rec cinema/omni-dev-demo.cast --title "omni-dev: AI-Powered Git Commit Toolkit"
+asciinema rec cinema/omni-voice-demo.cast --title "omni-voice: AI-Powered Git Commit Toolkit"
 
 # 3. Navigate and run demo
-cd cinema/omni-dev-demo
+cd cinema/omni-voice-demo
 ../../scripts/run-ascii-cinema-demo.sh
 
 # 4. Stop recording (Ctrl+D)
 
 # 5. Upload
 cd ../..
-asciinema upload cinema/omni-dev-demo.cast
+asciinema upload cinema/omni-voice-demo.cast
 ```
 
 ## Troubleshooting
@@ -176,8 +176,8 @@ asciinema upload cinema/omni-dev-demo.cast
 ### Common Issues
 
 **Demo script fails**:
-- Ensure you're in the demo repository directory (`cinema/omni-dev-demo`)
-- Check that omni-dev is installed and in PATH
+- Ensure you're in the demo repository directory (`cinema/omni-voice-demo`)
+- Check that omni-voice is installed and in PATH
 - Verify Claude API key is set
 
 **Recording quality issues**:
@@ -214,4 +214,4 @@ To improve the demo:
 4. Add alternative demo scenarios
 5. Update documentation
 
-The goal is to create a compelling, realistic demonstration that shows how omni-dev transforms Git workflows from chaotic to professional.
+The goal is to create a compelling, realistic demonstration that shows how omni-voice transforms Git workflows from chaotic to professional.

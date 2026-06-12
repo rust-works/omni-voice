@@ -59,7 +59,7 @@ impl Drop for EnvGuard {
 
 /// Sets `HOME` to a fresh tempdir and clears all `DATADOG_*` env vars.
 ///
-/// Returns the tempdir so the caller can populate `.omni-dev/settings.json`
+/// Returns the tempdir so the caller can populate `.omni-voice/settings.json`
 /// inside it. The guard parameter enforces ordering: callers must hold an
 /// [`EnvGuard`] before invoking this helper.
 ///

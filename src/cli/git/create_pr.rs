@@ -33,7 +33,7 @@ pub struct CreatePrCommand {
     #[arg(long, conflicts_with = "ready")]
     pub draft: bool,
 
-    /// Path to custom context directory (defaults to .omni-dev/).
+    /// Path to custom context directory (defaults to .omni-voice/).
     #[arg(long)]
     pub context_dir: Option<std::path::PathBuf>,
 
@@ -70,7 +70,7 @@ impl CreatePrCommand {
     /// Priority order:
     /// 1. --ready flag (not draft)
     /// 2. --draft flag (draft)
-    /// 3. OMNI_DEV_DEFAULT_DRAFT_PR env/config setting
+    /// 3. OMNI_VOICE_DEFAULT_DRAFT_PR env/config setting
     /// 4. Hard-coded default (draft)
     fn should_create_as_draft(&self) -> bool {
         use crate::utils::settings::get_env_var;
@@ -84,7 +84,7 @@ impl CreatePrCommand {
         }
 
         // Check configuration setting
-        get_env_var("OMNI_DEV_DEFAULT_DRAFT_PR")
+        get_env_var("OMNI_VOICE_DEFAULT_DRAFT_PR")
             .ok()
             .and_then(|val| parse_bool_string(&val))
             .unwrap_or(true) // Default to draft if not configured
@@ -385,7 +385,7 @@ impl CreatePrCommand {
 
         // Create version information
         let versions = Some(VersionInfo {
-            omni_dev: env!("CARGO_PKG_VERSION").to_string(),
+            omni_voice: env!("CARGO_PKG_VERSION").to_string(),
         });
 
         // Get AI scratch directory
@@ -957,11 +957,11 @@ impl CreatePrCommand {
         use std::process::Command;
 
         // Try to get editor from environment variables
-        let editor = if let Ok(e) = env::var("OMNI_DEV_EDITOR").or_else(|_| env::var("EDITOR")) {
+        let editor = if let Ok(e) = env::var("OMNI_VOICE_EDITOR").or_else(|_| env::var("EDITOR")) {
             e
         } else {
             // Prompt user for editor if neither environment variable is set
-            println!("🔧 Neither OMNI_DEV_EDITOR nor EDITOR environment variables are defined.");
+            println!("🔧 Neither OMNI_VOICE_EDITOR nor EDITOR environment variables are defined.");
             print!("Please enter the command to use as your editor: ");
             io::stdout().flush().context("Failed to flush stdout")?;
 
@@ -1394,7 +1394,7 @@ pub struct CreatePrOutcome {
     pub pr_yaml: String,
 }
 
-/// Non-interactive core for `omni-dev git branch create pr`.
+/// Non-interactive core for `omni-voice git branch create pr`.
 ///
 /// Generates PR title + description via the AI but does NOT push the branch
 /// or call `gh pr create`. The MCP boundary should expose the proposed PR
@@ -1561,7 +1561,7 @@ mod run_create_pr_tests {
     fn sample_repo_view(commits: Vec<CommitInfo>, pr_template: Option<String>) -> RepositoryView {
         RepositoryView {
             versions: Some(VersionInfo {
-                omni_dev: "0.0.0".to_string(),
+                omni_voice: "0.0.0".to_string(),
             }),
             explanation: FieldExplanation::default(),
             working_directory: WorkingDirectoryInfo {
@@ -1800,7 +1800,7 @@ mod run_create_pr_tests {
 
     /// "No silent mix" anchoring guard: `generate_repository_view` resolves the
     /// PR template, branch, and commits from the INJECTED repo root, not the
-    /// process CWD (the omni-dev checkout, which ships its own
+    /// process CWD (the omni-voice checkout, which ships its own
     /// `.github/pull_request_template.md`). We leave the process CWD untouched
     /// and assert the returned view reflects the injected repo's distinctive
     /// template and feature branch.

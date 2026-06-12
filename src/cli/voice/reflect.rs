@@ -1,4 +1,4 @@
-//! `omni-dev voice reflect` — feed a `transcript.jsonl` through the
+//! `omni-voice voice reflect` — feed a `transcript.jsonl` through the
 //! configured [`AiClient`](crate::claude::ai::AiClient) and emit
 //! reflection events (per the #799 schema) to `events.jsonl`.
 //!
@@ -23,7 +23,7 @@ use crate::voice::reflect::{run_reflect, ReflectOptions, TranscriptSource};
 ///
 /// The transcript source is resolved in this order: positional
 /// `<transcript>` argument → `--session <id>` (reads
-/// `~/.omni-dev/voice/<id>/transcript.jsonl` incrementally) → stdin.
+/// `~/.omni-voice/voice/<id>/transcript.jsonl` incrementally) → stdin.
 /// A literal `-` as the positional argument also means stdin.
 ///
 /// When `--session` is given, the resulting events are appended to that
@@ -38,7 +38,7 @@ pub struct ReflectCommand {
     pub transcript: Option<PathBuf>,
 
     /// Reflect against a named voice session under
-    /// `~/.omni-dev/voice/<id>/`. Mutually exclusive with a positional
+    /// `~/.omni-voice/voice/<id>/`. Mutually exclusive with a positional
     /// transcript path.
     #[arg(long)]
     pub session: Option<String>,

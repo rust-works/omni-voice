@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 
 use super::catalogue_cache::CatalogueCache;
 use super::error::tool_error;
-use super::server::OmniDevServer;
+use super::server::OmniVoiceServer;
 use crate::atlassian::client::{AgileBoard, AtlassianClient, JiraAttachment, JiraProject};
 use crate::cli::atlassian::helpers::create_client;
 
@@ -164,7 +164,7 @@ fn resolve_output_dir(requested: Option<&str>) -> Result<PathBuf> {
         Ok(PathBuf::from(dir))
     } else {
         let tmp = tempfile::Builder::new()
-            .prefix("omni-dev-jira-attachment-")
+            .prefix("omni-voice-jira-attachment-")
             .tempdir()
             .context("Failed to create temp dir for attachment download")?;
         Ok(tmp.keep())
@@ -800,7 +800,7 @@ const fn default_limit_50() -> u32 {
 
 #[allow(missing_docs)] // #[tool_router] generates a pub `jira_tool_router` fn.
 #[tool_router(router = jira_tool_router, vis = "pub")]
-impl OmniDevServer {
+impl OmniVoiceServer {
     // ── attachments ────────────────────────────────────────────────
 
     /// Tool: download all attachments on an issue (optionally filtered by
@@ -811,7 +811,7 @@ impl OmniDevServer {
                        (id, filename, mime_type, size, on-disk path) for each downloaded file. \
                        If `output_dir` is omitted, files are written to a fresh temp directory \
                        whose path is in the result; the assistant can then read them via the \
-                       filesystem tool. Mirrors `omni-dev atlassian jira attachment download`."
+                       filesystem tool. Mirrors `omni-voice atlassian jira attachment download`."
     )]
     pub async fn jira_attachment_download(
         &self,
@@ -833,7 +833,7 @@ impl OmniDevServer {
         description = "Download image attachments (PNG, JPEG, GIF, SVG, WebP) on a JIRA issue \
                        to disk. Returns YAML metadata for each downloaded image. If \
                        `output_dir` is omitted, files are written to a fresh temp directory. \
-                       Mirrors `omni-dev atlassian jira attachment images`."
+                       Mirrors `omni-voice atlassian jira attachment images`."
     )]
     pub async fn jira_attachment_images(
         &self,
@@ -854,7 +854,7 @@ impl OmniDevServer {
     /// Tool: list agile boards.
     #[tool(
         description = "List JIRA agile boards, optionally filtered by project key and/or board \
-                       type (`scrum`/`kanban`). Returns YAML. Mirrors `omni-dev atlassian jira \
+                       type (`scrum`/`kanban`). Returns YAML. Mirrors `omni-voice atlassian jira \
                        board list`."
     )]
     pub async fn jira_board_list(
@@ -881,7 +881,7 @@ impl OmniDevServer {
     /// Tool: list issues on an agile board.
     #[tool(
         description = "List issues on a JIRA agile board. Accepts an optional JQL filter. \
-                       Returns YAML. Mirrors `omni-dev atlassian jira board issues`."
+                       Returns YAML. Mirrors `omni-voice atlassian jira board issues`."
     )]
     pub async fn jira_board_issues(
         &self,
@@ -907,7 +907,7 @@ impl OmniDevServer {
     /// Tool: list sprints on a board.
     #[tool(
         description = "List sprints on an agile board, optionally filtered by state \
-                       (`active`/`future`/`closed`). Returns YAML. Mirrors `omni-dev atlassian \
+                       (`active`/`future`/`closed`). Returns YAML. Mirrors `omni-voice atlassian \
                        jira sprint list`."
     )]
     pub async fn jira_sprint_list(
@@ -932,7 +932,7 @@ impl OmniDevServer {
     /// Tool: list issues in a sprint.
     #[tool(
         description = "List issues in a JIRA sprint. Accepts an optional JQL filter. Returns \
-                       YAML. Mirrors `omni-dev atlassian jira sprint issues`."
+                       YAML. Mirrors `omni-voice atlassian jira sprint issues`."
     )]
     pub async fn jira_sprint_issues(
         &self,
@@ -956,7 +956,7 @@ impl OmniDevServer {
     /// Tool: add issues to a sprint.
     #[tool(
         description = "Add one or more issues to a JIRA sprint by issue key. Returns YAML \
-                       `{status: ok}` on success. Mirrors `omni-dev atlassian jira sprint add`."
+                       `{status: ok}` on success. Mirrors `omni-voice atlassian jira sprint add`."
     )]
     pub async fn jira_sprint_add(
         &self,
@@ -974,7 +974,7 @@ impl OmniDevServer {
     /// Tool: create a sprint.
     #[tool(
         description = "Create a new sprint on a JIRA agile board. Returns YAML for the created \
-                       sprint. Mirrors `omni-dev atlassian jira sprint create`."
+                       sprint. Mirrors `omni-voice atlassian jira sprint create`."
     )]
     pub async fn jira_sprint_create(
         &self,
@@ -1000,7 +1000,7 @@ impl OmniDevServer {
     /// Tool: update sprint metadata or state.
     #[tool(
         description = "Update sprint name, state (`future`/`active`/`closed`), dates, or goal. \
-                       Returns YAML `{status: ok}`. Mirrors `omni-dev atlassian jira sprint \
+                       Returns YAML `{status: ok}`. Mirrors `omni-voice atlassian jira sprint \
                        update`."
     )]
     pub async fn jira_sprint_update(
@@ -1030,7 +1030,7 @@ impl OmniDevServer {
     /// Tool: list project versions.
     #[tool(
         description = "List versions for a JIRA project, optionally filtered by `released` \
-                       and `archived` flags. Returns YAML. Mirrors `omni-dev atlassian jira \
+                       and `archived` flags. Returns YAML. Mirrors `omni-voice atlassian jira \
                        version list`."
     )]
     pub async fn jira_version_list(
@@ -1050,7 +1050,7 @@ impl OmniDevServer {
     #[tool(
         description = "Create a new version in a JIRA project. Dates must be `YYYY-MM-DD` and \
                        are validated client-side. Returns YAML for the created version. \
-                       Mirrors `omni-dev atlassian jira version create`."
+                       Mirrors `omni-voice atlassian jira version create`."
     )]
     pub async fn jira_version_create(
         &self,
@@ -1080,7 +1080,7 @@ impl OmniDevServer {
     /// Tool: list watchers on an issue.
     #[tool(
         description = "List watchers on a JIRA issue. Returns YAML with watch_count and an \
-                       array of watcher accounts. Mirrors `omni-dev atlassian jira watcher list`."
+                       array of watcher accounts. Mirrors `omni-voice atlassian jira watcher list`."
     )]
     pub async fn jira_watcher_list(
         &self,
@@ -1098,7 +1098,7 @@ impl OmniDevServer {
     /// Tool: add a watcher to an issue.
     #[tool(
         description = "Add a user (by Atlassian account ID) as a watcher on a JIRA issue. \
-                       Returns YAML `{status: ok}`. Mirrors `omni-dev atlassian jira watcher add`."
+                       Returns YAML `{status: ok}`. Mirrors `omni-voice atlassian jira watcher add`."
     )]
     pub async fn jira_watcher_add(
         &self,
@@ -1119,7 +1119,7 @@ impl OmniDevServer {
                        issue. Destructive operation: callers must explicitly pass \
                        `confirm: true` for the removal to proceed; otherwise the tool \
                        refuses with an error. Returns YAML `{status: ok}`. Mirrors \
-                       `omni-dev atlassian jira watcher remove`."
+                       `omni-voice atlassian jira watcher remove`."
     )]
     pub async fn jira_watcher_remove(
         &self,
@@ -1140,7 +1140,7 @@ impl OmniDevServer {
     #[tool(
         description = "List inward and outward links on a JIRA issue. Returns YAML with one \
                        entry per link (id, link_type, direction, linked_issue_key, \
-                       linked_issue_summary). Mirrors `omni-dev atlassian jira link list`."
+                       linked_issue_summary). Mirrors `omni-voice atlassian jira link list`."
     )]
     pub async fn jira_link_list(
         &self,
@@ -1159,7 +1159,7 @@ impl OmniDevServer {
     #[tool(
         description = "List the configured JIRA issue link-type catalogue (id, name, inward, \
                        outward). Global per JIRA instance — returns the configured types, not \
-                       the ones used in any particular issue. Returns YAML. Mirrors `omni-dev \
+                       the ones used in any particular issue. Returns YAML. Mirrors `omni-voice \
                        atlassian jira link types`."
     )]
     pub async fn jira_link_types(
@@ -1182,7 +1182,7 @@ impl OmniDevServer {
                        `jira_read` to discover IDs). Destructive operation: callers \
                        must explicitly pass `confirm: true` for the removal to proceed; \
                        otherwise the tool refuses with an error. Returns YAML \
-                       `{status: ok}`. Mirrors `omni-dev atlassian jira link remove`."
+                       `{status: ok}`. Mirrors `omni-voice atlassian jira link remove`."
     )]
     pub async fn jira_link_remove(
         &self,
@@ -1203,7 +1203,7 @@ impl OmniDevServer {
                        to non-JIRA resources (Confluence pages, Bitbucket PRs, external \
                        trackers). Read-only. Returns YAML with one entry per remote link \
                        (id, optional global_id, optional relationship, object.{url, title, \
-                       summary, icon}). Mirrors `omni-dev atlassian jira link remote list`."
+                       summary, icon}). Mirrors `omni-voice atlassian jira link remote list`."
     )]
     pub async fn jira_link_remote_list(
         &self,
@@ -1222,7 +1222,7 @@ impl OmniDevServer {
 
     /// Tool: list worklog entries for an issue.
     #[tool(
-        description = "List worklog entries on a JIRA issue. Returns YAML. Mirrors `omni-dev \
+        description = "List worklog entries on a JIRA issue. Returns YAML. Mirrors `omni-voice \
                        atlassian jira worklog list`."
     )]
     pub async fn jira_worklog_list(
@@ -1241,7 +1241,7 @@ impl OmniDevServer {
     /// Tool: log time on an issue.
     #[tool(
         description = "Log time on a JIRA issue. `time_spent` accepts JIRA's duration format \
-                       (e.g., `1h 30m`, `2d`). Returns YAML `{status: ok}`. Mirrors `omni-dev \
+                       (e.g., `1h 30m`, `2d`). Returns YAML `{status: ok}`. Mirrors `omni-voice \
                        atlassian jira worklog add`."
     )]
     pub async fn jira_worklog_add(
@@ -1269,7 +1269,7 @@ impl OmniDevServer {
     /// Tool: list JIRA field definitions.
     #[tool(
         description = "List JIRA field definitions, optionally filtered by name substring. \
-                       Returns YAML. Mirrors `omni-dev atlassian jira field list`. \
+                       Returns YAML. Mirrors `omni-voice atlassian jira field list`. \
                        The `schema_type` is `\"richtext\"` for ADF-required custom fields \
                        (e.g. Acceptance Criteria); `schema_custom`, when present, holds \
                        the raw plugin URI (e.g. \
@@ -1293,7 +1293,7 @@ impl OmniDevServer {
     #[tool(
         description = "List allowed option values for a JIRA custom field. If `context_id` is \
                        omitted, the first context for the field is auto-discovered. Returns \
-                       YAML. Mirrors `omni-dev atlassian jira field options`."
+                       YAML. Mirrors `omni-voice atlassian jira field options`."
     )]
     pub async fn jira_field_options(
         &self,
@@ -1312,7 +1312,7 @@ impl OmniDevServer {
 
     /// Tool: list JIRA projects.
     #[tool(
-        description = "List JIRA projects. Returns YAML. Mirrors `omni-dev atlassian jira \
+        description = "List JIRA projects. Returns YAML. Mirrors `omni-voice atlassian jira \
                        project list`."
     )]
     pub async fn jira_project_list(
@@ -1334,7 +1334,7 @@ impl OmniDevServer {
     /// Tool: get the change history for an issue.
     #[tool(
         description = "Get the change history for a JIRA issue. Returns YAML with one entry \
-                       per change (author, timestamp, items). Mirrors `omni-dev atlassian jira \
+                       per change (author, timestamp, items). Mirrors `omni-voice atlassian jira \
                        changelog`."
     )]
     pub async fn jira_changelog(
@@ -1358,7 +1358,7 @@ impl OmniDevServer {
         description = "Delete a JIRA issue. **DESTRUCTIVE AND IRREVERSIBLE.** You must \
                        explicitly pass `confirm: true` for the deletion to proceed; otherwise \
                        the tool returns an error without contacting the API. Returns YAML \
-                       `{status: ok}` on success. Mirrors `omni-dev atlassian jira delete`."
+                       `{status: ok}` on success. Mirrors `omni-voice atlassian jira delete`."
     )]
     pub async fn jira_delete(
         &self,

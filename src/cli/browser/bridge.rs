@@ -1,4 +1,4 @@
-//! `omni-dev browser bridge` — server (`serve`) and thin client (`request`).
+//! `omni-voice browser bridge` — server (`serve`) and thin client (`request`).
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -113,7 +113,7 @@ impl ServeCommand {
 mod tests {
     use super::*;
 
-    /// Mirrors the `omni-dev browser bridge serve` argv surface for parse tests.
+    /// Mirrors the `omni-voice browser bridge serve` argv surface for parse tests.
     #[derive(Parser)]
     struct Wrapper {
         #[command(subcommand)]
@@ -125,7 +125,7 @@ mod tests {
     }
 
     fn parse(args: &[&str]) -> ServeCommand {
-        let mut full = vec!["omni-dev", "serve"];
+        let mut full = vec!["omni-voice", "serve"];
         full.extend_from_slice(args);
         let Wrapper { cmd: Cmd::Serve(c) } = Wrapper::try_parse_from(full).unwrap();
         c
@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn token_is_not_a_flag() {
         // The session token must never be settable via argv.
-        let mut full = vec!["omni-dev", "serve", "--token", "secret"];
+        let mut full = vec!["omni-voice", "serve", "--token", "secret"];
         assert!(Wrapper::try_parse_from(std::mem::take(&mut full)).is_err());
     }
 

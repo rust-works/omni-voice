@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-Common issues and solutions when using omni-dev.
+Common issues and solutions when using omni-voice.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ Common issues and solutions when using omni-dev.
 
 ## Installation Issues
 
-### Error: `cargo install omni-dev` fails
+### Error: `cargo install omni-voice` fails
 
 **Symptom**: Installation fails with compilation errors.
 
@@ -54,15 +54,15 @@ Common issues and solutions when using omni-dev.
 
    ```bash
    # Use alternative registry
-   cargo install omni-dev --registry crates-io
+   cargo install omni-voice --registry crates-io
    
    # Or build from source
-   git clone https://github.com/rust-works/omni-dev.git
-   cd omni-dev
+   git clone https://github.com/rust-works/omni-voice.git
+   cd omni-voice
    cargo build --release
    ```
 
-### Error: `omni-dev: command not found`
+### Error: `omni-voice: command not found`
 
 **Symptom**: Command not found after installation.
 
@@ -151,7 +151,7 @@ Error: Claude API key not found
 
    ```bash
    # Lower parallel requests
-   omni-dev git commit message twiddle 'HEAD~10..HEAD' --concurrency 1
+   omni-voice git commit message twiddle 'HEAD~10..HEAD' --concurrency 1
    ```
 
 2. **Wait and Retry**
@@ -166,14 +166,14 @@ Error: Claude API key not found
 
 ### Error: Scopes not detected
 
-**Symptom**: omni-dev doesn't use project-specific scopes.
+**Symptom**: omni-voice doesn't use project-specific scopes.
 
 **Debugging Steps**:
 
 1. **Check Directory Structure**
 
    ```bash
-   ls -la .omni-dev/
+   ls -la .omni-voice/
    # Should show: scopes.yaml, commit-guidelines.md
    ```
 
@@ -181,7 +181,7 @@ Error: Claude API key not found
 
    ```bash
    # Check YAML is valid
-   python -c "import yaml; yaml.safe_load(open('.omni-dev/scopes.yaml'))"
+   python -c "import yaml; yaml.safe_load(open('.omni-voice/scopes.yaml'))"
    
    # Or use online YAML validator
    ```
@@ -193,14 +193,14 @@ Error: Claude API key not found
    git show --name-only HEAD
    
    # Check if patterns match
-   grep -A5 "file_patterns" .omni-dev/scopes.yaml
+   grep -A5 "file_patterns" .omni-voice/scopes.yaml
    ```
 
 4. **Use Absolute Context Directory**
 
    ```bash
    # Specify full path
-   omni-dev git commit message twiddle 'HEAD~3..HEAD' --context-dir "$(pwd)/.omni-dev"
+   omni-voice git commit message twiddle 'HEAD~3..HEAD' --context-dir "$(pwd)/.omni-voice"
    ```
 
 ### Error: Context directory not found
@@ -208,7 +208,7 @@ Error: Claude API key not found
 **Symptom**:
 
 ```
-Context directory not found: .omni-dev/
+Context directory not found: .omni-voice/
 ```
 
 **Solutions**:
@@ -216,7 +216,7 @@ Context directory not found: .omni-dev/
 1. **Create Directory**
 
    ```bash
-   mkdir .omni-dev
+   mkdir .omni-voice
    ```
 
 2. **Check Current Directory**
@@ -231,7 +231,7 @@ Context directory not found: .omni-dev/
 
    ```bash
    # If config is elsewhere
-   omni-dev git commit message twiddle 'HEAD~3..HEAD' --context-dir ./config
+   omni-voice git commit message twiddle 'HEAD~3..HEAD' --context-dir ./config
    ```
 
 ### Error: YAML parsing failed
@@ -249,7 +249,7 @@ Context directory not found: .omni-dev/
    # - Incorrect indentation
    
    # Validate with Python
-   python -c "import yaml; print(yaml.safe_load(open('.omni-dev/scopes.yaml')))"
+   python -c "import yaml; print(yaml.safe_load(open('.omni-voice/scopes.yaml')))"
    ```
 
 2. **Fix Common Issues**
@@ -297,7 +297,7 @@ Error: Failed to open git repository
    ```bash
    # Must be inside git repository
    cd /path/to/your/git/repo
-   omni-dev git commit message twiddle 'HEAD~3..HEAD'
+   omni-voice git commit message twiddle 'HEAD~3..HEAD'
    ```
 
 ### Error: `Working directory is not clean`
@@ -322,14 +322,14 @@ Error: Cannot amend commits with uncommitted changes
 
    ```bash
    git stash push -m "temp stash"
-   # After omni-dev: git stash pop
+   # After omni-voice: git stash pop
    ```
 
 3. **Use View Instead of Twiddle**
 
    ```bash
    # View doesn't require clean directory
-   omni-dev git commit message view 'HEAD~3..HEAD'
+   omni-voice git commit message view 'HEAD~3..HEAD'
    ```
 
 ### Error: Invalid commit range
@@ -353,10 +353,10 @@ Error: Invalid commit range: HEAD~100..HEAD
 
    ```bash
    # If only 5 commits exist:
-   omni-dev git commit message twiddle 'HEAD~5..HEAD'
+   omni-voice git commit message twiddle 'HEAD~5..HEAD'
    
    # Or use specific hashes:
-   omni-dev git commit message twiddle 'abc123..def456'
+   omni-voice git commit message twiddle 'abc123..def456'
    ```
 
 3. **Check Branch History**
@@ -382,17 +382,17 @@ Error: Invalid commit range: HEAD~100..HEAD
 
    ```bash
    # Compare to main branch
-   omni-dev git commit message twiddle 'origin/main..HEAD'
+   omni-voice git commit message twiddle 'origin/main..HEAD'
    
    # Or use absolute range
-   omni-dev git commit message twiddle 'HEAD~5..HEAD'
+   omni-voice git commit message twiddle 'HEAD~5..HEAD'
    ```
 
 ## Performance Issues
 
 ### Issue: Slow processing with large commit ranges
 
-**Symptom**: omni-dev takes a long time with many commits.
+**Symptom**: omni-voice takes a long time with many commits.
 
 **Solutions**:
 
@@ -400,23 +400,23 @@ Error: Invalid commit range: HEAD~100..HEAD
 
    ```bash
    # Lower parallel requests
-   omni-dev git commit message twiddle 'HEAD~20..HEAD' --concurrency 2
+   omni-voice git commit message twiddle 'HEAD~20..HEAD' --concurrency 2
    ```
 
 2. **Process in Stages**
 
    ```bash
    # Break up large ranges
-   omni-dev git commit message twiddle 'HEAD~10..HEAD~5'
-   omni-dev git commit message twiddle 'HEAD~5..HEAD'
+   omni-voice git commit message twiddle 'HEAD~10..HEAD~5'
+   omni-voice git commit message twiddle 'HEAD~5..HEAD'
    ```
 
 3. **Save and Review**
 
    ```bash
    # Save suggestions first, then apply
-   omni-dev git commit message twiddle 'HEAD~20..HEAD' --save-only suggestions.yaml
-   omni-dev git commit message amend suggestions.yaml
+   omni-voice git commit message twiddle 'HEAD~20..HEAD' --save-only suggestions.yaml
+   omni-voice git commit message amend suggestions.yaml
    ```
 
 ### Issue: API timeouts
@@ -428,7 +428,7 @@ Error: Invalid commit range: HEAD~100..HEAD
 1. **Reduce Concurrency**
 
    ```bash
-   omni-dev git commit message twiddle 'HEAD~10..HEAD' --concurrency 1
+   omni-voice git commit message twiddle 'HEAD~10..HEAD' --concurrency 1
    ```
 
 2. **Retry with Exponential Backoff**
@@ -436,7 +436,7 @@ Error: Invalid commit range: HEAD~100..HEAD
    ```bash
    # Wait between retries
    sleep 30
-   omni-dev git commit message twiddle 'HEAD~5..HEAD'
+   omni-voice git commit message twiddle 'HEAD~5..HEAD'
    ```
 
 ## Git Repository Issues
@@ -445,7 +445,7 @@ Error: Invalid commit range: HEAD~100..HEAD
 
 **Symptom**: Trying to amend commits that aren't the latest.
 
-**Expected Behavior**: omni-dev uses interactive rebase for non-HEAD commits.
+**Expected Behavior**: omni-voice uses interactive rebase for non-HEAD commits.
 
 **If Problems Occur**:
 
@@ -493,7 +493,7 @@ Error: Invalid commit range: HEAD~100..HEAD
 
    ```bash
    # If main branch is 'master':
-   omni-dev git commit message twiddle 'origin/master..HEAD'
+   omni-voice git commit message twiddle 'origin/master..HEAD'
    ```
 
 ### Error: Merge conflicts during rebase
@@ -516,7 +516,7 @@ Error: Invalid commit range: HEAD~100..HEAD
    git rebase --abort
    
    # Use smaller commit ranges
-   omni-dev git commit message twiddle 'HEAD~3..HEAD'
+   omni-voice git commit message twiddle 'HEAD~3..HEAD'
    ```
 
 ## Command Line Issues
@@ -534,7 +534,7 @@ error: unexpected argument '--unknown-flag' found
 1. **Check Available Options**
 
    ```bash
-   omni-dev git commit message twiddle --help
+   omni-voice git commit message twiddle --help
    ```
 
 2. **Use Correct Flag Names**
@@ -576,27 +576,27 @@ HEAD~5..HEAD           # Missing quotes
 
 ```bash
 # ✅ Always quote commit ranges:
-omni-dev git commit message twiddle 'HEAD~5..HEAD'
+omni-voice git commit message twiddle 'HEAD~5..HEAD'
 
 # ✅ Or escape special characters:
-omni-dev git commit message twiddle HEAD~5..HEAD
+omni-voice git commit message twiddle HEAD~5..HEAD
 
 # On Windows Command Prompt:
-omni-dev git commit message twiddle "HEAD~5..HEAD"
+omni-voice git commit message twiddle "HEAD~5..HEAD"
 ```
 
 ## Atlassian Integration Issues
 
 ### Error: `Atlassian: missing instance URL / email / API token`
 
-**Cause**: omni-dev cannot find Atlassian credentials in the environment or
-in `~/.omni-dev/settings.json`.
+**Cause**: omni-voice cannot find Atlassian credentials in the environment or
+in `~/.omni-voice/settings.json`.
 
 **Solution**:
 
 ```bash
 # Run interactive setup
-omni-dev atlassian auth login
+omni-voice atlassian auth login
 
 # Or export environment variables (override the settings file)
 export ATLASSIAN_INSTANCE_URL=https://myorg.atlassian.net
@@ -604,7 +604,7 @@ export ATLASSIAN_EMAIL=you@example.com
 export ATLASSIAN_API_TOKEN=...
 
 # Verify
-omni-dev atlassian auth status
+omni-voice atlassian auth status
 ```
 
 API tokens are issued at <https://id.atlassian.com/manage-profile/security/api-tokens>.
@@ -619,7 +619,7 @@ Almost always one of:
    Atlassian Cloud site that contains the resource.
 2. **Permission.** Your account does not have read access to the project /
    space.
-3. **Trailing slash.** `omni-dev atlassian auth login` strips them, but if
+3. **Trailing slash.** `omni-voice atlassian auth login` strips them, but if
    you set `ATLASSIAN_INSTANCE_URL` manually, ensure no trailing slash.
 
 ### MCP `jira_*` / `confluence_*` tools fail with auth errors
@@ -638,7 +638,7 @@ an APP key scopes the user). Missing either fails.
 
 ```bash
 # Interactive
-omni-dev datadog auth login
+omni-voice datadog auth login
 
 # Environment variables (override the settings file)
 export DATADOG_API_KEY=...
@@ -646,7 +646,7 @@ export DATADOG_APP_KEY=...
 export DATADOG_SITE=datadoghq.com   # or datadoghq.eu, us3.datadoghq.com, etc.
 
 # Verify
-omni-dev datadog auth status
+omni-voice datadog auth status
 ```
 
 ### Error: `403 Forbidden` from a Datadog endpoint
@@ -669,20 +669,20 @@ For on-prem / proxied installs, set `DATADOG_API_URL` to the full base URL
 
 ### Error: `429 Too Many Requests`
 
-omni-dev honours `Retry-After` and Datadog's `X-RateLimit-Reset` headers.
+omni-voice honours `Retry-After` and Datadog's `X-RateLimit-Reset` headers.
 When retries are exhausted, the error message includes the rate-limit
 headers so you can see the window. Either back off and retry, or split your
 query into smaller windows.
 
 ## MCP Server Issues
 
-### Error: `omni-dev-mcp: command not found`
+### Error: `omni-voice-mcp: command not found`
 
-The default `cargo install omni-dev` does **not** install the MCP server.
+The default `cargo install omni-voice` does **not** install the MCP server.
 Re-install with the feature flag:
 
 ```bash
-cargo install omni-dev --features mcp
+cargo install omni-voice --features mcp
 ```
 
 ### Error: `failed to open git repository`
@@ -701,14 +701,14 @@ Use the MCP Inspector to bypass the assistant and rule out a client-side
 issue:
 
 ```bash
-npx @modelcontextprotocol/inspector omni-dev-mcp
+npx @modelcontextprotocol/inspector omni-voice-mcp
 ```
 
 If the Inspector also hangs, run with verbose logs:
 
 ```bash
-RUST_LOG=debug omni-dev-mcp
-RUST_LOG=omni_dev::mcp=trace omni-dev-mcp
+RUST_LOG=debug omni-voice-mcp
+RUST_LOG=omni_voice::mcp=trace omni-voice-mcp
 ```
 
 Logs go to **stderr** because stdin/stdout are reserved for MCP framing.
@@ -716,7 +716,7 @@ Logs go to **stderr** because stdin/stdout are reserved for MCP framing.
 ## `claude-cli` Backend Issues
 
 See the [AI Backends Guide](ai-backends.md) for setup, sandbox semantics, and
-the full inventory of `OMNI_DEV_CLAUDE_CLI_*` knobs. The cases below cover
+the full inventory of `OMNI_VOICE_CLAUDE_CLI_*` knobs. The cases below cover
 the most common runtime errors.
 
 ### Error: `the assistant tried to use a tool but tools are disabled`
@@ -725,7 +725,7 @@ The `claude-cli` backend runs the nested Claude session with `--tools ""`
 by default. If your prompt requires tool use, opt in with the escape hatch:
 
 ```bash
-export OMNI_DEV_CLAUDE_CLI_ALLOW_TOOLS=true
+export OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS=true
 # or pass --claude-cli-allow-tools
 ```
 
@@ -737,7 +737,7 @@ The backend also passes `--strict-mcp-config` by default, which suppresses
 all MCP servers from `~/.claude/settings.json`. Opt in with:
 
 ```bash
-export OMNI_DEV_CLAUDE_CLI_ALLOW_MCP=true
+export OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP=true
 # or pass --claude-cli-allow-mcp
 ```
 
@@ -748,36 +748,36 @@ Independent of the tool escape hatch — combine or use separately.
 You set a per-invocation cap and the nested session went past it:
 
 ```bash
-export OMNI_DEV_CLAUDE_CLI_MAX_BUDGET_USD=2.50
+export OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD=2.50
 # or --claude-cli-max-budget-usd 2.50
 ```
 
-omni-dev logs `total_cost_usd` from every invocation at INFO level — review
+omni-voice logs `total_cost_usd` from every invocation at INFO level — review
 the logs to size the cap appropriately, then re-run.
 
 ### AI scratch directory growing
 
 Both the default and `claude-cli` backends spool large artefacts to
-`~/.cache/omni-dev/ai-scratch/`. The directory is not purged automatically
+`~/.cache/omni-voice/ai-scratch/`. The directory is not purged automatically
 (yet). Safe to delete manually between runs.
 
 ## Getting Help
 
 ### Enable Debug Output
 
-omni-dev uses the standard Rust logging system via the `RUST_LOG` environment variable. This provides detailed diagnostic information for troubleshooting.
+omni-voice uses the standard Rust logging system via the `RUST_LOG` environment variable. This provides detailed diagnostic information for troubleshooting.
 
 #### Basic Usage
 
 ```bash
-# Enable debug output for all omni-dev components
-RUST_LOG=omni_dev=debug omni-dev git commit message twiddle 'HEAD~3..HEAD' --use-context
+# Enable debug output for all omni-voice components
+RUST_LOG=omni_voice=debug omni-voice git commit message twiddle 'HEAD~3..HEAD' --use-context
 
 # Enable all debug logging (including dependencies)
-RUST_LOG=debug omni-dev git commit message twiddle 'HEAD~3..HEAD'
+RUST_LOG=debug omni-voice git commit message twiddle 'HEAD~3..HEAD'
 
 # Only show errors and warnings
-RUST_LOG=warn omni-dev git commit message twiddle 'HEAD~3..HEAD'
+RUST_LOG=warn omni-voice git commit message twiddle 'HEAD~3..HEAD'
 ```
 
 #### Log Levels (in order of verbosity)
@@ -794,16 +794,16 @@ Target specific components for focused debugging:
 
 ```bash
 # Debug only context discovery
-RUST_LOG=omni_dev::claude::context::discovery=debug omni-dev git commit message twiddle ...
+RUST_LOG=omni_voice::claude::context::discovery=debug omni-voice git commit message twiddle ...
 
 # Debug only Claude API interactions
-RUST_LOG=omni_dev::claude::client=debug omni-dev git commit message twiddle ...
+RUST_LOG=omni_voice::claude::client=debug omni-voice git commit message twiddle ...
 
 # Debug only CLI processing
-RUST_LOG=omni_dev::cli=debug omni-dev git commit message twiddle ...
+RUST_LOG=omni_voice::cli=debug omni-voice git commit message twiddle ...
 
 # Multiple modules
-RUST_LOG=omni_dev::claude=debug,omni_dev::git=info omni-dev git commit message twiddle ...
+RUST_LOG=omni_voice::claude=debug,omni_voice::git=info omni-voice git commit message twiddle ...
 ```
 
 #### Common Debugging Scenarios
@@ -811,19 +811,19 @@ RUST_LOG=omni_dev::claude=debug,omni_dev::git=info omni-dev git commit message t
 **Configuration Issues:**
 ```bash
 # See what config files are loaded
-RUST_LOG=omni_dev::claude::context::discovery=debug omni-dev git commit message twiddle ...
+RUST_LOG=omni_voice::claude::context::discovery=debug omni-voice git commit message twiddle ...
 ```
 
 **API Communication Problems:**
 ```bash  
 # Debug Claude API calls
-RUST_LOG=omni_dev::claude::client=debug omni-dev git commit message twiddle ...
+RUST_LOG=omni_voice::claude::client=debug omni-voice git commit message twiddle ...
 ```
 
 **YAML Parsing Errors:**
 ```bash
 # See raw Claude responses and parsing details
-RUST_LOG=omni_dev::claude=debug omni-dev git commit message twiddle ...
+RUST_LOG=omni_voice::claude=debug omni-voice git commit message twiddle ...
 ```
 
 #### Output Format
@@ -837,8 +837,8 @@ Debug output includes:
 
 Example output:
 ```
-2025-09-09T14:42:46.673223Z DEBUG omni_dev::claude::context::discovery: Looking for context directory context_dir="./.omni-dev" exists=true
-2025-09-09T14:42:46.673282Z DEBUG omni_dev::claude::context::discovery: Loaded commit guidelines bytes=1449
+2025-09-09T14:42:46.673223Z DEBUG omni_voice::claude::context::discovery: Looking for context directory context_dir="./.omni-voice" exists=true
+2025-09-09T14:42:46.673282Z DEBUG omni_voice::claude::context::discovery: Loaded commit guidelines bytes=1449
 ```
 
 ### Collect System Information
@@ -856,11 +856,11 @@ git --version
 git status
 git log --oneline -5
 
-# omni-dev info
-omni-dev --version
+# omni-voice info
+omni-voice --version
 
 # Configuration
-ls -la .omni-dev/
+ls -la .omni-voice/
 echo "API key length: $(echo $CLAUDE_API_KEY | wc -c)"
 ```
 
@@ -870,8 +870,8 @@ Create a minimal reproduction:
 
 ```bash
 # Create test repo
-mkdir test-omni-dev
-cd test-omni-dev
+mkdir test-omni-voice
+cd test-omni-voice
 git init
 
 # Create test commits
@@ -883,30 +883,30 @@ echo "second" > file.txt
 git add file.txt  
 git commit -m "second commit"
 
-# Test omni-dev
-omni-dev git commit message twiddle 'HEAD^..HEAD' --use-context
+# Test omni-voice
+omni-voice git commit message twiddle 'HEAD^..HEAD' --use-context
 ```
 
 ### Common Solutions Checklist
 
 Before asking for help, verify:
 
-- [ ] omni-dev is latest version: `cargo install omni-dev`
+- [ ] omni-voice is latest version: `cargo install omni-voice`
 - [ ] CLAUDE_API_KEY is set correctly
 - [ ] In a git repository: `git status` works
 - [ ] Working directory is clean (for twiddle command)
 - [ ] Commit range is valid: `git log --oneline 'HEAD~5..HEAD'`
-- [ ] Configuration syntax is correct (if using `.omni-dev/`)
+- [ ] Configuration syntax is correct (if using `.omni-voice/`)
 
 ## Support Channels
 
 ### GitHub Issues
 
-For bugs and feature requests: <https://github.com/rust-works/omni-dev/issues>
+For bugs and feature requests: <https://github.com/rust-works/omni-voice/issues>
 
 **Include in Bug Reports**:
 
-- omni-dev version: `omni-dev --version`
+- omni-voice version: `omni-voice --version`
 - Rust version: `rustc --version`  
 - Operating system
 - Complete error message
@@ -915,11 +915,11 @@ For bugs and feature requests: <https://github.com/rust-works/omni-dev/issues>
 
 ### GitHub Discussions  
 
-For questions and general help: <https://github.com/rust-works/omni-dev/discussions>
+For questions and general help: <https://github.com/rust-works/omni-voice/discussions>
 
 ### Community Support
 
-- Tag questions with `omni-dev` on Stack Overflow
+- Tag questions with `omni-voice` on Stack Overflow
 - Join Rust community channels and ask about Git tools
 
 ### Documentation
@@ -930,18 +930,18 @@ For questions and general help: <https://github.com/rust-works/omni-dev/discussi
 
 ## Frequently Asked Questions
 
-### Q: Can I use omni-dev without Claude API key?
+### Q: Can I use omni-voice without Claude API key?
 
 **A**: No, the AI-powered features require a Claude API key. However, you
 can use the `view` command to analyze commits without AI suggestions.
 
-### Q: Does omni-dev modify my git history?
+### Q: Does omni-voice modify my git history?
 
 **A**: Only when you explicitly approve changes. The `view` command is
 read-only. The `twiddle` command shows you proposed changes and asks for
 confirmation before applying.
 
-### Q: Can I undo changes made by omni-dev?
+### Q: Can I undo changes made by omni-voice?
 
 **A**: Yes, git tracks all changes:
 

@@ -9,7 +9,7 @@
 use std::process::Command;
 
 fn bin() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_omni-dev"))
+    Command::new(env!("CARGO_BIN_EXE_omni-voice"))
 }
 
 #[test]
@@ -97,7 +97,7 @@ fn voice_review_executes_against_real_session_directory() {
     .unwrap();
 
     let out = bin()
-        .env("OMNI_DEV_VOICE_ROOT", tmp.path())
+        .env("OMNI_VOICE_VOICE_ROOT", tmp.path())
         .args(["voice", "review", "demo"])
         .output()
         .unwrap();

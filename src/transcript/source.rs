@@ -103,7 +103,7 @@ pub struct MediaInfo {
 ///
 /// The trait is `Send + Sync` so implementations can be used behind
 /// `Box<dyn TranscriptSource>` for runtime dispatch (e.g. once
-/// `omni-dev transcript fetch <url>` auto-detection lands in a follow-up).
+/// `omni-voice transcript fetch <url>` auto-detection lands in a follow-up).
 #[async_trait]
 pub trait TranscriptSource: Send + Sync {
     /// Stable, lowercase identifier for the source (e.g. `"youtube"`). Used
@@ -112,7 +112,7 @@ pub trait TranscriptSource: Send + Sync {
     fn name(&self) -> &'static str;
 
     /// Whether this source recognises `url` as one of its locators. Used by
-    /// future auto-detection (`omni-dev transcript fetch <url>`).
+    /// future auto-detection (`omni-voice transcript fetch <url>`).
     ///
     /// `where Self: Sized` keeps this method out of the dyn vtable so
     /// `dyn TranscriptSource` remains object-safe.

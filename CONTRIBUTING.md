@@ -1,6 +1,6 @@
-# Contributing to omni-dev
+# Contributing to omni-voice
 
-Thank you for your interest in contributing to omni-dev! We welcome contributions from the community and appreciate your help in making this project better.
+Thank you for your interest in contributing to omni-voice! We welcome contributions from the community and appreciate your help in making this project better.
 
 ## Getting Started
 
@@ -13,8 +13,8 @@ Thank you for your interest in contributing to omni-dev! We welcome contribution
 
 2. **Clone the repository**:
    ```bash
-   git clone https://github.com/rust-works/omni-dev.git
-   cd omni-dev
+   git clone https://github.com/rust-works/omni-voice.git
+   cd omni-voice
    ```
 
 3. **Install additional tools**:
@@ -36,7 +36,7 @@ Thank you for your interest in contributing to omni-dev! We welcome contribution
 
 ### Before You Start
 
-- Check the [existing issues](https://github.com/rust-works/omni-dev/issues) to see if your idea is already being worked on
+- Check the [existing issues](https://github.com/rust-works/omni-voice/issues) to see if your idea is already being worked on
 - For major changes, please open an issue first to discuss the proposed changes
 - Make sure tests pass locally before submitting a PR
 
@@ -152,14 +152,14 @@ This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participatin
 ## Getting Help
 
 If you need help or have questions:
-- Check the [documentation](https://docs.rs/omni-dev)
-- Search [existing issues](https://github.com/rust-works/omni-dev/issues)
-- Start a [discussion](https://github.com/rust-works/omni-dev/discussions)
+- Check the [documentation](https://docs.rs/omni-voice)
+- Search [existing issues](https://github.com/rust-works/omni-voice/issues)
+- Start a [discussion](https://github.com/rust-works/omni-voice/discussions)
 
 ## Recognition
 
-Contributors will be recognized in our README.md and release notes. Thank you for helping make omni-dev better!
+Contributors will be recognized in our README.md and release notes. Thank you for helping make omni-voice better!
 
 ## License
 
-By contributing to omni-dev, you agree that your contributions will be licensed under the BSD 3-Clause License.
+By contributing to omni-voice, you agree that your contributions will be licensed under the BSD 3-Clause License.

@@ -7,8 +7,8 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::needless_collect)]
 
-use omni_dev::atlassian::adf::AdfDocument;
-use omni_dev::atlassian::adf_schema::{
+use omni_voice::atlassian::adf::AdfDocument;
+use omni_voice::atlassian::adf_schema::{
     permits_child, validate_document, AdfSchemaViolation, Quantifier, SCHEMA_VERSION,
 };
 

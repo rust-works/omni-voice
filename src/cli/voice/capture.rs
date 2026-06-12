@@ -1,4 +1,4 @@
-//! `omni-dev voice capture` — record microphone audio to a 16 kHz mono WAV file.
+//! `omni-voice voice capture` — record microphone audio to a 16 kHz mono WAV file.
 
 use std::path::PathBuf;
 
@@ -27,7 +27,7 @@ pub struct CaptureCommand {
     pub idle_after: u32,
 
     /// Destination WAV path. Defaults to
-    /// `~/.omni-dev/voice/captures/<UTC-timestamp>.wav`.
+    /// `~/.omni-voice/voice/captures/<UTC-timestamp>.wav`.
     #[arg(long)]
     pub output: Option<PathBuf>,
 
@@ -61,7 +61,7 @@ impl CaptureCommand {
 }
 
 /// Resolves the default output path used when `--output` is not supplied:
-/// `~/.omni-dev/voice/captures/<YYYYMMDDTHHMMSSZ>.wav`.
+/// `~/.omni-voice/voice/captures/<YYYYMMDDTHHMMSSZ>.wav`.
 fn default_output_path() -> Result<PathBuf> {
     let timestamp = Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
     Ok(crate::voice::captures_dir()?.join(format!("{timestamp}.wav")))
@@ -150,7 +150,7 @@ mod tests {
     fn default_output_path_uses_utc_timestamp() {
         let path = default_output_path().unwrap();
         let s = path.to_string_lossy();
-        assert!(s.contains(".omni-dev"));
+        assert!(s.contains(".omni-voice"));
         assert!(s.contains("voice"));
         assert!(s.contains("captures"));
         assert!(s.ends_with(".wav"));

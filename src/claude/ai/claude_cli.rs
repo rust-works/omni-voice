@@ -43,13 +43,13 @@ pub(crate) const DEFAULT_STDOUT_CAP: usize = 4 * 1024 * 1024;
 pub(crate) const DEFAULT_BINARY: &str = "claude";
 
 /// Env var overriding [`DEFAULT_TIMEOUT`] (value: seconds).
-pub(crate) const TIMEOUT_ENV_VAR: &str = "OMNI_DEV_CLAUDE_CLI_TIMEOUT_SECS";
+pub(crate) const TIMEOUT_ENV_VAR: &str = "OMNI_VOICE_CLAUDE_CLI_TIMEOUT_SECS";
 
 /// Env var overriding [`DEFAULT_STDOUT_CAP`] (value: bytes).
-pub(crate) const STDOUT_CAP_ENV_VAR: &str = "OMNI_DEV_CLAUDE_CLI_STDOUT_MAX_BYTES";
+pub(crate) const STDOUT_CAP_ENV_VAR: &str = "OMNI_VOICE_CLAUDE_CLI_STDOUT_MAX_BYTES";
 
 /// Env var overriding [`DEFAULT_BINARY`] (value: path to the `claude` binary).
-pub(crate) const BINARY_ENV_VAR: &str = "OMNI_DEV_CLAUDE_CLI_BIN";
+pub(crate) const BINARY_ENV_VAR: &str = "OMNI_VOICE_CLAUDE_CLI_BIN";
 
 /// Env var enabling the tool-access escape hatch.
 ///
@@ -57,7 +57,7 @@ pub(crate) const BINARY_ENV_VAR: &str = "OMNI_DEV_CLAUDE_CLI_BIN";
 /// allowed to use its default tool set (file-system access, shell, etc.)
 /// instead of being run with `--tools ""`. **This weakens the sandbox and
 /// should only be used for deliberately tool-capable use cases.**
-pub(crate) const ALLOW_TOOLS_ENV_VAR: &str = "OMNI_DEV_CLAUDE_CLI_ALLOW_TOOLS";
+pub(crate) const ALLOW_TOOLS_ENV_VAR: &str = "OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS";
 
 /// Env var enabling the MCP-access escape hatch.
 ///
@@ -67,14 +67,14 @@ pub(crate) const ALLOW_TOOLS_ENV_VAR: &str = "OMNI_DEV_CLAUDE_CLI_ALLOW_TOOLS";
 /// entirely). **This exposes any OAuth tokens or network-attached services
 /// configured in those MCP servers and should be opted into deliberately,
 /// independently of the tool-access escape hatch.**
-pub(crate) const ALLOW_MCP_ENV_VAR: &str = "OMNI_DEV_CLAUDE_CLI_ALLOW_MCP";
+pub(crate) const ALLOW_MCP_ENV_VAR: &str = "OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP";
 
 /// Env var setting a per-invocation spending cap in USD.
 ///
 /// Forwarded to `claude -p --max-budget-usd <amount>`. When the subprocess
 /// exceeds this budget it aborts with an error rather than running away
 /// with cost. Accepts floating-point dollar amounts (e.g. `0.50`).
-pub(crate) const MAX_BUDGET_ENV_VAR: &str = "OMNI_DEV_CLAUDE_CLI_MAX_BUDGET_USD";
+pub(crate) const MAX_BUDGET_ENV_VAR: &str = "OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD";
 
 /// Defence-in-depth suffix appended to the caller's system prompt.
 ///
@@ -113,15 +113,15 @@ struct JsonOutput {
 /// Subprocess-based AI client that shells out to `claude -p` in a
 /// locked-down sandbox.
 ///
-/// Selected by `OMNI_DEV_AI_BACKEND=claude-cli` (or `--ai-backend
+/// Selected by `OMNI_VOICE_AI_BACKEND=claude-cli` (or `--ai-backend
 /// claude-cli`); see the module-level docs above for the full sandbox
 /// posture and the "AI Backend Dispatch" section of `CLAUDE.md` for
 /// dispatch ordering.
 ///
 /// Three runtime knobs weaken or bound the sandbox:
-/// - `OMNI_DEV_CLAUDE_CLI_ALLOW_TOOLS` — re-enable nested tool use.
-/// - `OMNI_DEV_CLAUDE_CLI_ALLOW_MCP` — re-enable nested MCP server pickup.
-/// - `OMNI_DEV_CLAUDE_CLI_MAX_BUDGET_USD` — per-invocation spending cap in USD.
+/// - `OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS` — re-enable nested tool use.
+/// - `OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP` — re-enable nested MCP server pickup.
+/// - `OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD` — per-invocation spending cap in USD.
 pub struct ClaudeCliAiClient {
     /// Model identifier (alias like `sonnet` or full ID like
     /// `claude-sonnet-4-6`). Forwarded verbatim to `claude -p --model`.
@@ -368,7 +368,7 @@ impl ClaudeCliAiClient {
         if self.allow_tools {
             warn!(
                 "claude -p sandbox weakened: tool-access escape hatch is enabled \
-                 (--claude-cli-allow-tools / OMNI_DEV_CLAUDE_CLI_ALLOW_TOOLS). \
+                 (--claude-cli-allow-tools / OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS). \
                  The nested session can now read, edit, and execute against the \
                  environment it inherits."
             );
@@ -377,7 +377,7 @@ impl ClaudeCliAiClient {
         if self.allow_mcp {
             warn!(
                 "claude -p sandbox weakened: MCP-access escape hatch is enabled \
-                 (--claude-cli-allow-mcp / OMNI_DEV_CLAUDE_CLI_ALLOW_MCP). \
+                 (--claude-cli-allow-mcp / OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP). \
                  The nested session can now load MCP servers configured in \
                  ~/.claude/settings.json, exposing any OAuth tokens or \
                  network-attached services they hold."
@@ -782,8 +782,8 @@ async fn spawn_with_etxtbsy_retry(cmd: &mut Command) -> std::io::Result<tokio::p
 ///
 /// Shared across this module's tests **and** `crate::cli`'s tests because
 /// `Cli::propagate_global_flags` forwards CLI flags to the same env vars
-/// (`OMNI_DEV_CLAUDE_CLI_ALLOW_TOOLS`, `OMNI_DEV_CLAUDE_CLI_ALLOW_MCP`,
-/// `OMNI_DEV_CLAUDE_CLI_MAX_BUDGET_USD`, `OMNI_DEV_AI_BACKEND`) that the
+/// (`OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS`, `OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP`,
+/// `OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD`, `OMNI_VOICE_AI_BACKEND`) that the
 /// guards below snapshot. A single shared mutex eliminates cross-module
 /// races and avoids multi-lock deadlock entirely.
 #[cfg(test)]
@@ -1031,7 +1031,7 @@ mod tests {
         );
     }
 
-    /// Test-scoped guard for `OMNI_DEV_CLAUDE_CLI_ALLOW_TOOLS`. Serialises
+    /// Test-scoped guard for `OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS`. Serialises
     /// against every other env-mutating test via the shared
     /// [`CLI_ENV_LOCK`].
     struct AllowToolsEnvGuard {
@@ -1132,7 +1132,7 @@ mod tests {
         );
     }
 
-    /// Test-scoped guard for `OMNI_DEV_CLAUDE_CLI_ALLOW_MCP`. Serialises
+    /// Test-scoped guard for `OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP`. Serialises
     /// against every other env-mutating test via the shared
     /// [`CLI_ENV_LOCK`].
     struct AllowMcpEnvGuard {
@@ -1248,7 +1248,7 @@ mod tests {
 
     // ── Budget cap tests (MAX_BUDGET_ENV_VAR / with_max_budget_usd) ──
 
-    /// Test-scoped guard for `OMNI_DEV_CLAUDE_CLI_MAX_BUDGET_USD`. Serialises
+    /// Test-scoped guard for `OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD`. Serialises
     /// against every other env-mutating test via the shared
     /// [`CLI_ENV_LOCK`].
     struct MaxBudgetEnvGuard {

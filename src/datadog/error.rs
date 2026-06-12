@@ -6,7 +6,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum DatadogError {
     /// Datadog credentials are not configured.
-    #[error("Datadog credentials not configured. Run `omni-dev datadog auth login`")]
+    #[error("Datadog credentials not configured. Run `omni-voice datadog auth login`")]
     CredentialsNotFound,
 
     /// A Datadog API request failed.

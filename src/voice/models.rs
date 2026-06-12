@@ -10,7 +10,7 @@
 //!
 //! 1. Explicit `--model <path>` (Whisper) or `--speaker-model <path>`
 //!    (wespeaker) on the relevant CLI command.
-//! 2. `OMNI_DEV_VOICE_WHISPER_MODEL` / `OMNI_DEV_VOICE_SPEAKER_MODEL`
+//! 2. `OMNI_VOICE_VOICE_WHISPER_MODEL` / `OMNI_VOICE_VOICE_SPEAKER_MODEL`
 //!    env var.
 //! 3. Default install location under the user's home directory.
 //!
@@ -39,7 +39,7 @@ pub const REVISION: &str = "refs/pr/15";
 /// via [`required_files_in`] independent of order.
 pub const REQUIRED_FILES: &[&str] = &["config.json", "tokenizer.json", "model.safetensors"];
 
-/// Default subdirectory name beneath `~/.omni-dev/voice/models/`.
+/// Default subdirectory name beneath `~/.omni-voice/voice/models/`.
 ///
 /// Derived from [`MODEL_ID`] by stripping the `openai/` org prefix; keeps
 /// room for future variants (`whisper-base.en`, multilingual) as sibling
@@ -86,7 +86,7 @@ pub struct ModelSpec {
     pub variant: &'static str,
     /// Human label used in error messages: `"Whisper"` or `"Speaker"`.
     pub kind_label: &'static str,
-    /// Subdirectory beneath `~/.omni-dev/voice/models/` where this
+    /// Subdirectory beneath `~/.omni-voice/voice/models/` where this
     /// model's files live.
     pub default_subdir: &'static str,
     /// Files that must exist in the install directory for the model to
@@ -105,13 +105,13 @@ pub struct ModelSpec {
 }
 
 impl ModelSpec {
-    /// Default install directory: `~/.omni-dev/voice/models/<default_subdir>/`.
+    /// Default install directory: `~/.omni-voice/voice/models/<default_subdir>/`.
     ///
     /// `None` when the user's home directory cannot be located — same
     /// failure mode as `dirs::home_dir()`.
     pub fn default_dir(&self) -> Option<PathBuf> {
         dirs::home_dir().map(|home| {
-            home.join(".omni-dev")
+            home.join(".omni-voice")
                 .join("voice")
                 .join("models")
                 .join(self.default_subdir)
@@ -178,8 +178,8 @@ pub const WHISPER_TINY_EN: ModelSpec = ModelSpec {
     kind_label: "Whisper",
     default_subdir: DEFAULT_VARIANT_DIR,
     required_files: REQUIRED_FILES,
-    env_var: "OMNI_DEV_VOICE_WHISPER_MODEL",
-    install_command: "omni-dev voice install-model",
+    env_var: "OMNI_VOICE_VOICE_WHISPER_MODEL",
+    install_command: "omni-voice voice install-model",
     model_flag: "--model",
     source: ModelSource::HfHub {
         repo_id: MODEL_ID,
@@ -195,8 +195,8 @@ pub const SPEAKER_WESPEAKER_EN: ModelSpec = ModelSpec {
     kind_label: "Speaker",
     default_subdir: "wespeaker-en-voxceleb-resnet34-LM",
     required_files: &["wespeaker_en_voxceleb_resnet34_LM.onnx"],
-    env_var: "OMNI_DEV_VOICE_SPEAKER_MODEL",
-    install_command: "omni-dev voice install-model --variant speaker-wespeaker-en",
+    env_var: "OMNI_VOICE_VOICE_SPEAKER_MODEL",
+    install_command: "omni-voice voice install-model --variant speaker-wespeaker-en",
     model_flag: "--speaker-model",
     source: ModelSource::HttpReleaseAsset {
         url: "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/wespeaker_en_voxceleb_resnet34_LM.onnx",
@@ -212,7 +212,7 @@ pub fn required_files_in(dir: &Path) -> Vec<PathBuf> {
     WHISPER_TINY_EN.required_files_in(dir)
 }
 
-/// Computes the default install location: `~/.omni-dev/voice/models/whisper-tiny.en/`.
+/// Computes the default install location: `~/.omni-voice/voice/models/whisper-tiny.en/`.
 ///
 /// Returns `None` only when the user's home directory cannot be located
 /// (i.e. `dirs::home_dir()` returns `None`) — vanishingly rare in practice.
@@ -222,7 +222,7 @@ pub fn default_whisper_model_dir() -> Option<PathBuf> {
 
 /// Resolves the Whisper model directory for the current invocation.
 ///
-/// Priority: `opts.model` → `OMNI_DEV_VOICE_WHISPER_MODEL` → default.
+/// Priority: `opts.model` → `OMNI_VOICE_VOICE_WHISPER_MODEL` → default.
 /// The returned path is *not* validated for existence; callers that need
 /// to fail-fast on missing files should pair this with [`ensure_model_present`].
 pub fn resolve_whisper_model_dir(opts: &VoiceOpts) -> Result<PathBuf> {
@@ -232,7 +232,7 @@ pub fn resolve_whisper_model_dir(opts: &VoiceOpts) -> Result<PathBuf> {
 /// Verifies that `dir` contains every file in [`REQUIRED_FILES`].
 ///
 /// On failure, returns the install hint specified by issue #802:
-/// `"no Whisper model found at <path>; run `omni-dev voice install-model`
+/// `"no Whisper model found at <path>; run `omni-voice voice install-model`
 /// or pass --model <path>"`.
 pub fn ensure_model_present(dir: &Path) -> Result<()> {
     WHISPER_TINY_EN.ensure_present(dir)
@@ -256,39 +256,39 @@ mod tests {
     #[test]
     fn opts_model_takes_top_priority() {
         let _g = env_guard();
-        std::env::set_var("OMNI_DEV_VOICE_WHISPER_MODEL", "/should/not/be/read");
+        std::env::set_var("OMNI_VOICE_VOICE_WHISPER_MODEL", "/should/not/be/read");
         let opts = VoiceOpts {
             backend: None,
             model: Some(PathBuf::from("/explicit/path")),
         };
         let resolved = resolve_whisper_model_dir(&opts).unwrap();
         assert_eq!(resolved, PathBuf::from("/explicit/path"));
-        std::env::remove_var("OMNI_DEV_VOICE_WHISPER_MODEL");
+        std::env::remove_var("OMNI_VOICE_VOICE_WHISPER_MODEL");
     }
 
     #[test]
     fn env_var_used_when_opts_absent() {
         let _g = env_guard();
-        std::env::set_var("OMNI_DEV_VOICE_WHISPER_MODEL", "/from/env");
+        std::env::set_var("OMNI_VOICE_VOICE_WHISPER_MODEL", "/from/env");
         let resolved = resolve_whisper_model_dir(&VoiceOpts::default()).unwrap();
         assert_eq!(resolved, PathBuf::from("/from/env"));
-        std::env::remove_var("OMNI_DEV_VOICE_WHISPER_MODEL");
+        std::env::remove_var("OMNI_VOICE_VOICE_WHISPER_MODEL");
     }
 
     #[test]
     fn empty_env_var_falls_through_to_default() {
         let _g = env_guard();
-        std::env::set_var("OMNI_DEV_VOICE_WHISPER_MODEL", "");
+        std::env::set_var("OMNI_VOICE_VOICE_WHISPER_MODEL", "");
         let resolved = resolve_whisper_model_dir(&VoiceOpts::default()).unwrap();
         let expected = default_whisper_model_dir().unwrap();
         assert_eq!(resolved, expected);
-        std::env::remove_var("OMNI_DEV_VOICE_WHISPER_MODEL");
+        std::env::remove_var("OMNI_VOICE_VOICE_WHISPER_MODEL");
     }
 
     #[test]
-    fn default_path_uses_omni_dev_voice_models_subdir() {
+    fn default_path_uses_omni_voice_voice_models_subdir() {
         let dir = default_whisper_model_dir().unwrap();
-        assert!(dir.ends_with(".omni-dev/voice/models/whisper-tiny.en"));
+        assert!(dir.ends_with(".omni-voice/voice/models/whisper-tiny.en"));
     }
 
     #[test]
@@ -335,27 +335,27 @@ mod tests {
     #[test]
     fn speaker_spec_default_dir_ends_with_wespeaker_subdir() {
         let dir = SPEAKER_WESPEAKER_EN.default_dir().unwrap();
-        assert!(dir.ends_with(".omni-dev/voice/models/wespeaker-en-voxceleb-resnet34-LM"));
+        assert!(dir.ends_with(".omni-voice/voice/models/wespeaker-en-voxceleb-resnet34-LM"));
     }
 
     #[test]
     fn speaker_spec_resolve_dir_override_takes_priority() {
         let _g = env_guard();
-        std::env::set_var("OMNI_DEV_VOICE_SPEAKER_MODEL", "/should/not/be/read");
+        std::env::set_var("OMNI_VOICE_VOICE_SPEAKER_MODEL", "/should/not/be/read");
         let resolved = SPEAKER_WESPEAKER_EN
             .resolve_dir(Some(Path::new("/explicit/path")))
             .unwrap();
         assert_eq!(resolved, PathBuf::from("/explicit/path"));
-        std::env::remove_var("OMNI_DEV_VOICE_SPEAKER_MODEL");
+        std::env::remove_var("OMNI_VOICE_VOICE_SPEAKER_MODEL");
     }
 
     #[test]
     fn speaker_spec_resolve_dir_env_var_used_when_override_absent() {
         let _g = env_guard();
-        std::env::set_var("OMNI_DEV_VOICE_SPEAKER_MODEL", "/from/env");
+        std::env::set_var("OMNI_VOICE_VOICE_SPEAKER_MODEL", "/from/env");
         let resolved = SPEAKER_WESPEAKER_EN.resolve_dir(None).unwrap();
         assert_eq!(resolved, PathBuf::from("/from/env"));
-        std::env::remove_var("OMNI_DEV_VOICE_SPEAKER_MODEL");
+        std::env::remove_var("OMNI_VOICE_VOICE_SPEAKER_MODEL");
     }
 
     #[test]

@@ -26,7 +26,7 @@ rsvg-convert -w 1280 -h 640 \
 GitHub does not accept social previews via the API; this is a one-time
 manual upload by a repo admin:
 
-1. Open <https://github.com/rust-works/omni-dev/settings>.
+1. Open <https://github.com/rust-works/omni-voice/settings>.
 2. Scroll to **Social preview**.
 3. Click **Edit** → **Upload an image…** and select
    `assets/social-preview/social-preview.png`.

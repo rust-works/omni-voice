@@ -1,6 +1,6 @@
 # Adding an AI backend
 
-omni-dev talks to AI providers through the `AiClient` trait and a runtime
+omni-voice talks to AI providers through the `AiClient` trait and a runtime
 factory that selects an implementation based on environment variables. The
 overall design is recorded in [ADR-0002](../adrs/adr-0002.md). This recipe
 walks you through adding a hypothetical new backend (say, "Mistral"),
@@ -131,7 +131,7 @@ Add a dispatch branch to `create_default_claude_client` in
 [`src/claude/client.rs:1618`](../../src/claude/client.rs#L1618). The current
 order is:
 
-1. `OMNI_DEV_AI_BACKEND=claude-cli` → [`ClaudeCliAiClient`](../../src/claude/ai/claude_cli.rs)
+1. `OMNI_VOICE_AI_BACKEND=claude-cli` → [`ClaudeCliAiClient`](../../src/claude/ai/claude_cli.rs)
 2. `USE_OLLAMA=true` → `OpenAiAiClient::new_ollama`
 3. `USE_OPENAI=true` → `OpenAiAiClient::new_openai`
 4. `CLAUDE_CODE_USE_BEDROCK=true` → [`BedrockAiClient`](../../src/claude/ai/bedrock.rs)
@@ -167,7 +167,7 @@ for each supported Mistral model, with the same fields the Claude/OpenAI
 rows use (`provider`, `model`, `api_identifier`, `max_output_tokens`,
 `input_context`, `tier`). The model registry — see
 [ADR-0022](../adrs/adr-0022.md) — picks these up automatically and the
-`omni-dev config models show` command surfaces them to users.
+`omni-voice config models show` command surfaces them to users.
 
 ### 5. Update ADR-0002
 
@@ -189,7 +189,7 @@ trait (e.g. amendment parsing), use the inline mocks at
   so you can assert structured-output schemas are forwarded correctly.
 
 **Dispatch tests.** [`src/claude/client.rs:3965+`](../../src/claude/client.rs#L3965)
-uses an `EnvGuard` helper to manipulate `OMNI_DEV_AI_BACKEND`, `USE_*`,
+uses an `EnvGuard` helper to manipulate `OMNI_VOICE_AI_BACKEND`, `USE_*`,
 etc., then calls `create_default_claude_client(...).await` and asserts on
 `get_metadata().provider`. Add at least one test per new backend that
 proves it's selectable.

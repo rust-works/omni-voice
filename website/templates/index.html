@@ -2,7 +2,7 @@
 
 {% block content %}
 <header class="hero">
-  <h1>omni-dev</h1>
+  <h1>omni-voice</h1>
   <p class="tagline">An intelligent Git commit message toolkit with AI-powered contextual intelligence.</p>
   <p class="sub">Transform messy commit histories into professional, conventional commit formats with project-aware suggestions.</p>
 
@@ -24,20 +24,20 @@
     <li><strong>Browser bridge</strong> &mdash; drive authenticated HTTP requests through a logged-in browser tab without exfiltrating its cookies or tokens.</li>
     <li><strong>Media transcripts</strong> &mdash; fetch YouTube captions as SRT, VTT, TXT, or JSON, with language fallback and optional ASR/translation.</li>
     <li><strong>Conversation history</strong> &mdash; export your Claude Code sessions to versionable JSONL and Markdown for work-logs and review.</li>
-    <li><strong>MCP server</strong> &mdash; drop omni-dev's capabilities into Claude Code via the bundled MCP binary.</li>
+    <li><strong>MCP server</strong> &mdash; drop omni-voice's capabilities into Claude Code via the bundled MCP binary.</li>
   </ul>
 </section>
 
 <section id="install">
   <h2>Install</h2>
   <p>CLI only:</p>
-  <pre><code>cargo install omni-dev</code></pre>
+  <pre><code>cargo install omni-voice</code></pre>
 
-  <p>CLI plus the <code>omni-dev-mcp</code> server (for Claude Desktop, Claude Code, Cursor, etc.):</p>
-  <pre><code>cargo install omni-dev --features mcp</code></pre>
+  <p>CLI plus the <code>omni-voice-mcp</code> server (for Claude Desktop, Claude Code, Cursor, etc.):</p>
+  <pre><code>cargo install omni-voice --features mcp</code></pre>
 
   <p>Or with Nix:</p>
-  <pre><code>nix profile install github:rust-works/omni-dev</code></pre>
+  <pre><code>nix profile install github:rust-works/omni-voice</code></pre>
 </section>
 
 <section id="demo" class="demo-wide">
@@ -45,10 +45,10 @@
   <p class="demo-caption">
     Seven short asciicasts &mdash; each paired with the artefact it produces.
     The source for every cast lives at
-    <a href="https://github.com/rust-works/omni-dev-demo">rust-works/omni-dev-demo</a>.
+    <a href="https://github.com/rust-works/omni-voice-demo">rust-works/omni-voice-demo</a>.
   </p>
 
-  <div class="tabs" role="tablist" aria-label="omni-dev demos">
+  <div class="tabs" role="tablist" aria-label="omni-voice demos">
     <button class="tab is-active" role="tab" id="tab-jira"       aria-selected="true"  aria-controls="panel-jira"       data-tab="jira">Jira</button>
     <button class="tab"           role="tab" id="tab-confluence" aria-selected="false" aria-controls="panel-confluence" data-tab="confluence" tabindex="-1">Confluence</button>
     <button class="tab"           role="tab" id="tab-pr"         aria-selected="false" aria-controls="panel-pr"         data-tab="pr"         tabindex="-1">Create PR</button>
@@ -101,7 +101,7 @@
 
   <div class="tab-panel" role="tabpanel" id="panel-pr" aria-labelledby="tab-pr" data-panel="pr" hidden>
     <p class="panel-caption">
-      Three commits ahead of <code>main</code>. <code>omni-dev git branch create pr</code>
+      Three commits ahead of <code>main</code>. <code>omni-voice git branch create pr</code>
       reads the commits, asks Claude for a PR title and body that summarises them,
       pushes the branch, and opens the PR via <code>gh</code>.
     </p>
@@ -112,7 +112,7 @@
           <a href="{{ get_url(path='screenshots/pr-result.png') }}" target="_blank" rel="noopener">
             <img src="{{ get_url(path='screenshots/pr-result.png') }}" alt="Resulting GitHub pull request page" loading="lazy">
           </a>
-          <figcaption>Resulting PR on <a href="https://github.com/rust-works/omni-dev-demo/pull/1">rust-works/omni-dev-demo#1</a> &mdash; title and body generated from the three commits on the branch.</figcaption>
+          <figcaption>Resulting PR on <a href="https://github.com/rust-works/omni-voice-demo/pull/1">rust-works/omni-voice-demo#1</a> &mdash; title and body generated from the three commits on the branch.</figcaption>
         </figure>
       </div>
     </div>
@@ -121,7 +121,7 @@
   <div class="tab-panel" role="tabpanel" id="panel-twiddle" aria-labelledby="tab-twiddle" data-panel="twiddle" hidden>
     <p class="panel-caption">
       Three deliberately messy commits (<code>wip</code>, <code>stuff</code>,
-      <code>fix</code>). <code>omni-dev commit message twiddle</code> reads each diff,
+      <code>fix</code>). <code>omni-voice commit message twiddle</code> reads each diff,
       asks Claude for a Conventional Commits message that reflects the change, and
       rewrites the branch via <code>git rebase</code>.
     </p>
@@ -132,7 +132,7 @@
           <a href="{{ get_url(path='screenshots/twiddle-result.png') }}" target="_blank" rel="noopener">
             <img src="{{ get_url(path='screenshots/twiddle-result.png') }}" alt="GitHub commit list showing the rewritten commit messages" loading="lazy">
           </a>
-          <figcaption>Top three commits on <a href="https://github.com/rust-works/omni-dev-demo/commits/demo/twiddle">demo/twiddle</a> after force-push &mdash; the three messy messages are gone.</figcaption>
+          <figcaption>Top three commits on <a href="https://github.com/rust-works/omni-voice-demo/commits/demo/twiddle">demo/twiddle</a> after force-push &mdash; the three messy messages are gone.</figcaption>
         </figure>
       </div>
     </div>
@@ -140,12 +140,12 @@
 
   <div class="tab-panel" role="tabpanel" id="panel-browser" aria-labelledby="tab-browser" data-panel="browser" hidden>
     <p class="panel-caption">
-      <code>omni-dev browser bridge serve</code> runs a local server that drives
+      <code>omni-voice browser bridge serve</code> runs a local server that drives
       <code>fetch()</code> calls <em>inside</em> an authenticated browser tab &mdash;
       so requests carry the tab&apos;s SSO session, but the cookies and tokens never
       leave the browser. Here it pulls a Loki datasource and its labels straight out
       of a logged-in Grafana, with no API keys to manage. A <em>confused deputy by
-      design</em>; the <a href="https://github.com/rust-works/omni-dev/blob/main/docs/browser-bridge.md">security model</a>
+      design</em>; the <a href="https://github.com/rust-works/omni-voice/blob/main/docs/browser-bridge.md">security model</a>
       is the load-bearing part.
     </p>
     <div class="demo-grid">
@@ -159,7 +159,7 @@
               <span class="console-dot dot-green"></span>
               <span class="console-title">grafana.internal &mdash; DevTools &rsaquo; Console</span>
             </div>
-<pre class="console-body"><span class="c-prompt">&gt;</span> <span class="c-dim">(async () =&gt; { /* omni-dev bridge snippet */ })()</span>
+<pre class="console-body"><span class="c-prompt">&gt;</span> <span class="c-dim">(async () =&gt; { /* omni-voice bridge snippet */ })()</span>
 <span class="c-reply">&lt; Promise {&lt;pending&gt;}</span>
 <span class="c-ok">[omni-bridge]</span> connected to ws://127.0.0.1:9999
 <span class="c-ok">[omni-bridge]</span> authenticated &middot; origin https://grafana.internal
@@ -176,7 +176,7 @@
 
   <div class="tab-panel" role="tabpanel" id="panel-youtube" aria-labelledby="tab-youtube" data-panel="youtube" hidden>
     <p class="panel-caption">
-      <code>omni-dev transcript youtube</code> pulls captions straight from a video.
+      <code>omni-voice transcript youtube</code> pulls captions straight from a video.
       <code>info</code> and <code>list-langs</code> inspect what is available;
       <code>fetch</code> renders a track as <code>srt</code>, <code>vtt</code>,
       <code>txt</code>, or <code>json</code>. Here it inspects the first video ever
@@ -218,7 +218,7 @@ And that's cool. And that's pretty much all there is to say.</pre>
 
   <div class="tab-panel" role="tabpanel" id="panel-history" aria-labelledby="tab-history" data-panel="history" hidden>
     <p class="panel-caption">
-      <code>omni-dev ai claude history sync</code> exports your Claude Code sessions
+      <code>omni-voice ai claude history sync</code> exports your Claude Code sessions
       &mdash; prompts, responses, thinking, and tool calls &mdash; to a target
       directory as one <code>.jsonl</code> (and/or rendered <code>.md</code>) per chat.
       Re-runs skip unchanged sessions by mtime, so it is safe to schedule;
@@ -236,7 +236,7 @@ And that's cool. And that's pretty much all there is to say.</pre>
               <span class="console-dot dot-green"></span>
               <span class="console-title">~/hist &mdash; after sync</span>
             </div>
-<pre class="console-body"><span class="c-path">-Users-me-omni-dev/</span>
+<pre class="console-body"><span class="c-path">-Users-me-omni-voice/</span>
   0f1a…2b.jsonl   <span class="c-dim"># append-only event log</span>
   0f1a…2b.md      <span class="c-dim"># rendered transcript</span>
 <span class="c-path">-Users-me-spike/</span>

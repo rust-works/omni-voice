@@ -23,7 +23,7 @@
   };
   const connect = () => {
     ws = new WebSocket('ws://localhost:' + PORT, [TOKEN]);
-    ws.onopen = () => { backoff = 500; console.log('✅ omni-dev bridge connected on ' + PORT); };
+    ws.onopen = () => { backoff = 500; console.log('✅ omni-voice bridge connected on ' + PORT); };
     ws.onclose = () => { setTimeout(connect, backoff = Math.min(backoff * 2, 10000)); };
     ws.onerror = () => ws.close();
     ws.onmessage = async (event) => {

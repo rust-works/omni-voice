@@ -62,7 +62,7 @@ Add description here.
 ✅ **ALWAYS do this instead:**
 ```markdown
 ## Description
-This PR adds draft PR support with `--draft` and `--ready` CLI flags. The default behavior creates draft PRs, but users can override this via command-line flags or the `OMNI_DEV_DEFAULT_DRAFT_PR` configuration setting.
+This PR adds draft PR support with `--draft` and `--ready` CLI flags. The default behavior creates draft PRs, but users can override this via command-line flags or the `OMNI_VOICE_DEFAULT_DRAFT_PR` configuration setting.
 
 ## Changes Made
 **Core Changes:**

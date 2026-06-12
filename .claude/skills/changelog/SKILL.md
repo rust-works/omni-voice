@@ -28,8 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 ### Security
 
-[Unreleased]: https://github.com/rust-works/omni-dev/compare/vX.Y.Z...HEAD
-[X.Y.Z]: https://github.com/rust-works/omni-dev/compare/vX.Y.Z-1...vX.Y.Z
+[Unreleased]: https://github.com/rust-works/omni-voice/compare/vX.Y.Z...HEAD
+[X.Y.Z]: https://github.com/rust-works/omni-voice/compare/vX.Y.Z-1...vX.Y.Z
 ```
 
 ## Categories
@@ -82,8 +82,8 @@ Add entries to `[Unreleased]` as features are merged, not all at once during rel
 Always maintain comparison links at the bottom of the file:
 
 ```markdown
-[Unreleased]: https://github.com/rust-works/omni-dev/compare/vX.Y.Z...HEAD
-[X.Y.Z]: https://github.com/rust-works/omni-dev/compare/vX.Y.Z-1...vX.Y.Z
+[Unreleased]: https://github.com/rust-works/omni-voice/compare/vX.Y.Z...HEAD
+[X.Y.Z]: https://github.com/rust-works/omni-voice/compare/vX.Y.Z-1...vX.Y.Z
 ```
 
 When releasing:
