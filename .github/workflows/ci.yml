@@ -128,9 +128,14 @@ jobs:
         cargo test --all-features --workspace
     - name: Install Whisper tiny.en model
       if: steps.whisper-cache.outputs.cache-hit != 'true'
+      # Sources the llvm-cov env only to reuse the instrumented dependency
+      # artifacts, then discards this step's profile data: the step only runs
+      # on a cache miss, so letting it contribute coverage makes the download
+      # path's coverage depend on cache state and runs non-comparable.
       run: |
         # shellcheck disable=SC1090
         source <(cargo llvm-cov show-env --sh)
+        export LLVM_PROFILE_FILE=/dev/null
         cargo run --all-features --bin omni-voice -- voice install-model
     - name: Run model-gated voice tests with coverage
       # Covers the candle Whisper inference path (WhisperEngine and the
