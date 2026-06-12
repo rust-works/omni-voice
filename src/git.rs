@@ -3,6 +3,7 @@
 pub mod amendment;
 pub mod commit;
 pub mod diff_split;
+pub mod pr;
 pub mod remote;
 pub mod repository;
 
@@ -12,6 +13,7 @@ pub use commit::{
     CommitInfoForAI, FileDiffRef,
 };
 pub use diff_split::{split_by_file, split_file_by_hunk, FileDiff, HunkDiff};
+pub use pr::PrContent;
 pub use remote::RemoteInfo;
 pub use repository::GitRepository;
 

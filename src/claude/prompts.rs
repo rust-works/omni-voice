@@ -1501,7 +1501,7 @@ IMPORTANT:
 /// Lists each per-commit PR content with its index, plus the PR template
 /// for structural guidance.
 pub(crate) fn generate_pr_content_merge_user_prompt(
-    per_commit_contents: &[crate::cli::git::PrContent],
+    per_commit_contents: &[crate::git::PrContent],
     pr_template: &str,
 ) -> String {
     let mut prompt = String::from(
@@ -2372,11 +2372,11 @@ mod tests {
     #[test]
     fn pr_content_merge_user_prompt_includes_all_commits() {
         let contents = vec![
-            crate::cli::git::PrContent {
+            crate::git::PrContent {
                 title: "feat(a): add module a".to_string(),
                 description: "Adds the a module with core logic.".to_string(),
             },
-            crate::cli::git::PrContent {
+            crate::git::PrContent {
                 title: "feat(b): add module b".to_string(),
                 description: "Adds the b module with helpers.".to_string(),
             },
@@ -2392,7 +2392,7 @@ mod tests {
 
     #[test]
     fn pr_content_merge_user_prompt_empty_template() {
-        let contents = vec![crate::cli::git::PrContent {
+        let contents = vec![crate::git::PrContent {
             title: "fix: patch".to_string(),
             description: "Patch description.".to_string(),
         }];

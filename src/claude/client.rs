@@ -947,7 +947,7 @@ impl ClaudeClient {
     }
 
     /// Parses an AI response as PR content YAML.
-    fn parse_pr_response(&self, content: &str) -> Result<crate::cli::git::PrContent> {
+    fn parse_pr_response(&self, content: &str) -> Result<crate::git::PrContent> {
         let yaml_content = content.trim();
         crate::data::from_yaml(yaml_content)
             .context("Failed to parse AI response as YAML. AI may have returned malformed output.")
@@ -957,7 +957,7 @@ impl ClaudeClient {
     /// budget by splitting it into file-level chunks.
     ///
     /// Analogous to [`generate_amendment_split`](Self::generate_amendment_split)
-    /// but produces [`PrContent`](crate::cli::git::PrContent) instead of an
+    /// but produces [`PrContent`](crate::git::PrContent) instead of an
     /// amendment.
     async fn generate_pr_content_split(
         &self,
@@ -967,7 +967,7 @@ impl ClaudeClient {
         build_user_prompt: &(dyn Fn(&str) -> String + Sync),
         available_input_tokens: usize,
         pr_template: &str,
-    ) -> Result<crate::cli::git::PrContent> {
+    ) -> Result<crate::git::PrContent> {
         use crate::claude::batch::{
             PER_COMMIT_METADATA_OVERHEAD_TOKENS, USER_PROMPT_TEMPLATE_OVERHEAD_TOKENS,
             VIEW_ENVELOPE_OVERHEAD_TOKENS,
@@ -1078,9 +1078,9 @@ impl ClaudeClient {
     /// per-commit or per-chunk PR contents.
     async fn merge_pr_content_chunks(
         &self,
-        partial_contents: &[crate::cli::git::PrContent],
+        partial_contents: &[crate::git::PrContent],
         pr_template: &str,
-    ) -> Result<crate::cli::git::PrContent> {
+    ) -> Result<crate::git::PrContent> {
         let system_prompt =
             self.adjusted_system_prompt(prompts::PR_CONTENT_MERGE_SYSTEM_PROMPT.to_string());
         let user_prompt =
@@ -1109,7 +1109,7 @@ impl ClaudeClient {
         system_prompt: &str,
         build_user_prompt: &(dyn Fn(&str) -> String + Sync),
         pr_template: &str,
-    ) -> Result<crate::cli::git::PrContent> {
+    ) -> Result<crate::git::PrContent> {
         let ai_commit = crate::git::commit::CommitInfoForAI::from_commit_info(commit.clone())?;
         let single_view = repo_view_for_ai.single_commit_view_for_ai(&ai_commit);
 
@@ -1149,7 +1149,7 @@ impl ClaudeClient {
         &self,
         repo_view: &RepositoryView,
         pr_template: &str,
-    ) -> Result<crate::cli::git::PrContent> {
+    ) -> Result<crate::git::PrContent> {
         // Convert to AI-enhanced view with diff content
         let ai_repo_view = RepositoryViewForAI::from_repository_view(repo_view.clone())
             .context("Failed to enhance repository view with diff content")?;
@@ -1204,7 +1204,7 @@ impl ClaudeClient {
         repo_view: &RepositoryView,
         pr_template: &str,
         context: &crate::data::context::CommitContext,
-    ) -> Result<crate::cli::git::PrContent> {
+    ) -> Result<crate::git::PrContent> {
         // Convert to AI-enhanced view with diff content
         let ai_repo_view = RepositoryViewForAI::from_repository_view(repo_view.clone())
             .context("Failed to enhance repository view with diff content")?;
@@ -1285,7 +1285,7 @@ impl ClaudeClient {
         repo_view: &RepositoryView,
         pr_template: &str,
         context: &crate::data::context::CommitContext,
-    ) -> Result<crate::cli::git::PrContent> {
+    ) -> Result<crate::git::PrContent> {
         use crate::data::RepositoryViewForAiFromCommits;
 
         let commits_view = RepositoryViewForAiFromCommits::from_repository_view(repo_view.clone());
@@ -1361,7 +1361,7 @@ impl ClaudeClient {
         commits_view: &crate::data::RepositoryViewForAiFromCommits,
         system_prompt: &str,
         build_user_prompt: &(dyn Fn(&str) -> String + Sync),
-    ) -> Result<crate::cli::git::PrContent> {
+    ) -> Result<crate::git::PrContent> {
         let single_view = commits_view.single_commit_view_from_commits(commit);
 
         match self.try_full_diff_budget(&single_view, system_prompt, build_user_prompt)? {

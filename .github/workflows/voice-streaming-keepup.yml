@@ -38,8 +38,6 @@ jobs:
       - name: Build (release)
         run: cargo build --release
       - name: Install whisper-tiny.en model
-        # --bin is required: the workspace has two binaries (omni-voice and
-        # omni-voice-mcp), so a bare `cargo run` is ambiguous.
         run: cargo run --release --bin omni-voice -- voice install-model
       - name: Run streaming envelope tests
         env:

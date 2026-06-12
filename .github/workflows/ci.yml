@@ -22,7 +22,6 @@ jobs:
           - nightly
         features:
           - ""
-          - "mcp"
     steps:
     - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@master
@@ -39,18 +38,6 @@ jobs:
         else
           cargo test --features "${{ matrix.features }}" --verbose
         fi
-
-  mcp-build:
-    name: MCP Release Build
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v6
-    - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
-    - name: Install ALSA headers for cpal
-      run: sudo apt-get update && sudo apt-get install -y libasound2-dev
-    - name: Build omni-voice-mcp (release)
-      run: cargo build --release --features mcp --bin omni-voice-mcp
 
   fmt:
     name: Rustfmt
@@ -70,7 +57,6 @@ jobs:
       matrix:
         features:
           - ""
-          - "mcp"
     steps:
     - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@stable
