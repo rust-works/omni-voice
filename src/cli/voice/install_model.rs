@@ -15,7 +15,7 @@ use std::time::Instant;
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::{Parser, ValueEnum};
-use hf_hub::{api::sync::Api, Repo, RepoType};
+use hf_hub::{api::sync::ApiBuilder, Repo, RepoType};
 use sha2::{Digest, Sha256};
 
 use crate::voice::models::{ModelSource, ModelSpec, SPEAKER_WESPEAKER_EN, WHISPER_TINY_EN};
@@ -126,7 +126,13 @@ fn download_hf_hub<W: Write>(
     std::fs::create_dir_all(dest)
         .with_context(|| format!("create install directory at {}", dest.display()))?;
 
-    let api = Api::new().context("initialise HuggingFace Hub client")?;
+    // `from_env` honours the standard HF env vars: `HF_ENDPOINT` (alternate
+    // hub host — also how the hermetic tests below point this at a local
+    // mock) and `HF_HOME` (cache location). Both default to the usual
+    // huggingface.co endpoint and `~/.cache/huggingface`.
+    let api = ApiBuilder::from_env()
+        .build()
+        .context("initialise HuggingFace Hub client")?;
     let repo = api.repo(Repo::with_revision(
         repo_id.to_string(),
         RepoType::Model,
@@ -202,7 +208,14 @@ fn download_release_asset<W: Write>(
     write!(w, "  fetching {url}... ")?;
     w.flush()?;
 
+    // ureq turns non-2xx statuses into `Err` by default, which would make
+    // the explicit status check below unreachable; disable that so the
+    // bail with the URL and canonical reason is the single status-error
+    // path, leaving `call()` errors to mean transport failures only.
     let resp = ureq::get(url)
+        .config()
+        .http_status_as_error(false)
+        .build()
         .call()
         .with_context(|| format!("HTTP GET {url}"))?;
     let status = resp.status();
@@ -538,6 +551,298 @@ mod tests {
         assert_eq!(
             Variant::SpeakerWespeakerEn.spec().variant,
             SPEAKER_WESPEAKER_EN.variant
+        );
+    }
+
+    // ── Download paths (hermetic, via wiremock) ──────────────────────────
+    //
+    // These cover the network-touching functions that used to be exercised
+    // only by CI's real Whisper install step (made coverage-neutral in
+    // a608ab3). `download_release_asset` takes its URL as an argument, so
+    // tests point it straight at a local mock. `download_hf_hub` builds
+    // its client from the environment, so tests set `HF_ENDPOINT` /
+    // `HF_HOME` (serialised through `ENV_GUARD`).
+
+    use wiremock::matchers::{method, path_regex};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    fn sha256_hex(bytes: &[u8]) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(bytes);
+        let digest = hasher.finalize();
+        let mut hex = String::with_capacity(digest.len() * 2);
+        for byte in digest {
+            use std::fmt::Write as _;
+            let _ = write!(&mut hex, "{byte:02x}");
+        }
+        hex
+    }
+
+    /// Mounts a mock that satisfies both hf-hub requests for `file`: the
+    /// metadata probe (`Range: bytes=0-0`, reads `etag` / `x-repo-commit` /
+    /// `Content-Range` headers) and the actual download (reads the body).
+    async fn mount_hub_file(server: &MockServer, file: &str, body: &[u8]) {
+        Mock::given(method("GET"))
+            .and(path_regex(format!(r"/{}$", regex_escape(file))))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("etag", format!("etag-{file}").as_str())
+                    .insert_header("x-repo-commit", "0123456789abcdef")
+                    .insert_header(
+                        "content-range",
+                        format!("bytes 0-0/{}", body.len()).as_str(),
+                    )
+                    .set_body_bytes(body),
+            )
+            .mount(server)
+            .await;
+    }
+
+    fn regex_escape(s: &str) -> String {
+        s.chars()
+            .flat_map(|c| {
+                if c.is_ascii_alphanumeric() {
+                    vec![c]
+                } else {
+                    vec!['\\', c]
+                }
+            })
+            .collect()
+    }
+
+    /// Runs `f` with `HF_ENDPOINT` and `HF_HOME` pointing at the mock hub
+    /// and a temp cache, restoring the previous values afterwards.
+    fn with_hf_env<T>(endpoint: &str, hf_home: &Path, f: impl FnOnce() -> T) -> T {
+        let _g = env_guard();
+        let prev_endpoint = std::env::var_os("HF_ENDPOINT");
+        let prev_home = std::env::var_os("HF_HOME");
+        std::env::set_var("HF_ENDPOINT", endpoint);
+        std::env::set_var("HF_HOME", hf_home);
+
+        let result = f();
+
+        match prev_endpoint {
+            Some(v) => std::env::set_var("HF_ENDPOINT", v),
+            None => std::env::remove_var("HF_ENDPOINT"),
+        }
+        match prev_home {
+            Some(v) => std::env::set_var("HF_HOME", v),
+            None => std::env::remove_var("HF_HOME"),
+        }
+        result
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn run_installs_whisper_model_from_hf_endpoint() {
+        let server = MockServer::start().await;
+        let files: &[(&str, &[u8])] = &[
+            ("config.json", b"{\"cfg\":1}"),
+            ("tokenizer.json", b"{\"tok\":2}"),
+            ("model.safetensors", b"weights-bytes"),
+        ];
+        for (file, body) in files {
+            mount_hub_file(&server, file, body).await;
+        }
+
+        let endpoint = server.uri();
+        let (out, dest) = tokio::task::spawn_blocking(move || {
+            let hf_home = tempfile::TempDir::new().unwrap();
+            let dest = tempfile::TempDir::new().unwrap();
+            let mut out: Vec<u8> = Vec::new();
+            with_hf_env(&endpoint, hf_home.path(), || {
+                let cmd = InstallModelCommand {
+                    dest: Some(dest.path().to_path_buf()),
+                    force: false,
+                    variant: Variant::WhisperTinyEn,
+                };
+                cmd.run(&mut out).unwrap();
+            });
+            (out, dest)
+        })
+        .await
+        .unwrap();
+
+        for (file, body) in files {
+            let got = std::fs::read(dest.path().join(file)).unwrap();
+            assert_eq!(&got, body, "installed content mismatch for {file}");
+        }
+        let msg = String::from_utf8(out).unwrap();
+        assert!(msg.contains("Whisper model installed at"), "got: {msg}");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn download_hf_hub_error_names_failing_file() {
+        // No mocks mounted: every request 404s, so the first required
+        // file's metadata probe fails and the context must say which
+        // file could not be downloaded.
+        let server = MockServer::start().await;
+
+        let endpoint = server.uri();
+        let err = tokio::task::spawn_blocking(move || {
+            let hf_home = tempfile::TempDir::new().unwrap();
+            let dest = tempfile::TempDir::new().unwrap();
+            let mut out: Vec<u8> = Vec::new();
+            with_hf_env(&endpoint, hf_home.path(), || {
+                download_hf_hub(&WHISPER_TINY_EN, "test/repo", "main", dest.path(), &mut out)
+            })
+        })
+        .await
+        .unwrap()
+        .unwrap_err();
+
+        let msg = format!("{err:#}");
+        assert!(
+            msg.contains("download config.json from test/repo"),
+            "got: {msg}"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn download_release_asset_installs_and_verifies_sha() {
+        let body: &[u8] = b"onnx-model-bytes";
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(body))
+            .mount(&server)
+            .await;
+
+        let url = format!("{}/asset.onnx", server.uri());
+        let sha = sha256_hex(body);
+        let (result, out, dest) = tokio::task::spawn_blocking(move || {
+            let dest = tempfile::TempDir::new().unwrap();
+            let mut out: Vec<u8> = Vec::new();
+            let result = download_release_asset(
+                &SPEAKER_WESPEAKER_EN,
+                &url,
+                &sha,
+                body.len() as u64,
+                dest.path(),
+                &mut out,
+            );
+            (result, out, dest)
+        })
+        .await
+        .unwrap();
+
+        result.unwrap();
+        let target = dest.path().join(SPEAKER_WESPEAKER_EN.required_files[0]);
+        assert_eq!(std::fs::read(&target).unwrap(), body);
+        let msg = String::from_utf8(out).unwrap();
+        assert!(msg.contains("sha256 verified"), "got: {msg}");
+        assert!(msg.contains("Speaker model installed at"), "got: {msg}");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn download_release_asset_rejects_sha_mismatch() {
+        let body: &[u8] = b"onnx-model-bytes";
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(body))
+            .mount(&server)
+            .await;
+
+        let url = format!("{}/asset.onnx", server.uri());
+        let (err, dest) = tokio::task::spawn_blocking(move || {
+            let dest = tempfile::TempDir::new().unwrap();
+            let mut out: Vec<u8> = Vec::new();
+            let err = download_release_asset(
+                &SPEAKER_WESPEAKER_EN,
+                &url,
+                &"0".repeat(64),
+                body.len() as u64,
+                dest.path(),
+                &mut out,
+            )
+            .unwrap_err();
+            (err, dest)
+        })
+        .await
+        .unwrap();
+
+        assert!(err.to_string().contains("SHA-256 mismatch"), "got: {err:#}");
+        let target = dest.path().join(SPEAKER_WESPEAKER_EN.required_files[0]);
+        assert!(
+            !target.exists(),
+            "mismatched download must not be installed"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn download_release_asset_reports_http_status() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(404))
+            .mount(&server)
+            .await;
+
+        let url = format!("{}/asset.onnx", server.uri());
+        let err = tokio::task::spawn_blocking(move || {
+            let dest = tempfile::TempDir::new().unwrap();
+            let mut out: Vec<u8> = Vec::new();
+            download_release_asset(
+                &SPEAKER_WESPEAKER_EN,
+                &url,
+                &"0".repeat(64),
+                0,
+                dest.path(),
+                &mut out,
+            )
+            .unwrap_err()
+        })
+        .await
+        .unwrap();
+
+        assert!(
+            err.to_string().contains("HTTP 404"),
+            "expected status in error, got: {err:#}"
+        );
+    }
+
+    #[test]
+    fn download_release_asset_rejects_multi_file_spec() {
+        // WHISPER_TINY_EN declares three required files; the defensive
+        // single-asset check must fail before any network or filesystem IO.
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut out: Vec<u8> = Vec::new();
+        let err = download_release_asset(
+            &WHISPER_TINY_EN,
+            "http://unused.invalid/asset",
+            "00",
+            0,
+            tmp.path(),
+            &mut out,
+        )
+        .unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("expects exactly one required_file"),
+            "got: {err:#}"
+        );
+    }
+
+    #[test]
+    fn atomic_install_bytes_fails_when_parent_is_file() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let blocker = tmp.path().join("blocker");
+        std::fs::write(&blocker, b"not a directory").unwrap();
+        let err = atomic_install_bytes(b"data", &blocker.join("out")).unwrap_err();
+        assert!(
+            format!("{err:#}").contains("create parent dir"),
+            "got: {err:#}"
+        );
+    }
+
+    #[test]
+    fn atomic_install_copy_fails_when_parent_is_file() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let src = tmp.path().join("src");
+        std::fs::write(&src, b"data").unwrap();
+        let blocker = tmp.path().join("blocker");
+        std::fs::write(&blocker, b"not a directory").unwrap();
+        let err = atomic_install_copy(&src, &blocker.join("out")).unwrap_err();
+        assert!(
+            format!("{err:#}").contains("create parent dir"),
+            "got: {err:#}"
         );
     }
 }

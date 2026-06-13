@@ -22,7 +22,6 @@ jobs:
           - nightly
         features:
           - ""
-          - "mcp"
     steps:
     - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@master
@@ -39,18 +38,6 @@ jobs:
         else
           cargo test --features "${{ matrix.features }}" --verbose
         fi
-
-  mcp-build:
-    name: MCP Release Build
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v6
-    - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
-    - name: Install ALSA headers for cpal
-      run: sudo apt-get update && sudo apt-get install -y libasound2-dev
-    - name: Build omni-voice-mcp (release)
-      run: cargo build --release --features mcp --bin omni-voice-mcp
 
   fmt:
     name: Rustfmt
@@ -70,7 +57,6 @@ jobs:
       matrix:
         features:
           - ""
-          - "mcp"
     steps:
     - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@stable
@@ -142,9 +128,14 @@ jobs:
         cargo test --all-features --workspace
     - name: Install Whisper tiny.en model
       if: steps.whisper-cache.outputs.cache-hit != 'true'
+      # Sources the llvm-cov env only to reuse the instrumented dependency
+      # artifacts, then discards this step's profile data: the step only runs
+      # on a cache miss, so letting it contribute coverage makes the download
+      # path's coverage depend on cache state and runs non-comparable.
       run: |
         # shellcheck disable=SC1090
         source <(cargo llvm-cov show-env --sh)
+        export LLVM_PROFILE_FILE=/dev/null
         cargo run --all-features --bin omni-voice -- voice install-model
     - name: Run model-gated voice tests with coverage
       # Covers the candle Whisper inference path (WhisperEngine and the
@@ -169,7 +160,7 @@ jobs:
         cargo llvm-cov report --codecov --output-path codecov.json
     - name: Generate head coverage report (lcov)
       # Per-line lcov for the head commit. This is the input to
-      # `omni-voice coverage diff`: it drives patch coverage (of the lines this PR
+      # `omni-dev coverage diff`: it drives patch coverage (of the lines this PR
       # added, how many are covered — needs only the head report + diff) and,
       # paired with the merge-base baseline below, the per-file deltas and
       # indirect-change detection. Published as the baseline on `main` for PRs.
@@ -191,11 +182,9 @@ jobs:
           cat coverage-summary.txt
           echo '```'
         } >> "$GITHUB_STEP_SUMMARY"
-    # No separate binary build: `cargo test` above already compiled the
-    # `omni-voice` executable (target/debug/omni-voice, part of the test build graph)
-    # with the same instrumentation env. The PR-comment step below runs it
-    # directly. Building it separately with `cargo build --bin` would recompile a
-    # dozen crates whose features differ once dev-dependencies drop out.
+    # The patch-coverage diff is rendered by the published `omni-dev` crate (this
+    # repo's `omni-voice` binary no longer has a `coverage` command); it is
+    # installed in the "Install omni-dev" step below, just before it is used.
     - name: Upload coverage artifacts
       # The full summary lives here (not in the PR comment); codecov.json kept for
       # when the upload below is re-enabled. Runs before the comment so the comment
@@ -246,9 +235,14 @@ jobs:
             && cargo llvm-cov report --lcov --output-path coverage-head.lcov )
         mkdir -p baseline
         # Rewrite the worktree's absolute SF paths to the main workspace prefix so
-        # `omni-voice coverage diff` strips one prefix for both head and baseline.
+        # `omni-dev coverage diff` strips one prefix for both head and baseline.
         sed "s#$(cd ../base && pwd)/#$GITHUB_WORKSPACE/#g" \
           ../base/coverage-head.lcov > baseline/coverage-head.lcov
+    - name: Install omni-dev (provides the coverage diff command)
+      # The patch-coverage tooling lives in the published `omni-dev` crate; this
+      # repo's own `omni-voice` binary no longer ships a `coverage` command.
+      if: github.event_name == 'pull_request'
+      run: cargo install omni-dev --locked
     - name: Build PR coverage comment
       # Single comprehensive comment: total + delta vs main, the per-file
       # before/after table, PATCH COVERAGE (what this PR's added lines cover, with
@@ -278,7 +272,7 @@ jobs:
         if [ -f baseline/coverage-head.lcov ]; then
           args+=(--baseline-report baseline/coverage-head.lcov)
         fi
-        ./target/debug/omni-voice "${args[@]}" > coverage.md
+        omni-dev "${args[@]}" > coverage.md
     - name: Comment coverage on PR
       if: github.event_name == 'pull_request'
       uses: marocchino/sticky-pull-request-comment@v3

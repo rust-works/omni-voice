@@ -1,15 +1,14 @@
 # Extending the ADF schema
 
 omni-voice round-trips between Atlassian Document Format (ADF) and JIRA-
-Flavoured Markdown (JFM, see [ADR-0020](../adrs/adr-0020.md)). Three layers
+Flavoured Markdown (JFM, see [ADR-0020](../adrs/adr-0020.md)). Two layers
 have to agree for a new ADF node type to work end-to-end:
 
-1. **Vendored upstream schema** at [`assets/adf-schema/`](../../assets/adf-schema/) — the JSON snapshot from `@atlaskit/adf-schema` npm.
-2. **Hand-maintained quantifier table** at [`src/atlassian/adf_schema/mod.rs`](../../src/atlassian/adf_schema/mod.rs) — encodes arity (`+`, `*`, `?`) the upstream JSON loses ([ADR-0023](../adrs/adr-0023.md)).
-3. **JFM converter and spec** at [`src/atlassian/convert.rs`](../../src/atlassian/convert.rs) and [`docs/specs/jfm.md`](../specs/jfm.md) — define how the node renders to/from markdown.
+1. **Hand-maintained content model** at [`src/atlassian/adf_schema/mod.rs`](../../src/atlassian/adf_schema/mod.rs) — the allowed-children table, encoding both the atoms and the arity (`+`, `*`, `?`) the upstream `@atlaskit/adf-schema` JSON loses ([ADR-0023](../adrs/adr-0023.md)).
+2. **JFM converter and spec** at [`src/atlassian/convert.rs`](../../src/atlassian/convert.rs) and [`docs/specs/jfm.md`](../specs/jfm.md) — define how the node renders to/from markdown.
 
 This recipe walks you through adding a new node type (we'll use
-`inlineCard` as the running example) and wiring it into all three layers.
+`inlineCard` as the running example) and wiring it into both layers.
 
 ## Files you'll touch
 
@@ -20,10 +19,6 @@ This recipe walks you through adding a new node type (we'll use
 | [`src/atlassian/adf_schema/mod.rs`](../../src/atlassian/adf_schema/mod.rs) | Add a `CONTENT_ENTRIES` tuple for the new parent (if any) and add the atom to allowed-children sets where it can legally appear. |
 | [`docs/specs/jfm.md`](../specs/jfm.md) | Add a row to *Supported Block Nodes* or *Supported Inline Nodes* (around lines 120–178). |
 | [`tests/adf_schema_test.rs`](../../tests/adf_schema_test.rs) | Add validator tests for round-trip and nesting rules. |
-
-If the upstream `@atlaskit/adf-schema` package has been refreshed and your
-node is newly present in `full.json`, you may also need to **re-pin and
-regenerate** (see *Refreshing the vendored schema* below).
 
 ## Walkthrough
 
@@ -74,16 +69,12 @@ Two edits, usually:
   Keep the tuple alphabetised by parent name.
 
 - **If your node is a child** (it can appear inside other nodes), add the
-  atom to each parent's `atoms` array that should permit it. Walk the
-  upstream JSON schema definition (in
-  [`assets/adf-schema/full.json`](../../assets/adf-schema/full.json)) and
-  copy what it says — don't guess.
+  atom to each parent's `atoms` array that should permit it. Consult the
+  upstream `@atlaskit/adf-schema` content model for the canonical
+  allowed-children sets and copy what it says — don't guess.
 
-The hand-maintained table is reconciled against the upstream JSON by
-[`tests/adf_schema_drift_bin_test.rs`](../../tests/adf_schema_drift_bin_test.rs)
-— if you miss a parent or add an atom upstream doesn't allow, that test
-fails. Inline comments in `mod.rs` (search for "LENIENT") flag a small
-allowlist of deliberate deviations; mirror that style if you have a
+Inline comments in `mod.rs` (search for "LENIENT") flag a small allowlist
+of deliberate deviations from upstream; mirror that style if you have a
 documented reason to diverge.
 
 ### 4. JFM spec
@@ -101,7 +92,7 @@ new node.
 
 ### 5. Tests
 
-Three layers, three tests:
+Two tests:
 
 1. **Schema validator test** in
    [`tests/adf_schema_test.rs`](../../tests/adf_schema_test.rs) — assert
@@ -113,27 +104,6 @@ Three layers, three tests:
    [`src/atlassian/convert.rs`](../../src/atlassian/convert.rs) — JFM →
    ADF → JFM should be lossless. The neighbouring `nested_expand_*` tests
    are good models.
-3. **Drift-detector** runs automatically — no new test needed, but it
-   will fail if your `CONTENT_ENTRIES` edits desync from
-   `UPSTREAM_ENTRIES`. The fix is usually to re-run codegen (see below).
-
-## Refreshing the vendored schema
-
-Most contributors won't need this — only when the upstream
-`@atlaskit/adf-schema` npm package has been bumped and your new node lives
-in the new version. The full workflow is in
-[`assets/adf-schema/README.md`](../../assets/adf-schema/README.md). Short
-version:
-
-1. Pull the new tarball, extract `dist/json-schema/v1/full.json` into
-   `assets/adf-schema/full.json`.
-2. Update [`assets/adf-schema/provenance.json`](../../assets/adf-schema/provenance.json)
-   with the new version, URL, and SHA-256s.
-3. Run `cargo run --bin adf-schema-codegen` to regenerate
-   [`src/atlassian/adf_schema/generated.rs`](../../src/atlassian/adf_schema/generated.rs).
-4. Run `cargo run --bin adf-schema-codegen -- --check` to confirm the
-   committed file matches what codegen now produces. CI runs this same
-   check.
 
 ## Validation is type-level
 
@@ -152,13 +122,6 @@ new node.
 
 ## Gotchas
 
-- **Don't edit `generated.rs` by hand.** It's regenerated by
-  `cargo run --bin adf-schema-codegen` from the vendored JSON.
-- **The drift detector is your friend.** If you add an entry to
-  `CONTENT_ENTRIES` that upstream doesn't have, the drift test in
-  [`tests/adf_schema_drift_bin_test.rs`](../../tests/adf_schema_drift_bin_test.rs)
-  will tell you which atoms are misaligned. Read its error message before
-  changing anything else.
 - **Legacy tests intentionally produce invalid ADF.** Inline tests like
   `nested_expand_inside_panel` document the converter's pre-ADR-0023
   behaviour and assert on structurally invalid output. Don't copy that

@@ -17,9 +17,9 @@ use std::sync::OnceLock;
 use schemars::{schema_for, JsonSchema};
 use serde_json::Value;
 
-use crate::cli::git::PrContent;
 use crate::data::amendments::AmendmentFile;
 use crate::data::check::AiCheckResponse;
+use crate::git::PrContent;
 
 /// Returns the cached JSON Schema for the AI response of a structured call.
 fn schema_value<T: JsonSchema>(slot: &'static OnceLock<Value>) -> &'static Value {

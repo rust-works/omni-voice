@@ -140,10 +140,8 @@ mod tests {
     fn generate_all_help_contains_all_top_level_commands() {
         let gen = HelpGenerator::new();
         let output = gen.generate_all_help().unwrap();
-        assert!(output.contains("omni-voice ai"));
-        assert!(output.contains("omni-voice git"));
+        assert!(output.contains("omni-voice voice"));
         assert!(output.contains("omni-voice commands"));
-        assert!(output.contains("omni-voice config"));
         assert!(output.contains("omni-voice help-all"));
     }
 
@@ -152,12 +150,10 @@ mod tests {
         let gen = HelpGenerator::new();
         let output = gen.generate_all_help().unwrap();
         // Deeply nested commands should be present
-        assert!(output.contains("omni-voice git commit message view"));
-        assert!(output.contains("omni-voice git commit message amend"));
-        assert!(output.contains("omni-voice git commit message twiddle"));
-        assert!(output.contains("omni-voice git commit message check"));
-        assert!(output.contains("omni-voice git branch info"));
-        assert!(output.contains("omni-voice git branch create pr"));
+        assert!(output.contains("omni-voice voice transcribe"));
+        assert!(output.contains("omni-voice voice reflect"));
+        assert!(output.contains("omni-voice voice review"));
+        assert!(output.contains("omni-voice commands generate"));
     }
 
     #[test]

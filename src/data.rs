@@ -239,18 +239,6 @@ impl RepositoryView {
         }
     }
 
-    /// Serializes this view to YAML, calling [`update_field_presence`] first.
-    ///
-    /// Use this instead of calling `update_field_presence` followed by
-    /// `crate::data::to_yaml` separately.  Keeping the two steps together
-    /// prevents the explanation section from being stale in the output.
-    ///
-    /// [`update_field_presence`]: Self::update_field_presence
-    pub fn to_yaml_output(&mut self) -> anyhow::Result<String> {
-        self.update_field_presence();
-        yaml::to_yaml(self)
-    }
-
     /// Creates a minimal view containing a single commit for parallel dispatch.
     ///
     /// Strips metadata not relevant to per-commit AI analysis (versions,
@@ -285,6 +273,7 @@ impl RepositoryView {
     /// Same metadata stripping as [`Self::single_commit_view`] but with N commits.
     /// Used by the batching system to group commits into a single AI request.
     #[must_use]
+    #[allow(dead_code)] // Retained with the AI batching planner; see src/claude.rs `batch`.
     pub(crate) fn multi_commit_view(&self, commits: &[&CommitInfo]) -> Self {
         Self {
             versions: None,

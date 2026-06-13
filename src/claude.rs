@@ -1,6 +1,10 @@
 //! Claude API integration for commit message improvement.
 
 pub mod ai;
+// Retained for the AI client infrastructure that `voice reflect` reuses; the
+// commit-batching planner is currently exercised only by its own unit tests
+// now that the git commit/PR commands have been removed.
+#[allow(dead_code)]
 pub(crate) mod batch;
 pub mod client;
 pub mod context;
