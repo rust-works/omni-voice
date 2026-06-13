@@ -12,7 +12,6 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, bail, Context, Result};
 use chrono::{DateTime, Utc};
-use rustfft::{Fft, FftPlanner};
 use serde::{Deserialize, Serialize};
 use tract_onnx::prelude::*;
 
@@ -36,15 +35,12 @@ pub const MIN_EMBED_SAMPLES: usize = SAMPLE_RATE as usize / 2; // 0.5 s
 /// the struct field stays readable.
 type OnnxPlan = Arc<TypedSimplePlan>;
 
-/// In-memory `tract-onnx` model + precomputed mel filterbank + FFT plan.
+/// In-memory `tract-onnx` model + precomputed mel filterbank.
 ///
-/// `Send + Sync` because [`TypedSimplePlan`]'s `run` takes `&Arc<Self>` and
-/// the `Arc<dyn Fft<f32>>` from `rustfft` is also thread-safe.
+/// `Send + Sync` because [`TypedSimplePlan`]'s `run` takes `&Arc<Self>`.
 pub struct WespeakerEmbedder {
     plan: OnnxPlan,
     mel_filters: Vec<Vec<f32>>,
-    #[allow(dead_code)]
-    fft: Arc<dyn Fft<f32>>,
 }
 
 impl WespeakerEmbedder {
@@ -68,12 +64,7 @@ impl WespeakerEmbedder {
             .context("make wespeaker ONNX runnable")?;
         let mel_filters = build_mel_filterbank(NUM_MEL_BINS, FFT_SIZE, SAMPLE_RATE)
             .context("build wespeaker mel filterbank")?;
-        let fft = FftPlanner::<f32>::new().plan_fft_forward(FFT_SIZE);
-        Ok(Self {
-            plan,
-            mel_filters,
-            fft,
-        })
+        Ok(Self { plan, mel_filters })
     }
 
     /// Embeds a 16 kHz mono `i16` PCM window into a 256-dim

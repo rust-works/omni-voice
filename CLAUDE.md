@@ -4,25 +4,41 @@ This document provides guidance for AI assistants (particularly Claude) working 
 
 ## Project Overview
 
-omni-voice is a powerful Git commit message analysis and amendment toolkit written in Rust. It provides:
+omni-voice is a voice capture and processing CLI written in Rust. It records
+microphone audio, transcribes it, reflects on transcripts with an AI model,
+and reconciles the results into materialized notes. It provides:
 
-- Comprehensive commit analysis with YAML output
-- Branch-aware commit analysis 
-- Safe commit message amendment capabilities
-- GitHub integration for PR and remote information
-- Conventional commit detection and suggestions
+- Microphone capture to 16 kHz mono WAV (`voice capture`)
+- Speech-to-text transcription with selectable backends (`voice transcribe`)
+- Speaker enrollment and speaker-filtered transcription (`voice enroll`, `voice transcribe --speaker`)
+- AI-driven reflection over transcripts into structured events (`voice reflect`)
+- Session reconciliation into markdown artefacts with a TTL pass (`voice review`)
+- Model download/management for the Whisper and wespeaker variants (`voice install-model`)
+- Command-template generation for downstream tooling (`commands generate`)
+
+It is published to crates.io as both a library (`omni_voice`) and a binary
+(`omni-voice`).
 
 ## Key Files and Structure
 
 ### Core Source Files
 - `src/main.rs` - CLI entry point
-- `src/lib.rs` - Library exports
+- `src/lib.rs` - Library exports (`pub mod claude`, `cli`, `utils`, `voice`)
 - `src/cli/` - Command-line interface implementation
-- `src/cli/atlassian/` - Atlassian JIRA/Confluence CLI commands
-- `src/atlassian/` - Atlassian API client, ADF/JFM conversion, document format
-- `src/data/` - Data structures and YAML output formatting
-- `src/core/` - Core application logic
-- `src/utils/` - Utility functions
+  - `src/cli/commands.rs` - `commands generate` template management
+  - `src/cli/completions.rs` - shell completion generation
+  - `src/cli/help.rs` - `help-all` aggregated help (`HelpGenerator`)
+  - `src/cli/voice.rs` + `src/cli/voice/` - the `voice` subcommand tree
+    (`capture`, `transcribe`, `reflect`, `review`, `install-model`, `enroll`)
+- `src/voice/` - Voice subsystem: audio capture and WAV I/O, VAD/idle
+  detection, transcription backends (`backends/`, incl. candle Whisper),
+  speaker embedding (`speaker.rs`), sessions, reflection (`reflect/`),
+  reconciliation (`reconcile.rs`), and rendering
+- `src/claude/` - AI client infrastructure consumed by `voice reflect`: the
+  `AiClient` trait and provider backends (`ai/`), the backend-dispatch
+  factory (`client.rs`), the model registry (`model_config.rs`), and errors
+- `src/utils/` - Utility functions (`settings.rs`)
+- `src/templates/` - Embedded templates (`models.yaml`, command templates)
 
 ### Configuration
 - `Cargo.toml` - Rust package configuration and dependencies
@@ -35,6 +51,8 @@ omni-voice is a powerful Git commit message analysis and amendment toolkit writt
 - `CONTRIBUTING.md` - Contribution guidelines
 - `docs/STYLE_GUIDE.md` - Project conventions for code, documentation, and other artifacts
 - `docs/RELEASE.md` - Release process documentation
+- `docs/ai-backends.md` - AI backend selection, env vars, and troubleshooting
+- `docs/adrs/` - Architecture Decision Records
 - `docs/plan/` - Project planning and specifications
 
 ## Development Workflow
@@ -68,7 +86,7 @@ Common types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`
 ### Code Changes
 1. **Read Before Writing**: Always read existing files before making changes
 2. **Follow the Style Guide**: Before writing or reviewing code, documentation, or other project artifacts, consult [docs/STYLE_GUIDE.md](docs/STYLE_GUIDE.md). Use the task-to-tag lookup table at the top of the guide to identify relevant tags, then search for those tags (e.g., `grep "Tags:.*code-style" docs/STYLE_GUIDE.md`). Read and follow the matched rules. Do not skip this step.
-3. **Configuration Changes**: When modifying config loading or scope resolution, consult [docs/configuration-best-practices.md](docs/configuration-best-practices.md) and [docs/plan/config-internals.md](docs/plan/config-internals.md)
+3. **Configuration Changes**: When modifying config loading (e.g. `models.yaml` resolution or `src/utils/settings.rs`), consult [docs/configuration-best-practices.md](docs/configuration-best-practices.md) and [docs/plan/config-internals.md](docs/plan/config-internals.md)
 4. **Test Changes**: Run tests after modifications
 5. **CLI Surface Changes**: After any change to `src/cli/**`, `src/main.rs`, or any `#[derive(Parser)]` / `#[derive(Subcommand)]` / `#[arg(...)]` site, invoke the [`update-snapshots`](.claude/skills/update-snapshots/SKILL.md) skill to review and update `insta` golden snapshots — most often [tests/snapshots/integration_test__help_all_output.snap](tests/snapshots/integration_test__help_all_output.snap). Do **not** assume `cargo test` passing in isolation surfaces drift before you've inspected the new snapshot: golden tests fail loudly, but only after the full suite has run, and the fix (`cargo insta accept`) must only be applied when the diff matches the *intended* CLI change. If the diff contains anything you did not intend, investigate the regression instead of accepting.
 6. **Conventional Commits**: Use proper commit message format (see `.omni-voice/commit-guidelines.md`)
@@ -86,50 +104,21 @@ When preparing releases, follow the comprehensive guide in [docs/RELEASE.md](doc
 7. Create GitHub release
 8. Publish to crates.io
 
-### Understanding YAML Output
-The project generates structured YAML output with field presence tracking:
-
-- **Field Documentation**: Each output field is documented with presence indicators
-- **AI Guidance**: Look for `present: true` fields in the explanation section
-- **Dynamic Tracking**: The `update_field_presence()` method tracks which fields are available
-
-### AI Response Parsing - CRITICAL UNDERSTANDING
-**IMPORTANT**: When working with AI-generated responses in this project, understand the correct data structure:
-
-- **AI responses are VALID YAML** with `title` and `description` fields
-- **The `description` field VALUE contains markdown content**, including embedded code blocks
-- **Embedded ```yaml blocks are CONTENT, not structure** - they're part of the description string
-- **NEVER attempt to "unwrap" or extract content between markdown code fences**
-- **Use simple `content.trim()` parsing** - complex extraction logic breaks the YAML structure
-
-**Example of correct AI response structure**:
-```yaml
-title: "PR title here"
-description: |
-  # Section
-  
-  ```yaml
-  - some: nested content
-  ```
-  
-  This is all part of the description field value.
-```
-
-**Common Mistake**: Treating embedded ```yaml blocks as if they need extraction. They don't - they're just content within the description field.
-
-**Correct Approach**: Parse the entire response as YAML directly. The markdown formatting (including code blocks) is the intended content of the description field.
-
 ### AI Model Configuration
-The project includes a comprehensive model registry system:
+The project includes a model registry system used when `voice reflect`
+selects a backend model:
 
 - **Model Registry**: `src/claude/model_config.rs` manages AI model specifications
-- **Model Templates**: `src/templates/models.yaml` defines supported Claude models with token limits
+- **Model Templates**: `src/templates/models.yaml` defines supported models with token limits
 - **Fuzzy Matching**: Supports various identifier formats (Bedrock, AWS, regional)
-- **Configuration Commands**: Use `omni-voice config models show` to view available models
+- **Override**: The `--models-yaml <PATH>` global flag (or `OMNI_VOICE_MODELS_YAML`) short-circuits the standard `./.omni-voice/models.yaml` and `~/.omni-voice/models.yaml` lookup; the file is still merged over the embedded catalog
 - **Dynamic Limits**: Token limits are automatically applied based on model specifications
 
 ### AI Backend Dispatch
-Backends are selected inside `src/claude/client.rs::create_default_claude_client` in this order:
+`src/claude/client.rs::create_default_claude_client` returns a
+`Box<dyn AiClient>` selected from environment variables and global flags, in
+this order. `voice reflect` is the live consumer; it drives the returned
+client directly.
 
 1. `OMNI_VOICE_AI_BACKEND=claude-cli` (or `--ai-backend claude-cli`) → `ClaudeCliAiClient` in `src/claude/ai/claude_cli.rs`.
 2. `USE_OLLAMA=true` → `OpenAiAiClient::new_ollama` in `src/claude/ai/openai.rs`.
@@ -145,17 +134,13 @@ Dev-only notes:
 - `ClaudeCliAiClient::run` is the warn site for both escape hatches, the INFO-level `total_cost_usd` log, and the post-response WARN when reported cost exceeds the configured cap.
 - `--beta-header` is ignored for the `claude-cli` backend (`claude`'s `--betas` flag has different semantics).
 
-### Browser Bridge
-The `omni-voice browser bridge` command tree drives HTTP requests **through an authenticated browser tab** (Grafana/Loki, SSO-gated dashboards) without exfiltrating the browser's cookies/tokens — a *confused deputy by design*. It is a two-plane local server joined by an `id`-keyed correlator:
-
-- `src/cli/browser.rs` + `src/cli/browser/` — the CLI surface: `bridge serve` (`bridge.rs`, the long-lived server), `bridge request` (`request.rs`, the thin client), and `bridge harvest <platform> <object>` (`harvest.rs`, best-effort scrapers). Both clients send a `ControlRequest` to `POST /__bridge/request` via the shared `src/browser/client.rs::BridgeClient` rather than opening their own socket.
-- `src/browser/harvest/` — the harvest engines (`facebook.rs` = own-timeline pagination). These drive **reverse-engineered, undocumented** site internals: best-effort, re-harvest every volatile `doc_id`/token/provider flag per run (never hardcoded), fail with staged actionable errors on drift, and only ever use the connected tab's own session. The Facebook recipe is documented in [docs/browser-bridge.md](docs/browser-bridge.md) and issue #922.
-- `src/browser/bridge.rs` — server core: the HTTP control plane (axum, default `127.0.0.1:9998`), the WebSocket plane the browser connects to (default `127.0.0.1:9999`), the `Correlator` (per-`id` channel), the transparent proxy, and `dispatch`/`start_stream`.
-- `src/browser/protocol.rs` — the wire types (`ControlRequest`, `Command`, `BrowserReply`/`ResponseEnvelope`, the streaming `StreamItem`/`StreamLine`/`CancelCommand`, `StatusResponse`/`TabInfo`). New optional fields use `#[serde(default, skip_serializing_if = ...)]` to keep older clients byte-identical on the wire.
-- `src/browser/auth.rs` — the **load-bearing** security primitives: token generation/resolution, `constant_time_eq`, the `X-Omni-Bridge` / `X-Omni-Bridge-Target` header constants, Host/Origin/Sec-Fetch-Site guards, and `validate_outbound_url` (server-side outbound scope; the in-page snippet is never trusted).
-- `src/templates/browser-bridge.js` — the snippet pasted into the DevTools console (rendered by `src/browser/snippet.rs`); it reads `cmd.stream` / `cmd.credentials` and base64-encodes non-text bodies.
-
-The security model is **core, not an add-on**: both planes are authenticated and default-closed. When touching the trust boundary (auth guards, outbound scope, token handling, the planes), keep [ADR-0036](docs/adrs/adr-0036.md) and the operator guide [docs/browser-bridge.md](docs/browser-bridge.md) in sync. Changes to the CLI surface require the [`update-snapshots`](.claude/skills/update-snapshots/SKILL.md) skill (see Code Changes §5).
+### AI Response Parsing
+`voice reflect` prompts the model to emit YAML and parses it in
+`src/voice/reflect/validate.rs`: stage one deserialises the whole response
+with `serde_yaml::from_str` into an envelope, stage two validates the
+contained events. Parse the response **as YAML directly** — do not try to
+"unwrap" or extract content between markdown code fences; any embedded
+fenced blocks are content within a field value, not document structure.
 
 ### Skill Structure
 Claude skills are organized in `.claude/skills/`, one subdirectory per skill with a `SKILL.md` file.
@@ -164,7 +149,6 @@ Claude skills are organized in `.claude/skills/`, one subdirectory per skill wit
 Common git operations in this project:
 - `git log --format=%H` - Get commit hashes
 - `git show --stat <commit>` - Get diff summaries
-- `git branch -r --contains <commit>` - Check remote branch containment
 - `git status --porcelain` - Get working directory status
 
 ### Git Worktrees
@@ -174,13 +158,14 @@ New git worktrees should be created in the `.work/` directory of the current pro
 
 ### Test Types
 - **Unit Tests**: In `src/` files using `#[cfg(test)]`
-- **Integration Tests**: In `tests/` directory
+- **Integration Tests**: In `tests/` directory (CLI behaviour, voice pipelines)
 - **Golden Tests**: Using `insta` crate for snapshot testing
 
 ### Test Data
-- Temporary git repositories for integration tests
-- YAML fixtures for parsing tests
-- Golden files for output validation
+- Temporary directories for filesystem-touching tests (`tempfile`)
+- Audio/WAV fixtures under `tests/fixtures/voice/` for the voice pipelines
+- Golden files under `tests/snapshots/` for CLI output validation
+- Mock AI client (`src/claude/test_utils.rs`) for `voice reflect` tests
 
 ## Common Patterns
 
@@ -207,20 +192,11 @@ struct Data {
 }
 ```
 
-### Git Operations
-```rust
-use git2::Repository;
-
-let repo = Repository::open(".")?;
-let head = repo.head()?;
-let commit = head.peel_to_commit()?;
-```
-
 ## Troubleshooting
 
 ### Common Issues
 - **Clippy Warnings**: Use suggested fixes or add `#[allow(clippy::rule)]` with justification
-- **Test Failures**: Check for timing issues with git operations
+- **Test Failures**: Model-gated voice tests need installed models (`voice install-model`); check device/audio assumptions for capture tests
 - **YAML Formatting**: Ensure proper serialization attributes
 
 ### Debug Commands
@@ -238,7 +214,6 @@ cargo build --verbose
 ## References
 
 - [Rust Documentation](https://doc.rust-lang.org/)
-- [git2 Crate Documentation](https://docs.rs/git2/)
 - [Clap CLI Framework](https://docs.rs/clap/)
 - [Serde Serialization](https://serde.rs/)
 - [Release Process](docs/RELEASE.md) - Complete release workflow
