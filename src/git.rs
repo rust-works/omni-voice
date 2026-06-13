@@ -1,5 +1,12 @@
 //! Git operations and repository management.
 
+// The claude commit-analysis pipeline that consumed these types was removed
+// when `src/claude` was gutted to the AiClient/factory subset, leaving a few
+// crate-internal helpers without callers. This whole module is deleted in the
+// follow-up commit (#36 step 2); allow dead_code for the one-commit interim so
+// `clippy -D warnings` stays green.
+#![allow(dead_code)]
+
 pub mod commit;
 pub mod diff_split;
 pub mod pr;

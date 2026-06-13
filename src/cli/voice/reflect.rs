@@ -58,9 +58,7 @@ impl ReflectCommand {
                 bail!("transcript file does not exist: {}", p.display());
             }
         }
-        let ai = create_default_claude_client(None, None)
-            .await?
-            .into_ai_client();
+        let ai = create_default_claude_client(None, None).await?;
         let opts = ReflectOptions {
             source,
             ulid_rng: Box::new(SystemUlidRng),
