@@ -21,8 +21,6 @@
 
 pub mod claude;
 pub mod cli;
-pub mod data;
-pub mod git;
 pub mod utils;
 pub mod voice;
 

@@ -1,66 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use std::fs;
-
 use anyhow::Result;
-
-use omni_voice::data::amendments::AmendmentFile;
-
-#[test]
-fn amendment_file_parsing() -> Result<()> {
-    // Test that amendment file parsing works correctly
-    let tmp_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tmp");
-    let temp_dir = {
-        std::fs::create_dir_all(&tmp_root)?;
-        tempfile::tempdir_in(&tmp_root)?
-    };
-    let yaml_path = temp_dir.path().join("test_amendments.yaml");
-
-    // Create a test amendment file
-    let test_yaml = r#"
-amendments:
-  - commit: "1234567890abcdef1234567890abcdef12345678"
-    message: "Updated commit message 1"
-  - commit: "abcdef1234567890abcdef1234567890abcdef12"
-    message: "Updated commit message 2"
-"#;
-
-    fs::write(&yaml_path, test_yaml)?;
-
-    // Test loading the amendment file
-    let amendment_file = AmendmentFile::load_from_file(&yaml_path)?;
-    assert_eq!(amendment_file.amendments.len(), 2);
-
-    println!("✅ Amendment file parsing test passed");
-    Ok(())
-}
-
-#[test]
-fn amendment_validation() -> Result<()> {
-    // Test amendment validation
-    let tmp_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tmp");
-    let temp_dir = {
-        std::fs::create_dir_all(&tmp_root)?;
-        tempfile::tempdir_in(&tmp_root)?
-    };
-    let yaml_path = temp_dir.path().join("invalid_amendments.yaml");
-
-    // Test with invalid commit hash (too short)
-    let invalid_yaml = r#"
-amendments:
-  - commit: "12345"
-    message: "Short hash should fail"
-"#;
-
-    fs::write(&yaml_path, invalid_yaml)?;
-
-    // This should fail validation
-    let result = AmendmentFile::load_from_file(&yaml_path);
-    assert!(result.is_err());
-    println!("✅ Amendment validation test passed - invalid hash rejected");
-
-    Ok(())
-}
 
 #[test]
 fn help_all_golden() -> Result<()> {
