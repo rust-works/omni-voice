@@ -147,7 +147,7 @@ Pushing a `v*` tag triggers the following automated workflows:
 
 ### Release Workflow (`.github/workflows/release.yml`)
 - **Creates GitHub Release**: Automatically from the tag
-- **Builds Cross-Platform Binaries** (both `omni-voice` and `omni-voice-mcp` for each target):
+- **Builds Cross-Platform Binaries** (`omni-voice` for each target):
   - Linux (x86_64-unknown-linux-gnu)
   - macOS (aarch64-apple-darwin)
   - Windows (x86_64-pc-windows-msvc)
