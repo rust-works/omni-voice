@@ -369,9 +369,7 @@ Writing a commit message.
 
 Follow [`.omni-voice/commit-guidelines.md`](../.omni-voice/commit-guidelines.md) for the full
 specification including types, scopes, subject line rules, body guidelines, and breaking
-change conventions. See [`omni-voice-directory.md`](omni-voice-directory.md#commit-guidelinesmd)
-for the file's format contract, validation behaviour, and how it is resolved relative to
-local overrides and the global fallback.
+change conventions.
 
 The commit guidelines must themselves follow **Conventional Commits** and remain consistent
 with the scope definitions in `.omni-voice/scopes.yaml`:
@@ -1168,9 +1166,7 @@ After creating one or more commits and before pushing or opening a pull request.
 
 After every `git commit`, invoke the `commit-twiddle` skill to validate and fix the
 message against the guidelines in
-[`.omni-voice/commit-guidelines.md`](omni-voice-directory.md#commit-guidelinesmd). The skill
-calls `omni-voice git commit message view` to analyse the commit, then
-`omni-voice git commit message amend` to rewrite the message if needed.
+[`.omni-voice/commit-guidelines.md`](../.omni-voice/commit-guidelines.md).
 
 **Constraints to observe:**
 

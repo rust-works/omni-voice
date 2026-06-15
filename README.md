@@ -5,77 +5,57 @@
 [![Build Status](https://github.com/rust-works/omni-voice/workflows/CI/badge.svg)](https://github.com/rust-works/omni-voice/actions)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE)
 
-An intelligent Git commit message toolkit with AI-powered contextual
-intelligence. Transform messy commit histories into professional,
-conventional commit formats with project-aware suggestions.
+A voice capture and processing CLI written in Rust. Record from a microphone,
+transcribe speech to text, reflect on transcripts with an AI model, and
+reconcile the results into materialized notes.
 
-## 🎬 See It In Action
+## ✨ What it does
 
-[![asciicast](https://asciinema.org/a/eJJf5Aj8N26JoCaUsAFVH8dqz.svg)](https://asciinema.org/a/eJJf5Aj8N26JoCaUsAFVH8dqz)
+- 🎙️ **Capture** microphone audio to a 16 kHz mono WAV (`voice capture`)
+- 📝 **Transcribe** speech to text with selectable backends, including a local
+  `whisper-candle` runtime (`voice transcribe`)
+- 🧑‍🤝‍🧑 **Speaker enrollment** and speaker-filtered transcription
+  (`voice enroll`, `voice transcribe --speaker`)
+- 🤖 **Reflect** over a transcript with an AI model to emit structured
+  reflection events (`voice reflect`)
+- 🗂️ **Review** a session, reconciling its events into markdown with a TTL pass
+  (`voice review`)
+- 📦 **Model management** for the Whisper and wespeaker variants
+  (`voice install-model`)
 
-*Watch omni-voice transform messy commits into professional ones with AI-powered analysis*
-
-## 30-Second Demo
-
-Transform your commit messages and create professional PRs with AI intelligence:
-
-```bash
-# Analyze and improve commit messages in your current branch
-omni-voice git commit message twiddle 'origin/main..HEAD' --use-context
-
-# Before: "fix stuff", "wip", "update files"
-# After:  "feat(auth): implement OAuth2 authentication system"
-#         "docs(api): add comprehensive endpoint documentation"
-#         "fix(ui): resolve mobile responsive layout issues"
-
-# Create a professional PR with AI-generated description
-omni-voice git branch create pr
-# 🎉 Generates comprehensive PR with detailed description, testing info, and more
-```
-
-## ✨ Key Features
-
-- 🤖 **AI-Powered Intelligence**: Claude AI analyzes your code changes to
-  suggest meaningful commit messages and PR descriptions
-- 🧠 **Contextual Awareness**: Understands your project structure,
-  conventions, and work patterns
-- 🔍 **Comprehensive Analysis**: Deep analysis of commits, branches, and
-  file changes
-- ✏️ **Smart Amendments**: Safely improve single or multiple commit messages
-- 🚀 **PR Creation**: Generate professional pull requests with AI-powered
-  descriptions
-- 📦 **Automatic Batching**: Handles large commit ranges intelligently
-- 🎯 **Conventional Commits**: Automatic detection and formatting
-- 🌐 **Browser Bridge**: Drive HTTP requests through an authenticated browser
-  tab without exfiltrating cookies or tokens
-- 🛡️ **Safety First**: Working directory validation and error recovery
-- ⚡ **Fast & Reliable**: Built with Rust for memory safety and performance
-
-## 🚀 Quick Start
-
-### Installation
+## 🚀 Quick start
 
 ```bash
 # Install from crates.io
 cargo install omni-voice
 
-# Install with Nix
-nix profile install github:rust-works/omni-voice
+# …or build from source
+cargo build --release
 
-# Install with Nix flakes (development)
-nix run github:rust-works/omni-voice
+# …or with Nix
+nix profile install github:rust-works/omni-voice
 ```
 
-**Next step:** see [Getting Started](docs/getting-started.md) — a
-10-minute walkthrough from authentication to your first AI-improved
-commit. (For just the API-key reference, see
-[Authentication](docs/configuration.md#authentication).)
+Then run the pipeline:
 
-#### Shell Completion
+```bash
+# 1. Download the default Whisper model into ~/.omni-voice/voice/models/
+omni-voice voice install-model
+
+# 2. Record from the default microphone (stops after 5 s of silence)
+omni-voice voice capture --output recording.wav
+
+# 3. Transcribe the WAV (use the local Whisper backend)
+omni-voice voice transcribe recording.wav --backend whisper-candle
+```
+
+See **[Getting Started](docs/getting-started.md)** for the full
+capture → transcribe → reflect → review walkthrough.
+
+### Shell completion
 
 `omni-voice completions <shell>` prints a completion script to stdout for
-`bash`, `zsh`, `fish`, `powershell`, or `elvish`. The quickest path is bash
-per-user:
+`bash`, `zsh`, `fish`, `powershell`, or `elvish`:
 
 ```bash
 # Add to ~/.bashrc:
@@ -83,628 +63,99 @@ eval "$(omni-voice completions bash)"
 ```
 
 See [docs/shell-completion.md](docs/shell-completion.md) for per-shell install
-recipes, the `$fpath`/`compinit` setup zsh requires, and troubleshooting.
-
-## 📋 Core Commands
-
-### 🤖 AI-Powered Commit Improvement (`twiddle`)
-
-The star feature - intelligently improve your commit messages with real-time model information display:
-
-```bash
-# Improve commits with contextual intelligence
-omni-voice git commit message twiddle 'origin/main..HEAD' --use-context
-
-# Process large commit ranges with parallel processing
-omni-voice git commit message twiddle 'HEAD~20..HEAD' --concurrency 5
-
-# Save suggestions to file for review
-omni-voice git commit message twiddle 'HEAD~5..HEAD' \
-  --save-only suggestions.yaml
-
-# Auto-apply improvements without confirmation
-omni-voice git commit message twiddle 'HEAD~3..HEAD' --auto-apply
-```
-
-### 🔍 Analysis Commands
-
-```bash
-# Analyze commits in detail (YAML output)
-omni-voice git commit message view 'HEAD~3..HEAD'
-
-# Analyze current branch vs main
-omni-voice git branch info main
-
-# Get comprehensive help
-omni-voice help-all
-```
-
-### 🚀 AI-Powered PR Creation
-
-Create professional pull requests with AI-generated descriptions:
-
-```bash
-# Generate and create PR with AI-powered description
-omni-voice git branch create pr
-
-# Create PR with specific base branch
-omni-voice git branch create pr main
-
-# Save PR details to file without creating
-omni-voice git branch create pr --save-only pr-description.yaml
-
-# Auto-create without confirmation
-omni-voice git branch create pr --auto-apply
-```
-
-### 📝 Atlassian Integration
-
-Read, write, and manage JIRA issues and Confluence pages from the command line:
-
-```bash
-# Authenticate with Atlassian Cloud
-omni-voice atlassian auth login
-
-# Check authentication status
-omni-voice atlassian auth status
-
-# Fetch a JIRA issue as markdown
-omni-voice atlassian jira read PROJ-123
-
-# Fetch as raw ADF JSON
-omni-voice atlassian jira read PROJ-123 --format adf
-
-# Push markdown changes back to JIRA
-omni-voice atlassian jira write PROJ-123 issue.md
-
-# Interactive edit: fetch, edit in $EDITOR, push
-omni-voice atlassian jira edit PROJ-123
-
-# Search issues with JQL
-omni-voice atlassian jira search --project PROJ --status Open
-
-# Create an issue
-omni-voice atlassian jira create issue.md --project PROJ --summary "Fix bug"
-
-# Transition an issue
-omni-voice atlassian jira transition PROJ-123 "In Progress"
-
-# Confluence: read, search, create pages
-omni-voice atlassian confluence read 12345
-omni-voice atlassian confluence search --space ENG --title auth
-omni-voice atlassian confluence create page.md --space ENG --title "New Page"
-
-# Convert markdown to ADF JSON (offline)
-omni-voice atlassian convert to-adf input.md
-```
-
-### 📊 Datadog Integration (read-only)
-
-Authenticate against the Datadog API and query metrics, monitors, dashboards,
-logs, events, SLOs, hosts, and downtimes. See the [Datadog integration
-guide](docs/datadog.md) for the full subcommand reference, authentication
-setup, rate-limit behaviour, and troubleshooting.
-
-```bash
-# Configure Datadog API credentials (prompts for API key, APP key, and site)
-omni-voice datadog auth login
-
-# Verify the credentials by calling /api/v1/validate
-omni-voice datadog auth status
-
-# Query metrics, monitors, dashboards, logs, and SLOs
-omni-voice datadog metrics query --query 'avg:system.cpu.user{*}' --from 15m
-omni-voice datadog monitor list --tags env:prod
-omni-voice datadog dashboard list
-omni-voice datadog logs search --filter 'service:api status:error' --from 1h
-omni-voice datadog slo list --tags team:platform
-```
-
-`DATADOG_SITE` defaults to `datadoghq.com`. Other regions (`datadoghq.eu`,
-`us3.datadoghq.com`, `us5.datadoghq.com`, `ap1.datadoghq.com`, `ddog-gov.com`)
-are recognised without warning. Environment variables `DATADOG_API_KEY`,
-`DATADOG_APP_KEY`, `DATADOG_SITE` override the stored settings. For on-prem
-or proxied installs, set `DATADOG_API_URL` to override the site-derived URL.
-
-All Datadog subcommands are also exposed as MCP tools (`datadog_*`) — see
-[docs/mcp.md](docs/mcp.md#datadog-14-tools). For the full guide covering
-every family with worked examples, see [docs/datadog.md](docs/datadog.md).
-
-### 🎙️ Transcript Fetching
-
-Pull captions and transcripts from external media platforms. YouTube is the
-first supported source; the CLI namespace and library are designed so
-additional sources (Vimeo, podcast RSS, generic VTT/SRT URLs) can be
-added without restructuring. See [docs/transcript.md](docs/transcript.md)
-for the full reference and the recipe for adding a new source.
-
-```bash
-# Fetch captions for a YouTube video as SubRip (default).
-omni-voice transcript youtube fetch https://www.youtube.com/watch?v=jNQXAC9IVRw
-
-# WebVTT to a file, falling through to auto-generated captions if needed.
-omni-voice transcript youtube fetch jNQXAC9IVRw \
-  --format vtt --auto --output me-at-the-zoo.vtt
-
-# Synthesise a translated track when no native French track exists.
-omni-voice transcript youtube fetch <url> --lang fr --translate fr
-
-# List available caption tracks (manual + auto-generated).
-omni-voice transcript youtube list-langs <url>
-
-# Show video metadata (title, channel, duration, languages).
-omni-voice transcript youtube info <url> --output json
-```
-
-`--format` accepts `srt`, `vtt`, `txt`, or `json`. Locators may be a
-`watch?v=` URL, a `youtu.be/` short URL, a `/shorts/` or `/embed/` URL,
-or a bare 11-character video ID. Age-gated and login-required videos
-surface as a typed `PlayabilityRefused` error carrying YouTube's status
-code rather than a generic HTTP failure.
-
-### 🌐 Browser Bridge
-
-Drive HTTP requests **through an authenticated browser tab**. When you are
-investigating internal services (Grafana/Loki, internal dashboards, SSO-gated
-admin panels), the browser already holds sessions — SSO, OAuth, cookies — that
-are hard to replicate programmatically. The bridge issues requests inside the
-browser's authenticated context **without exfiltrating cookies or tokens** (a
-*confused deputy by design*). Both planes are authenticated and default-closed;
-see [docs/browser-bridge.md](docs/browser-bridge.md) for the full guide and
-[ADR-0036](docs/adrs/adr-0036.md) for the security rationale.
-
-```bash
-# Start the bridge; it prints the bound ports, a session token, and a JS
-# snippet to paste into the DevTools console of the authenticated tab.
-omni-voice browser bridge serve
-
-# Drive requests through the tab (token from the bridge's stdout).
-export OMNI_BRIDGE_TOKEN=<token printed by the bridge>
-omni-voice browser bridge request --url /loki/api/v1/labels
-
-# POST a JSON payload from a file, with a custom header.
-omni-voice browser bridge request --url /api/foo --method POST \
-  --body @payload.json --header "Accept: application/json"
-
-# Stream a long-lived endpoint (SSE / chunked) instead of buffering.
-omni-voice browser bridge request --url /api/events --stream
-
-# Route to a specific tab when several are connected (by id or origin).
-omni-voice browser bridge request --url /api/foo --target https://grafana.internal
-```
-
-Supports binary and streaming response bodies, multi-tab routing via
-`X-Omni-Bridge-Target`, per-request `--credentials` and `--allow-origin`
-overrides, and a transparent proxy for tools that speak plain HTTP.
-
-### ✏️ Manual Amendment
-
-```bash
-# Apply specific amendments from YAML file
-omni-voice git commit message amend amendments.yaml
-```
-
-### 🧩 Claude Code Slash-Commands
-
-Generate ready-to-use Claude Code slash-command templates into the
-project's `.claude/commands/` directory. Each template is a self-contained
-workflow that drives a multi-step omni-voice operation from inside a Claude
-Code session.
-
-```bash
-# Generate all templates: commit-twiddle, pr-create, pr-update
-omni-voice commands generate all
-
-# Or individually
-omni-voice commands generate commit-twiddle
-omni-voice commands generate pr-create
-omni-voice commands generate pr-update
-```
-
-Each subcommand writes `.claude/commands/<name>.md`. Commit the files to
-share the workflows with collaborators — Claude Code picks them up
-automatically, so anyone in the repo can invoke `/commit-twiddle`,
-`/pr-create`, or `/pr-update` inside a Claude Code session. See the
-[user guide](docs/user-guide.md#commands-generate--generate-claude-code-slash-commands)
-for the full reference.
-
-### 🗒️ Claude Conversation History
-
-Export your Claude Code chat history to a directory of `.jsonl` files for
-behavioural analysis, work-log generation, or downstream tooling. Re-running
-acts as an idempotent sync: new chats are added, modified chats are
-overwritten, unchanged chats are skipped.
-
-```bash
-# Mirror ~/.claude/projects to ./history/ (one .jsonl per chat, grouped by project slug)
-omni-voice ai claude history sync --target ./history
-
-# Limit to one project (encoded slug or decoded cwd path)
-omni-voice ai claude history sync --target ./history --project /Users/me/work/repo
-
-# Only sessions touched in the last week
-omni-voice ai claude history sync --target ./history --since 7d
-
-# Preview without writing, then prune target files for sessions removed upstream
-omni-voice ai claude history sync --target ./history --dry-run --prune
-
-# Render LLM-friendly markdown alongside the raw jsonl (one .md per session)
-omni-voice ai claude history sync --target ./history --output-format jsonl,markdown
-
-# Markdown only — suitable for piping into a coaching LLM
-omni-voice ai claude history sync --target ./history --output-format markdown
-```
-
-The export is a **behavioural transcript**, not a faithful archive. The
-top-level session jsonl captures all prompts, responses, thinking blocks, tool
-calls, and tool-result metadata — the signal needed for analysis. Sub-agent
-internal turns, large tool-output sidecars, PDF page rasters, and Claude's
-auto-memory are deliberately excluded; they would bloat any LLM-ingested
-corpus without adding interaction-pattern signal.
-
-In-progress chats produce a valid jsonl prefix (the source size is captured
-once at the start of the copy), so you can sync safely while a chat is open.
-The target layout mirrors the source — `<target>/<slug>/<uuid>.jsonl` — and
-source `mtime` is preserved on each target file so downstream tooling can
-sort sessions chronologically without parsing every file.
-
-`--output-format markdown` writes a derived `<target>/<slug>/<uuid>.md`
-alongside (or instead of) the jsonl. Each markdown file has YAML frontmatter
-with session metadata followed by `## User` / `## Assistant` turns; tool calls
-render as `### Tool call: <name>` blocks, thinking blocks collapse into
-`<details>`, and sub-agent (`Agent`) calls render the prompt argument only.
-
-Agent-to-user interactions are surfaced as first-class structured events so
-the analyst LLM sees what was actually asked and how the user responded:
-
-- `AskUserQuestion` calls render as `### Agent question: <header>` with the
-  question text and a bulleted list of options (with descriptions); the
-  paired user reply renders as `## User response`.
-- Tool denials show up as `**Tool result (<tool>, denied by user):**` —
-  detected by the canonical "The user doesn't want to proceed with this tool
-  use" sentinel Claude Code stuffs into the next `tool_result`.
-- Tool interrupts (escape mid-execution) render as
-  `**Tool result (<tool>, interrupted by user):**`.
-- Errors (real tool failures, distinct from user denials) keep the
-  `error` label; successes use `ok`.
-
-System reminders, attachments, and permission-mode events are included by
-default — pass `--exclude-system` to drop them. Markdown idempotency keys off
-source mtime alone (the rendered length differs from the source length), and
-`--prune` only deletes artifacts whose extension matches one of the formats
-listed in `--output-format`.
-
-See [docs/user-guide.md#ai-claude-history-sync--export-conversation-history](docs/user-guide.md#ai-claude-history-sync--export-conversation-history)
-for the in-depth reference, and the broader [Claude Code Integration](docs/user-guide.md#claude-code-integration)
-section for related commands (`ai chat`, `ai claude skills`).
-
-### 🔌 MCP Server
-
-omni-voice ships an optional **Model Context Protocol** server so AI assistants
-(Claude Desktop, Claude Code, the MCP Inspector, custom agents) can call
-omni-voice over stdio instead of shelling out to the CLI. The server is
-delivered as a second binary, `omni-voice-mcp`, gated behind the `mcp` Cargo
-feature (see [ADR-0021](docs/adrs/adr-0021.md)).
-
-Tools cover six domains:
-
-| Domain | Examples |
-|--------|----------|
-| **Git** (5) | `git_view_commits`, `git_branch_info`, `git_check_commits`, `git_twiddle_commits`, `git_create_pr` |
-| **JIRA** (28) | core read/write/search/transition/comment/link/dev/delete; sprints, boards, watchers, worklogs, fields, attachments, projects, changelog |
-| **Confluence** (13) | read/write/search/create/delete/download/children, comments, labels, user search |
-| **Atlassian shared** (2) | `atlassian_auth_status`, `atlassian_convert` (offline JFM ↔ ADF) |
-| **Datadog** (14) | metrics, monitors, dashboards, logs, events, SLOs, hosts, downtimes, metrics catalog |
-| **AI / Config** (5) | `ai_chat` (one-shot chat), `claude_skills_*` (sync / clean / status for `.claude/skills/` distribution), `config_models_show` |
-
-Resources exposed via URI templates:
-
-| URI template                    | Returns                          |
-|---------------------------------|----------------------------------|
-| `git://repo/commits/{range}`    | YAML commit analysis             |
-| `jira://issue/{key}`            | JIRA issue as JFM                |
-| `jira://issue/{key}.adf`        | JIRA issue body as ADF           |
-| `confluence://page/{id}`        | Confluence page as JFM           |
-| `confluence://page/{id}.adf`    | Confluence page body as ADF      |
-| `omni-voice://specs/{name}`       | Embedded reference specs (e.g. `jfm`) |
-
-See [docs/mcp.md](docs/mcp.md) for the full tool catalog, resource
-reference, cross-cutting parameters (`output_file`, `confirm`), and
-troubleshooting.
-
-#### Install
-
-```bash
-cargo install omni-voice --features mcp
-```
-
-This adds a second binary, `omni-voice-mcp`, alongside the regular `omni-voice`
-CLI. The default `cargo install omni-voice` build is unchanged — no MCP
-dependencies are pulled in unless the `mcp` feature is enabled.
-
-#### Claude Desktop
-
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json` on
-macOS (or `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
-
-```json
-{
-  "mcpServers": {
-    "omni-voice": {
-      "command": "omni-voice-mcp"
-    }
-  }
-}
-```
-
-#### Claude Code
-
-Per-project — create `.mcp.json` at the repo root:
-
-```json
-{
-  "mcpServers": {
-    "omni-voice": {
-      "command": "omni-voice-mcp"
-    }
-  }
-}
-```
-
-Or register globally with the Claude Code CLI:
-
-```bash
-claude mcp add omni-voice omni-voice-mcp
-```
-
-#### Smoke-test with the MCP Inspector
-
-```bash
-npx @modelcontextprotocol/inspector omni-voice-mcp
-```
-
-The Inspector opens a browser UI where you can list tools and resources,
-call any tool interactively, and fetch resources against the current working
-directory.
-
-For troubleshooting (stderr logs, `RUST_LOG=debug`, "failed to open git
-repository"), see [docs/mcp.md#troubleshooting](docs/mcp.md#troubleshooting).
-
-### ⚙️ Configuration Commands
-
-```bash
-# Show supported AI models and their specifications
-omni-voice config models show
-
-# View model information with token limits and capabilities
-omni-voice config models show | grep -A5 "claude-opus-4.1"
-```
-
-## 🧠 Contextual Intelligence
-
-omni-voice understands your project context to provide better suggestions:
-
-### Project Configuration
-
-Create `.omni-voice/` directory in your repo root:
-
-```bash
-mkdir .omni-voice
-```
-
-#### Scope Definitions (`.omni-voice/scopes.yaml`)
-
-```yaml
-scopes:
-  - name: "auth"
-    description: "Authentication and authorization systems"
-    examples: ["auth: add OAuth2 support", "auth: fix token validation"]
-    file_patterns: ["src/auth/**", "auth.rs"]
-  
-  - name: "api"
-    description: "REST API endpoints and handlers"  
-    examples: ["api: add user endpoints", "api: improve error responses"]
-    file_patterns: ["src/api/**", "handlers/**"]
-```
-
-#### Commit Guidelines (`.omni-voice/commit-guidelines.md`)
-
-```markdown
-# Project Commit Guidelines
-
-## Format
-- Use conventional commits: `type(scope): description`
-- Keep subject line under 50 characters
-- Use imperative mood: "Add feature" not "Added feature"
-
-## Our Scopes
-- `auth` - Authentication systems
-- `api` - REST API changes
-- `ui` - Frontend/UI components
-```
-
-## 🎯 Advanced Features
-
-### Intelligent Context Detection
-
-omni-voice automatically detects:
-
-- **Project Conventions**: From `.omni-voice/`, `CONTRIBUTING.md`
-- **Work Patterns**: Feature development, bug fixes, documentation,
-  refactoring
-- **Branch Context**: Extracts work type from branch names
-  (`feature/auth-system`)
-- **File Architecture**: Understands UI, API, core logic, configuration
-  changes
-- **Change Significance**: Adjusts detail level based on impact
-
-### Automatic Batching
-
-Large commit ranges are automatically split into manageable batches:
-
-```bash
-# Processes 50 commits in batches of 4 (default)
-omni-voice git commit message twiddle 'HEAD~50..HEAD' --use-context
-
-# Custom concurrency for very large ranges
-omni-voice git commit message twiddle 'main..HEAD' --concurrency 2
-```
-
-### Command Options
-
-| Option | Description | Example |
-|--------|-------------|---------|
-| `--use-context` | Enable contextual intelligence | `--use-context` |
-| `--concurrency N` | Number of parallel commit processors (default: 4) | `--concurrency 3` |
-| `--no-coherence` | Skip cross-commit coherence refinement pass | `--no-coherence` |
-| `--context-dir PATH` | Custom context directory | `--context-dir ./config` |
-| `--auto-apply` | Apply without confirmation | `--auto-apply` |
-| `--save-only FILE` | Save to file without applying | `--save-only fixes.yaml` |
-
-## 📖 Real-World Examples
-
-### Before & After
-
-**Before**: Messy commit history
-
-```text
-e4b2c1a fix stuff
-a8d9f3e wip
-c7e1b4f update files
-9f2a6d8 more changes
-```
-
-**After**: Professional commit messages
-
-```text
-e4b2c1a feat(auth): implement JWT token validation system
-a8d9f3e docs(api): add comprehensive OpenAPI documentation
-c7e1b4f fix(ui): resolve mobile responsive layout issues
-9f2a6d8 refactor(core): optimize database query performance
-```
-
-### Workflow Integration
-
-```bash
-# 1. Work on your feature branch
-git checkout -b feature/user-dashboard
-
-# 2. Make commits (don't worry about perfect messages)
-git commit -m "wip"
-git commit -m "fix stuff"
-git commit -m "add more features"
-
-# 3. Before merging, improve all commit messages
-omni-voice git commit message twiddle 'main..HEAD' --use-context
-
-# 4. Create professional PR with AI-generated description
-omni-voice git branch create pr
-
-# ✅ Professional commit history + comprehensive PR description ready for review
-```
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Development Setup
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/rust-works/omni-voice.git
-   cd omni-voice
-   ```
-
-2. Install Rust (if you haven't already):
-
-   ```bash
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-   ```
-
-3. Build the project:
-
-   ```bash
-   cargo build
-   ```
-
-4. Run the build script (includes tests, linting, and formatting):
-
-   ```bash
-   ./scripts/build.sh
-   ```
-
-   Or run individual steps:
-
-   ```bash
-   cargo test         # Run tests
-   cargo clippy       # Run linting
-   cargo fmt          # Format code
-   ```
-
-## 📚 Documentation
-
-- **[Getting Started](docs/getting-started.md)** - 10-minute walkthrough
-  from install to first AI-improved commit (start here)
-- **[User Guide](docs/user-guide.md)** - Comprehensive usage guide with examples
-- **[Configuration Guide](docs/configuration.md)** - Set up contextual
-  intelligence
-- **[API Documentation](https://docs.rs/omni-voice)** - Rust API reference
-- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and
-  solutions
-- **[Examples](docs/examples.md)** - Real-world usage examples
-- [Release Process](docs/RELEASE.md) - For contributors
-
-## 🔧 Requirements
-
-- **Rust**: 1.80+ (for installation from source)
-- **Claude API Key**: Required for AI-powered features
-  - See [Authentication](docs/configuration.md#authentication) for
-    setup (env var, `.env`, or CI/CD secrets)
-- **AI Model Selection**: Optional configuration for specific Claude models
-  - View available models: `omni-voice config models show`
-  - Configure via `~/.omni-voice/settings.json` or `ANTHROPIC_MODEL` environment variable
-  - Supports standard identifiers and Bedrock-style formats
-- **Atlassian Credentials** (for JIRA/Confluence features): Instance URL, email, and
-  [API token](https://id.atlassian.com/manage-profile/security/api-tokens)
-  - Configure with: `omni-voice atlassian auth login`
-- **Datadog Credentials** (for Datadog features): API key, application key, and site
-  - Configure with: `omni-voice datadog auth login`
-- **Git**: Any modern version
-
-### AI backend selection
-
-omni-voice supports five AI backends, selected by env var or the
-`--ai-backend` flag (priority order, first match wins):
+recipes and the `$fpath`/`compinit` setup zsh requires.
+
+## 📋 Commands
+
+| Command | Purpose |
+|---------|---------|
+| `voice capture` | Record microphone audio to a 16 kHz mono WAV |
+| `voice transcribe <WAV>` | Transcribe a 16 kHz mono WAV to JSONL or markdown |
+| `voice reflect [TRANSCRIPT]` | Reflect on a transcript and emit reflection events (needs an AI backend) |
+| `voice review <SESSION_ID>` | Reconcile a session's events into materialized markdown |
+| `voice install-model` | Download model files (Whisper tiny.en, or wespeaker for speaker embedding) |
+| `voice enroll` | Capture a sample and persist a speaker embedding |
+| `commands generate` | Generate Claude Code command templates |
+| `completions <shell>` | Print a shell completion script |
+| `help-all` | Print comprehensive help for every command |
+
+See the **[User Guide](docs/user-guide.md)** for the full reference, options,
+and examples.
+
+## 🤖 AI backend selection
+
+`voice reflect` is the only command that calls an AI model. The backend is
+selected by environment variable or the `--ai-backend` flag (priority order,
+first match wins):
 
 1. `--ai-backend claude-cli` / `OMNI_VOICE_AI_BACKEND=claude-cli` — sandboxed
    `claude -p` subprocess that reuses your Claude Code session.
 2. `USE_OLLAMA=true` — local Ollama or LM Studio server.
 3. `USE_OPENAI=true` — OpenAI Chat Completions API.
 4. `CLAUDE_CODE_USE_BEDROCK=true` — AWS Bedrock.
-5. *(default)* direct Anthropic API.
+5. *(default)* — direct Anthropic API.
 
 See the **[AI Backends Guide](docs/ai-backends.md)** for required env vars,
 model selection, the Claude CLI sandbox and its escape hatches
-(`--claude-cli-allow-tools`, `--claude-cli-allow-mcp`), the
-`--claude-cli-max-budget-usd` spending cap, and per-backend troubleshooting.
+(`--claude-cli-allow-tools`, `--claude-cli-allow-mcp`), and the
+`--claude-cli-max-budget-usd` spending cap.
+
+## 🔧 Requirements
+
+- **Rust**: 1.80+ (to build or install from source)
+- **A microphone** for `voice capture` / `voice enroll`
+- **Model files** for real transcription — `omni-voice voice install-model`
+  downloads them into `~/.omni-voice/voice/models/`. The default `mock`
+  transcriber backend needs no model.
+- **An AI backend** for `voice reflect` only — see
+  [AI backend selection](#-ai-backend-selection) above. The other commands run
+  entirely offline.
 
 ## 🐛 Debugging
 
-For troubleshooting and detailed logging, use the `RUST_LOG` environment variable:
+Use the `RUST_LOG` environment variable for detailed logging:
 
 ```bash
-# Enable debug logging for omni-voice components
-RUST_LOG=omni_voice=debug omni-voice git commit message twiddle ...
+# Debug logging for omni-voice
+RUST_LOG=omni_voice=debug omni-voice voice transcribe recording.wav
 
-# Debug specific modules (e.g., context discovery)  
-RUST_LOG=omni_voice::claude::context::discovery=debug omni-voice git commit message twiddle ...
-
-# Show only errors and warnings
-RUST_LOG=warn omni-voice git commit message twiddle ...
+# Errors and warnings only
+RUST_LOG=warn omni-voice voice capture
 ```
 
-See [Troubleshooting Guide](docs/troubleshooting.md) for detailed debugging information.
+See the [Troubleshooting Guide](docs/troubleshooting.md) for common issues.
+
+## Contributing
+
+Contributions are welcome — see the [Contributing Guidelines](CONTRIBUTING.md).
+
+### Development setup
+
+```bash
+git clone https://github.com/rust-works/omni-voice.git
+cd omni-voice
+./scripts/build.sh   # build + test + clippy + fmt (recommended)
+```
+
+Or run the individual steps:
+
+```bash
+cargo test     # run tests
+cargo clippy   # lint
+cargo fmt      # format
+```
+
+## 📚 Documentation
+
+- **[Getting Started](docs/getting-started.md)** — install to first reconciled session
+- **[User Guide](docs/user-guide.md)** — full command reference with examples
+- **[AI Backends](docs/ai-backends.md)** — backend selection and setup for `voice reflect`
+- **[ASR Backends](docs/asr-backends.md)** — transcriber backends and runtime choices
+- **[Shell Completion](docs/shell-completion.md)** — per-shell completion install
+- **[Troubleshooting](docs/troubleshooting.md)** — common issues and solutions
+- **[Architecture Decision Records](docs/adrs/README.md)** — design rationale
+- **[API Documentation](https://docs.rs/omni-voice)** — Rust API reference
+- **[Release Process](docs/RELEASE.md)** — for contributors
 
 ## Changelog
 
@@ -712,7 +163,7 @@ See [CHANGELOG.md](CHANGELOG.md) for a list of changes in each version.
 
 ## License
 
-This project is licensed under the BSD 3-Clause License - see the
+This project is licensed under the BSD 3-Clause License — see the
 [LICENSE](LICENSE) file for details.
 
 ## Support

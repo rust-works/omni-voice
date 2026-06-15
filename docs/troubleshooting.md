@@ -1,977 +1,124 @@
 # Troubleshooting Guide
 
-Common issues and solutions when using omni-voice.
+Common issues when running the omni-voice pipeline (capture → transcribe →
+reflect → review) and how to resolve them. For installation and a guided
+walkthrough see [Getting Started](getting-started.md); for the full command
+reference see the [User Guide](user-guide.md#command-reference).
 
-## Table of Contents
+## Quick diagnosis
 
-1. [Installation Issues](#installation-issues)
-2. [API Key Problems](#api-key-problems)
-3. [Configuration Issues](#configuration-issues)
-4. [Commit Analysis Problems](#commit-analysis-problems)
-5. [Performance Issues](#performance-issues)
-6. [Git Repository Issues](#git-repository-issues)
-7. [Command Line Issues](#command-line-issues)
-8. [Atlassian Integration Issues](#atlassian-integration-issues)
-9. [Datadog Integration Issues](#datadog-integration-issues)
-10. [MCP Server Issues](#mcp-server-issues)
-11. [`claude-cli` Backend Issues](#claude-cli-backend-issues)
-12. [Getting Help](#getting-help)
-
-## Installation Issues
-
-### Error: `cargo install omni-voice` fails
-
-**Symptom**: Installation fails with compilation errors.
-
-**Common Causes & Solutions**:
-
-1. **Rust Version Too Old**
-
-   ```bash
-   # Check Rust version
-   rustc --version
-   
-   # Update Rust (need 1.80+)
-   rustup update
-   ```
-
-2. **Missing System Dependencies**
-
-   ```bash
-   # macOS
-   xcode-select --install
-   
-   # Ubuntu/Debian
-   sudo apt update
-   sudo apt install build-essential pkg-config libssl-dev
-   
-   # CentOS/RHEL
-   sudo yum groupinstall "Development Tools"
-   sudo yum install openssl-devel
-   ```
-
-3. **Network Issues**
-
-   ```bash
-   # Use alternative registry
-   cargo install omni-voice --registry crates-io
-   
-   # Or build from source
-   git clone https://github.com/rust-works/omni-voice.git
-   cd omni-voice
-   cargo build --release
-   ```
-
-### Error: `omni-voice: command not found`
-
-**Symptom**: Command not found after installation.
-
-**Solution**: Add Cargo bin directory to PATH:
+Turn on logging to see what a command is doing:
 
 ```bash
-# Add to your shell profile (.bashrc, .zshrc, etc.)
-export PATH="$HOME/.cargo/bin:$PATH"
-
-# Reload shell or run:
-source ~/.bashrc  # or ~/.zshrc
+RUST_LOG=omni_voice=debug omni-voice voice transcribe recording.wav
 ```
 
-## API Key Problems
+`RUST_LOG=warn` shows only warnings and errors; `RUST_LOG=trace` is the most
+verbose.
 
-> For first-time setup, see
-> [Authentication](configuration.md#authentication). The errors below
-> cover failure modes after setup.
+## Transcription
 
-### Error: `CLAUDE_API_KEY not found`
+### `transcribe` produces placeholder / nonsense text
 
-**Symptom**:
-
-```
-Error: Claude API key not found
-  Caused by: API key not found
-```
-
-**Solutions**:
-
-1. **Set Environment Variable**
-
-   The Anthropic backend accepts any of `CLAUDE_API_KEY`,
-   `ANTHROPIC_API_KEY`, or `ANTHROPIC_AUTH_TOKEN` (first match wins).
-
-   ```bash
-   export CLAUDE_API_KEY="your-api-key-here"
-   
-   # Make permanent
-   echo 'export CLAUDE_API_KEY="your-key"' >> ~/.bashrc
-   source ~/.bashrc
-   ```
-
-2. **Verify Key Format**
-
-   ```bash
-   # Should start with "sk-ant-api03-"
-   echo $CLAUDE_API_KEY | head -c 20
-   ```
-
-3. **Check for Hidden Characters**
-
-   ```bash
-   # Remove whitespace/newlines
-   export CLAUDE_API_KEY="$(echo $CLAUDE_API_KEY | tr -d '[:space:]')"
-   ```
-
-### Error: `API request failed: HTTP 401`
-
-**Symptom**: Authentication failed.
-
-**Causes & Solutions**:
-
-1. **Invalid API Key**
-   - Get new key from [Anthropic Console](https://console.anthropic.com/)
-   - Ensure key is active and not expired
-
-2. **Wrong Key Format**
-
-   ```bash
-   # API key should look like:
-   sk-ant-api03-abcd1234...
-   ```
-
-3. **Account Issues**
-   - Check account status at Anthropic Console
-   - Ensure billing/credits are available
-
-### Error: `API request failed: HTTP 429`
-
-**Symptom**: Rate limited.
-
-**Solutions**:
-
-1. **Reduce Concurrency**
-
-   ```bash
-   # Lower parallel requests
-   omni-voice git commit message twiddle 'HEAD~10..HEAD' --concurrency 1
-   ```
-
-2. **Wait and Retry**
-   - Wait a few minutes between large requests
-   - Rate limits reset over time
-
-3. **Upgrade API Tier**
-   - Check rate limits in Anthropic Console
-   - Consider upgrading account tier
-
-## Configuration Issues
-
-### Error: Scopes not detected
-
-**Symptom**: omni-voice doesn't use project-specific scopes.
-
-**Debugging Steps**:
-
-1. **Check Directory Structure**
-
-   ```bash
-   ls -la .omni-voice/
-   # Should show: scopes.yaml, commit-guidelines.md
-   ```
-
-2. **Validate YAML Syntax**
-
-   ```bash
-   # Check YAML is valid
-   python -c "import yaml; yaml.safe_load(open('.omni-voice/scopes.yaml'))"
-   
-   # Or use online YAML validator
-   ```
-
-3. **Test File Patterns**
-
-   ```bash
-   # See what files changed in commit
-   git show --name-only HEAD
-   
-   # Check if patterns match
-   grep -A5 "file_patterns" .omni-voice/scopes.yaml
-   ```
-
-4. **Use Absolute Context Directory**
-
-   ```bash
-   # Specify full path
-   omni-voice git commit message twiddle 'HEAD~3..HEAD' --context-dir "$(pwd)/.omni-voice"
-   ```
-
-### Error: Context directory not found
-
-**Symptom**:
-
-```
-Context directory not found: .omni-voice/
-```
-
-**Solutions**:
-
-1. **Create Directory**
-
-   ```bash
-   mkdir .omni-voice
-   ```
-
-2. **Check Current Directory**
-
-   ```bash
-   # Must be in git repository root
-   pwd
-   git rev-parse --show-toplevel  # Should match
-   ```
-
-3. **Use Custom Directory**
-
-   ```bash
-   # If config is elsewhere
-   omni-voice git commit message twiddle 'HEAD~3..HEAD' --context-dir ./config
-   ```
-
-### Error: YAML parsing failed
-
-**Symptom**: Configuration file syntax errors.
-
-**Solutions**:
-
-1. **Check YAML Syntax**
-
-   ```bash
-   # Common issues:
-   # - Tabs instead of spaces
-   # - Missing quotes around strings with special chars
-   # - Incorrect indentation
-   
-   # Validate with Python
-   python -c "import yaml; print(yaml.safe_load(open('.omni-voice/scopes.yaml')))"
-   ```
-
-2. **Fix Common Issues**
-
-   ```yaml
-   # ❌ Bad - tabs used
-   scopes:
-    - name: "api"
-   
-   # ✅ Good - spaces used
-   scopes:
-     - name: "api"
-   
-   # ❌ Bad - unquoted string with colon
-   - name: api: endpoints
-   
-   # ✅ Good - quoted string
-   - name: "api: endpoints"
-   ```
-
-## Commit Analysis Problems
-
-### Error: `Not in a git repository`
-
-**Symptom**:
-
-```
-Error: Failed to open git repository
-  Caused by: Not in a git repository
-```
-
-**Solutions**:
-
-1. **Check Git Repository**
-
-   ```bash
-   git status  # Should work
-   
-   # If not a git repo:
-   git init
-   ```
-
-2. **Check Working Directory**
-
-   ```bash
-   # Must be inside git repository
-   cd /path/to/your/git/repo
-   omni-voice git commit message twiddle 'HEAD~3..HEAD'
-   ```
-
-### Error: `Working directory is not clean`
-
-**Symptom**:
-
-```
-Error: Cannot amend commits with uncommitted changes
-  Caused by: Working directory is not clean
-```
-
-**Solutions**:
-
-1. **Commit Changes**
-
-   ```bash
-   git add .
-   git commit -m "temp commit"
-   ```
-
-2. **Stash Changes**
-
-   ```bash
-   git stash push -m "temp stash"
-   # After omni-voice: git stash pop
-   ```
-
-3. **Use View Instead of Twiddle**
-
-   ```bash
-   # View doesn't require clean directory
-   omni-voice git commit message view 'HEAD~3..HEAD'
-   ```
-
-### Error: Invalid commit range
-
-**Symptom**:
-
-```
-Error: Invalid commit range: HEAD~100..HEAD
-```
-
-**Solutions**:
-
-1. **Check Available Commits**
-
-   ```bash
-   # See how many commits exist
-   git log --oneline | wc -l
-   ```
-
-2. **Use Valid Range**
-
-   ```bash
-   # If only 5 commits exist:
-   omni-voice git commit message twiddle 'HEAD~5..HEAD'
-   
-   # Or use specific hashes:
-   omni-voice git commit message twiddle 'abc123..def456'
-   ```
-
-3. **Check Branch History**
-
-   ```bash
-   git log --oneline -10  # See recent commits
-   ```
-
-### Error: No commits found in range
-
-**Symptom**: Empty commit range or no commits to analyze.
-
-**Solutions**:
-
-1. **Verify Commit Range**
-
-   ```bash
-   # Check what's in range
-   git log --oneline 'HEAD~3..HEAD'
-   ```
-
-2. **Use Different Range**
-
-   ```bash
-   # Compare to main branch
-   omni-voice git commit message twiddle 'origin/main..HEAD'
-   
-   # Or use absolute range
-   omni-voice git commit message twiddle 'HEAD~5..HEAD'
-   ```
-
-## Performance Issues
-
-### Issue: Slow processing with large commit ranges
-
-**Symptom**: omni-voice takes a long time with many commits.
-
-**Solutions**:
-
-1. **Reduce Concurrency**
-
-   ```bash
-   # Lower parallel requests
-   omni-voice git commit message twiddle 'HEAD~20..HEAD' --concurrency 2
-   ```
-
-2. **Process in Stages**
-
-   ```bash
-   # Break up large ranges
-   omni-voice git commit message twiddle 'HEAD~10..HEAD~5'
-   omni-voice git commit message twiddle 'HEAD~5..HEAD'
-   ```
-
-3. **Save and Review**
-
-   ```bash
-   # Save suggestions first, then apply
-   omni-voice git commit message twiddle 'HEAD~20..HEAD' --save-only suggestions.yaml
-   omni-voice git commit message amend suggestions.yaml
-   ```
-
-### Issue: API timeouts
-
-**Symptom**: Requests timing out or failing.
-
-**Solutions**:
-
-1. **Reduce Concurrency**
-
-   ```bash
-   omni-voice git commit message twiddle 'HEAD~10..HEAD' --concurrency 1
-   ```
-
-2. **Retry with Exponential Backoff**
-
-   ```bash
-   # Wait between retries
-   sleep 30
-   omni-voice git commit message twiddle 'HEAD~5..HEAD'
-   ```
-
-## Git Repository Issues
-
-### Error: Cannot amend non-HEAD commits
-
-**Symptom**: Trying to amend commits that aren't the latest.
-
-**Expected Behavior**: omni-voice uses interactive rebase for non-HEAD commits.
-
-**If Problems Occur**:
-
-1. **Ensure Clean Working Directory**
-
-   ```bash
-   git status  # Should be clean
-   ```
-
-2. **Check Interactive Rebase Setup**
-
-   ```bash
-   # Set git editor if needed
-   git config --global core.editor "nano"
-   # or vim, code --wait, etc.
-   ```
-
-3. **Manual Rebase if Needed**
-
-   ```bash
-   # Do interactive rebase manually
-   git rebase -i HEAD~5
-   # Edit commit messages as needed
-   ```
-
-### Error: Remote branch not found
-
-**Symptom**: Can't find origin/main or base branch.
-
-**Solutions**:
-
-1. **Check Remote Branches**
-
-   ```bash
-   git branch -r  # See remote branches
-   ```
-
-2. **Update Remote References**
-
-   ```bash
-   git fetch origin
-   ```
-
-3. **Use Correct Branch Name**
-
-   ```bash
-   # If main branch is 'master':
-   omni-voice git commit message twiddle 'origin/master..HEAD'
-   ```
-
-### Error: Merge conflicts during rebase
-
-**Symptom**: Interactive rebase fails with conflicts.
-
-**Solutions**:
-
-1. **Resolve Conflicts Manually**
-
-   ```bash
-   # Edit conflicted files
-   git add .
-   git rebase --continue
-   ```
-
-2. **Abort and Try Different Approach**
-
-   ```bash
-   git rebase --abort
-   
-   # Use smaller commit ranges
-   omni-voice git commit message twiddle 'HEAD~3..HEAD'
-   ```
-
-## Command Line Issues
-
-### Error: Unknown argument
-
-**Symptom**:
-
-```
-error: unexpected argument '--unknown-flag' found
-```
-
-**Solutions**:
-
-1. **Check Available Options**
-
-   ```bash
-   omni-voice git commit message twiddle --help
-   ```
-
-2. **Use Correct Flag Names**
-
-   ```bash
-   # Common correct flags:
-   --use-context
-   --concurrency 4
-   --no-coherence
-   --auto-apply
-   --save-only file.yaml
-   --context-dir ./config
-   ```
-
-### Error: Invalid commit range format
-
-**Symptom**: Git range syntax errors.
-
-**Valid Formats**:
+The default `--backend` is `mock`, which emits canned output and never loads a
+model. For real speech-to-text, select a Whisper backend:
 
 ```bash
-# ✅ Valid ranges:
-'HEAD~5..HEAD'          # Last 5 commits
-'origin/main..HEAD'     # Current branch vs main
-'abc123..def456'        # Between specific commits
-'HEAD^..HEAD'           # Just last commit
-
-# ❌ Invalid:
-HEAD~5..HEAD           # Missing quotes
-'HEAD-5..HEAD'         # Wrong syntax (-5 instead of ~5)
-'HEAD..HEAD~5'         # Backwards range
+omni-voice voice transcribe recording.wav --backend whisper-candle
 ```
 
-### Issue: Quotes and Shell Escaping
+See [ASR Backends](asr-backends.md) for the available backends and their
+runtime trade-offs.
 
-**Symptom**: Shell interpreting range characters incorrectly.
+### "model not found" / `whisper-candle` fails to start
 
-**Solutions**:
+`whisper-candle` needs model files on disk. Install them (the default variant
+is `whisper-tiny.en`):
 
 ```bash
-# ✅ Always quote commit ranges:
-omni-voice git commit message twiddle 'HEAD~5..HEAD'
-
-# ✅ Or escape special characters:
-omni-voice git commit message twiddle HEAD~5..HEAD
-
-# On Windows Command Prompt:
-omni-voice git commit message twiddle "HEAD~5..HEAD"
+omni-voice voice install-model
 ```
 
-## Atlassian Integration Issues
+Models land in `~/.omni-voice/voice/models/<variant>/`. Override the location
+with `--model <dir>` on `transcribe`, or the `OMNI_VOICE_VOICE_WHISPER_MODEL`
+environment variable. Re-download with `voice install-model --force`.
 
-### Error: `Atlassian: missing instance URL / email / API token`
+### Transcription quality is poor or the run errors on the WAV
 
-**Cause**: omni-voice cannot find Atlassian credentials in the environment or
-in `~/.omni-voice/settings.json`.
-
-**Solution**:
+`transcribe` does **not** resample — it requires a **16 kHz mono 16-bit PCM
+WAV**. Produce a compliant file with `voice capture` (which records at 16 kHz
+mono), or convert an existing file, e.g.:
 
 ```bash
-# Run interactive setup
-omni-voice atlassian auth login
-
-# Or export environment variables (override the settings file)
-export ATLASSIAN_INSTANCE_URL=https://myorg.atlassian.net
-export ATLASSIAN_EMAIL=you@example.com
-export ATLASSIAN_API_TOKEN=...
-
-# Verify
-omni-voice atlassian auth status
+ffmpeg -i input.wav -ar 16000 -ac 1 -c:a pcm_s16le recording.wav
 ```
 
-API tokens are issued at <https://id.atlassian.com/manage-profile/security/api-tokens>.
-Note: Atlassian API tokens are scoped to the email account and the instance
-URL — copy them carefully and avoid trailing whitespace.
+## Audio capture
 
-### Error: `404 Not Found` on a known JIRA key or Confluence page
+### "unknown device" or no audio captured
 
-Almost always one of:
-
-1. **Wrong instance URL.** Check `ATLASSIAN_INSTANCE_URL` matches the
-   Atlassian Cloud site that contains the resource.
-2. **Permission.** Your account does not have read access to the project /
-   space.
-3. **Trailing slash.** `omni-voice atlassian auth login` strips them, but if
-   you set `ATLASSIAN_INSTANCE_URL` manually, ensure no trailing slash.
-
-### MCP `jira_*` / `confluence_*` tools fail with auth errors
-
-The MCP server inherits the environment of whatever launched it (Claude
-Desktop, Claude Code, the Inspector). If you exported credentials in your
-shell after launching the client, restart the client. Run the
-`atlassian_auth_status` MCP tool to confirm what the server sees.
-
-## Datadog Integration Issues
-
-### Error: `Datadog: missing API key / APP key`
-
-**Cause**: Datadog requires both keys (an API key authenticates the source,
-an APP key scopes the user). Missing either fails.
+`voice capture` matches `--device` exactly against the platform-reported input
+name; an unknown name errors with the list of detected devices. Run it with no
+`--device` to use the system default, or copy a name from the error list:
 
 ```bash
-# Interactive
-omni-voice datadog auth login
-
-# Environment variables (override the settings file)
-export DATADOG_API_KEY=...
-export DATADOG_APP_KEY=...
-export DATADOG_SITE=datadoghq.com   # or datadoghq.eu, us3.datadoghq.com, etc.
-
-# Verify
-omni-voice datadog auth status
+omni-voice voice capture --device "MacBook Pro Microphone"
 ```
 
-### Error: `403 Forbidden` from a Datadog endpoint
+If capture stops immediately, the input is likely silent — check OS microphone
+permissions and the system input level. `--idle-after 0` disables the
+trailing-silence auto-stop so capture runs until Ctrl-C.
 
-The site is wrong. Datadog accounts are bound to a region; an EU account
-will return 403 against `datadoghq.com`. Check the URL of the Datadog UI you
-log into in the browser:
+## Speaker enrollment & filtering
 
-| Browser URL host          | `DATADOG_SITE`        |
-|---------------------------|-----------------------|
-| `app.datadoghq.com`       | `datadoghq.com` (default) |
-| `app.datadoghq.eu`        | `datadoghq.eu`        |
-| `app.us3.datadoghq.com`   | `us3.datadoghq.com`   |
-| `app.us5.datadoghq.com`   | `us5.datadoghq.com`   |
-| `app.ap1.datadoghq.com`   | `ap1.datadoghq.com`   |
-| `app.ddog-gov.com`        | `ddog-gov.com`        |
+### `--speaker` / `enroll` can't find the speaker model
 
-For on-prem / proxied installs, set `DATADOG_API_URL` to the full base URL
-(it overrides the site-derived URL entirely).
-
-### Error: `429 Too Many Requests`
-
-omni-voice honours `Retry-After` and Datadog's `X-RateLimit-Reset` headers.
-When retries are exhausted, the error message includes the rate-limit
-headers so you can see the window. Either back off and retry, or split your
-query into smaller windows.
-
-## MCP Server Issues
-
-### Error: `omni-voice-mcp: command not found`
-
-The default `cargo install omni-voice` does **not** install the MCP server.
-Re-install with the feature flag:
+Speaker embedding uses the wespeaker ONNX model, a separate variant:
 
 ```bash
-cargo install omni-voice --features mcp
+omni-voice voice install-model --variant speaker-wespeaker-en
 ```
 
-### Error: `failed to open git repository`
+Override its path with `--speaker-model <path>` or the
+`OMNI_VOICE_VOICE_SPEAKER_MODEL` environment variable.
 
-The MCP server uses its own working directory when tools that need a git
-repo are called without an explicit `repo_path`. The assistant launched
-the server from somewhere outside your repo (commonly the user home).
+### `transcribe --speaker` drops everything
 
-Either configure the server to launch from the repo (Claude Code's
-`.mcp.json` at the repo root does this automatically), or pass `repo_path`
-to each git tool call.
+`--speaker` keeps only segments whose embedding matches the enrolled speaker at
+or above `--threshold` (default `0.5`). If everything is filtered out, lower the
+threshold or re-enroll in a quieter environment with `voice enroll`.
 
-### Tools list as expected but never return / hang
+## Reflection (`voice reflect`)
 
-Use the MCP Inspector to bypass the assistant and rule out a client-side
-issue:
+`voice reflect` is the only command that calls an AI model, so it needs a
+configured backend and credentials. A missing API key or backend selection
+surfaces as an authentication or configuration error.
 
-```bash
-npx @modelcontextprotocol/inspector omni-voice-mcp
-```
+- Pick a backend with `--ai-backend` or the `USE_*` / `OMNI_VOICE_AI_BACKEND`
+  environment variables.
+- Provide the matching credentials (e.g. `ANTHROPIC_API_KEY`).
 
-If the Inspector also hangs, run with verbose logs:
+See the [AI Backends Guide](ai-backends.md) for the full backend matrix,
+required environment variables, and the `claude-cli` sandbox options.
 
-```bash
-RUST_LOG=debug omni-voice-mcp
-RUST_LOG=omni_voice::mcp=trace omni-voice-mcp
-```
+## Review (`voice review`)
 
-Logs go to **stderr** because stdin/stdout are reserved for MCP framing.
+### "session not found"
 
-## `claude-cli` Backend Issues
+`voice review <SESSION_ID>` reads `~/.omni-voice/voice/<id>/`. Pass the session
+id (the directory name), not a path. Override the root with the
+`OMNI_VOICE_VOICE_ROOT` environment variable if you keep sessions elsewhere.
 
-See the [AI Backends Guide](ai-backends.md) for setup, sandbox semantics, and
-the full inventory of `OMNI_VOICE_CLAUDE_CLI_*` knobs. The cases below cover
-the most common runtime errors.
+## Build issues
 
-### Error: `the assistant tried to use a tool but tools are disabled`
+- **Slow debug builds / tests**: the `candle` inference stack is compiled with
+  optimizations even in dev builds (see `Cargo.toml`). The first build is slow;
+  subsequent builds are cached.
+- **Model-gated tests skipped**: some voice tests require installed models and
+  are ignored when the models are absent — run `voice install-model` first.
 
-The `claude-cli` backend runs the nested Claude session with `--tools ""`
-by default. If your prompt requires tool use, opt in with the escape hatch:
+## Still stuck?
 
-```bash
-export OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS=true
-# or pass --claude-cli-allow-tools
-```
-
-A WARN is logged every time the escape hatch is active.
-
-### Error: `MCP server X not loaded`
-
-The backend also passes `--strict-mcp-config` by default, which suppresses
-all MCP servers from `~/.claude/settings.json`. Opt in with:
-
-```bash
-export OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP=true
-# or pass --claude-cli-allow-mcp
-```
-
-Independent of the tool escape hatch — combine or use separately.
-
-### Error: `claude -p exited with cost cap exceeded`
-
-You set a per-invocation cap and the nested session went past it:
-
-```bash
-export OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD=2.50
-# or --claude-cli-max-budget-usd 2.50
-```
-
-omni-voice logs `total_cost_usd` from every invocation at INFO level — review
-the logs to size the cap appropriately, then re-run.
-
-### AI scratch directory growing
-
-Both the default and `claude-cli` backends spool large artefacts to
-`~/.cache/omni-voice/ai-scratch/`. The directory is not purged automatically
-(yet). Safe to delete manually between runs.
-
-## Getting Help
-
-### Enable Debug Output
-
-omni-voice uses the standard Rust logging system via the `RUST_LOG` environment variable. This provides detailed diagnostic information for troubleshooting.
-
-#### Basic Usage
-
-```bash
-# Enable debug output for all omni-voice components
-RUST_LOG=omni_voice=debug omni-voice git commit message twiddle 'HEAD~3..HEAD' --use-context
-
-# Enable all debug logging (including dependencies)
-RUST_LOG=debug omni-voice git commit message twiddle 'HEAD~3..HEAD'
-
-# Only show errors and warnings
-RUST_LOG=warn omni-voice git commit message twiddle 'HEAD~3..HEAD'
-```
-
-#### Log Levels (in order of verbosity)
-
-- `error` - Only errors
-- `warn` - Warnings and errors (default)  
-- `info` - Informational messages + above
-- `debug` - Debug information + above
-- `trace` - Most verbose logging + above
-
-#### Module-Specific Logging
-
-Target specific components for focused debugging:
-
-```bash
-# Debug only context discovery
-RUST_LOG=omni_voice::claude::context::discovery=debug omni-voice git commit message twiddle ...
-
-# Debug only Claude API interactions
-RUST_LOG=omni_voice::claude::client=debug omni-voice git commit message twiddle ...
-
-# Debug only CLI processing
-RUST_LOG=omni_voice::cli=debug omni-voice git commit message twiddle ...
-
-# Multiple modules
-RUST_LOG=omni_voice::claude=debug,omni_voice::git=info omni-voice git commit message twiddle ...
-```
-
-#### Common Debugging Scenarios
-
-**Configuration Issues:**
-```bash
-# See what config files are loaded
-RUST_LOG=omni_voice::claude::context::discovery=debug omni-voice git commit message twiddle ...
-```
-
-**API Communication Problems:**
-```bash  
-# Debug Claude API calls
-RUST_LOG=omni_voice::claude::client=debug omni-voice git commit message twiddle ...
-```
-
-**YAML Parsing Errors:**
-```bash
-# See raw Claude responses and parsing details
-RUST_LOG=omni_voice::claude=debug omni-voice git commit message twiddle ...
-```
-
-#### Output Format
-
-Debug output includes:
-- **Timestamp** - When the event occurred
-- **Level** - Log level (DEBUG, INFO, etc.)
-- **Module** - Which component generated the log
-- **Message** - The log message with structured fields
-- **Context** - Additional structured data (file paths, sizes, etc.)
-
-Example output:
-```
-2025-09-09T14:42:46.673223Z DEBUG omni_voice::claude::context::discovery: Looking for context directory context_dir="./.omni-voice" exists=true
-2025-09-09T14:42:46.673282Z DEBUG omni_voice::claude::context::discovery: Loaded commit guidelines bytes=1449
-```
-
-### Collect System Information
-
-When reporting issues, include:
-
-```bash
-# System info
-uname -a
-rustc --version
-cargo --version
-
-# Git info  
-git --version
-git status
-git log --oneline -5
-
-# omni-voice info
-omni-voice --version
-
-# Configuration
-ls -la .omni-voice/
-echo "API key length: $(echo $CLAUDE_API_KEY | wc -c)"
-```
-
-### Test with Minimal Example
-
-Create a minimal reproduction:
-
-```bash
-# Create test repo
-mkdir test-omni-voice
-cd test-omni-voice
-git init
-
-# Create test commits
-echo "first" > file.txt
-git add file.txt
-git commit -m "first commit"
-
-echo "second" > file.txt
-git add file.txt  
-git commit -m "second commit"
-
-# Test omni-voice
-omni-voice git commit message twiddle 'HEAD^..HEAD' --use-context
-```
-
-### Common Solutions Checklist
-
-Before asking for help, verify:
-
-- [ ] omni-voice is latest version: `cargo install omni-voice`
-- [ ] CLAUDE_API_KEY is set correctly
-- [ ] In a git repository: `git status` works
-- [ ] Working directory is clean (for twiddle command)
-- [ ] Commit range is valid: `git log --oneline 'HEAD~5..HEAD'`
-- [ ] Configuration syntax is correct (if using `.omni-voice/`)
-
-## Support Channels
-
-### GitHub Issues
-
-For bugs and feature requests: <https://github.com/rust-works/omni-voice/issues>
-
-**Include in Bug Reports**:
-
-- omni-voice version: `omni-voice --version`
-- Rust version: `rustc --version`  
-- Operating system
-- Complete error message
-- Steps to reproduce
-- Minimal example if possible
-
-### GitHub Discussions  
-
-For questions and general help: <https://github.com/rust-works/omni-voice/discussions>
-
-### Community Support
-
-- Tag questions with `omni-voice` on Stack Overflow
-- Join Rust community channels and ask about Git tools
-
-### Documentation
-
-- [User Guide](user-guide.md) - Complete usage guide
-- [Configuration Guide](configuration.md) - Setup instructions
-- [Examples](examples.md) - Real-world examples
-
-## Frequently Asked Questions
-
-### Q: Can I use omni-voice without Claude API key?
-
-**A**: No, the AI-powered features require a Claude API key. However, you
-can use the `view` command to analyze commits without AI suggestions.
-
-### Q: Does omni-voice modify my git history?
-
-**A**: Only when you explicitly approve changes. The `view` command is
-read-only. The `twiddle` command shows you proposed changes and asks for
-confirmation before applying.
-
-### Q: Can I undo changes made by omni-voice?
-
-**A**: Yes, git tracks all changes:
-
-```bash
-# See recent changes
-git reflog
-
-# Undo last change
-git reset --hard HEAD@{1}
-```
-
-### Q: Is it safe to use on shared/public repositories?
-
-**A**: Yes, but be careful:
-
-- Always review changes before applying
-- Don't rewrite history on shared branches
-- Consider using `--save-only` for review workflows
-
-### Q: How much does the Claude API cost?
-
-**A**: Check current pricing at
-[Anthropic Pricing](https://anthropic.com/pricing). Typical usage for commit
-message improvement is very low cost.
-
-### Q: Can I use this in CI/CD pipelines?
-
-**A**: Yes, but consider:
-
-- Store API key as secure secret
-- Use `--auto-apply` for automated workflows
-- Test thoroughly in development first
-- Be mindful of API rate limits
+- Re-run with `RUST_LOG=omni_voice=debug` and capture the output.
+- Open an [issue](https://github.com/rust-works/omni-voice/issues) or start a
+  [discussion](https://github.com/rust-works/omni-voice/discussions).
