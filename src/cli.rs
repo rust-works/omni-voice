@@ -3,7 +3,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
 
-pub mod commands;
 pub mod completions;
 pub mod help;
 pub mod voice;
@@ -100,8 +99,6 @@ pub struct Cli {
 /// per-command argument surface.
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Command template management.
-    Commands(commands::CommandsCommand),
     /// Voice capture and processing operations.
     Voice(voice::VoiceCommand),
     /// Generates shell completion scripts.
@@ -147,7 +144,6 @@ impl Cli {
         self.propagate_global_flags();
 
         match self.command {
-            Commands::Commands(commands_cmd) => commands_cmd.execute(),
             Commands::Voice(cmd) => cmd.execute().await,
             Commands::Completions(completions_cmd) => completions_cmd.execute(),
             Commands::HelpAll(help_cmd) => help_cmd.execute(),

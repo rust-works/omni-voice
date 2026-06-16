@@ -75,7 +75,6 @@ recipes and the `$fpath`/`compinit` setup zsh requires.
 | `voice review <SESSION_ID>` | Reconcile a session's events into materialized markdown |
 | `voice install-model` | Download model files (Whisper tiny.en, or wespeaker for speaker embedding) |
 | `voice enroll` | Capture a sample and persist a speaker embedding |
-| `commands generate` | Generate Claude Code command templates |
 | `completions <shell>` | Print a shell completion script |
 | `help-all` | Print comprehensive help for every command |
 
