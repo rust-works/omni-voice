@@ -126,32 +126,3 @@ fn binary_completions_unknown_shell_fails() {
         .expect("failed to run binary");
     assert!(!output.status.success());
 }
-
-#[test]
-fn binary_commands_generate_in_temp_dir() {
-    let tmp_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tmp");
-    let temp_dir = {
-        std::fs::create_dir_all(&tmp_root).ok();
-        tempfile::tempdir_in(&tmp_root).unwrap()
-    };
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_omni-voice"))
-        .args(["commands", "generate", "all"])
-        .current_dir(temp_dir.path())
-        .output()
-        .expect("failed to run binary");
-    assert!(output.status.success());
-
-    // Verify templates were written
-    assert!(temp_dir
-        .path()
-        .join(".claude/commands/commit-twiddle.md")
-        .exists());
-    assert!(temp_dir
-        .path()
-        .join(".claude/commands/pr-create.md")
-        .exists());
-    assert!(temp_dir
-        .path()
-        .join(".claude/commands/pr-update.md")
-        .exists());
-}

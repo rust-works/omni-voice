@@ -247,30 +247,7 @@ omni-voice voice enroll --name alice
 `voice enroll` requires the speaker model — install it with
 `omni-voice voice install-model --variant speaker-wespeaker-en`.
 
-## Command templates and completions
-
-### `commands generate`
-
-Generates Claude Code command templates into `.claude/commands/`.
-
-```text
-omni-voice commands generate <COMMAND>
-```
-
-| Subcommand | Writes |
-|------------|--------|
-| `commit-twiddle` | `.claude/commands/commit-twiddle.md` |
-| `pr-create` | `.claude/commands/pr-create.md` |
-| `pr-update` | `.claude/commands/pr-update.md` |
-| `all` | all three templates above |
-
-```bash
-# Generate every template.
-omni-voice commands generate all
-
-# Generate just the commit-twiddle template.
-omni-voice commands generate commit-twiddle
-```
+## Completions
 
 ### `completions`
 

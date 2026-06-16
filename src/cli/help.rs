@@ -141,7 +141,6 @@ mod tests {
         let gen = HelpGenerator::new();
         let output = gen.generate_all_help().unwrap();
         assert!(output.contains("omni-voice voice"));
-        assert!(output.contains("omni-voice commands"));
         assert!(output.contains("omni-voice help-all"));
     }
 
@@ -153,7 +152,6 @@ mod tests {
         assert!(output.contains("omni-voice voice transcribe"));
         assert!(output.contains("omni-voice voice reflect"));
         assert!(output.contains("omni-voice voice review"));
-        assert!(output.contains("omni-voice commands generate"));
     }
 
     #[test]

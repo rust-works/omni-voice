@@ -9,7 +9,6 @@ A comprehensive development toolkit
 Usage: omni-voice [OPTIONS] <COMMAND>
 
 Commands:
-  commands  Command template management
   voice     Voice capture and processing operations
   help-all  Displays comprehensive help for all commands
   help      Print this message or the help of the given subcommand(s)
@@ -29,89 +28,6 @@ Options:
           Print help (see more with '--help')
   -V, --version
           Print version
-
-
-================================================================================
-
-omni-voice commands - Command template management
-
-Command template management
-
-Usage: commands <COMMAND>
-
-Commands:
-  generate  Generates command templates
-  help      Print this message or the help of the given subcommand(s)
-
-Options:
-  -h, --help  Print help
-
-
-================================================================================
-
-omni-voice commands generate - Generates command templates
-
-Generates command templates
-
-Usage: generate <COMMAND>
-
-Commands:
-  commit-twiddle  Generates commit-twiddle command template
-  pr-create       Generates pr-create command template
-  pr-update       Generates pr-update command template
-  all             Generates all command templates
-  help            Print this message or the help of the given subcommand(s)
-
-Options:
-  -h, --help  Print help
-
-
-================================================================================
-
-omni-voice commands generate all - Generates all command templates
-
-Generates all command templates
-
-Usage: all
-
-Options:
-  -h, --help  Print help
-
-
-================================================================================
-
-omni-voice commands generate commit-twiddle - Generates commit-twiddle command template
-
-Generates commit-twiddle command template
-
-Usage: commit-twiddle
-
-Options:
-  -h, --help  Print help
-
-
-================================================================================
-
-omni-voice commands generate pr-create - Generates pr-create command template
-
-Generates pr-create command template
-
-Usage: pr-create
-
-Options:
-  -h, --help  Print help
-
-
-================================================================================
-
-omni-voice commands generate pr-update - Generates pr-update command template
-
-Generates pr-update command template
-
-Usage: pr-update
-
-Options:
-  -h, --help  Print help
 
 
 ================================================================================
