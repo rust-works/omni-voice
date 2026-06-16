@@ -4,177 +4,145 @@ This document describes the high-level design of omni-voice. It is intended to h
 
 ## System overview
 
-omni-voice is a developer toolkit that pairs AI-powered Git commit analysis with read/write access to Atlassian and Datadog. It ships as two binaries:
+omni-voice is a voice capture and processing CLI. It records microphone audio, transcribes it to text, reflects on the transcript with an AI model, and reconciles the results into materialized markdown notes. It ships as a single binary (`omni-voice`) and is also published as a library (`omni_voice`) for embedding.
 
-- **`omni-voice`** — the primary CLI: git commit workflows, PR creation, JIRA/Confluence integration, Datadog queries, and AI diagnostics.
-- **`omni-voice-mcp`** — an optional MCP server gated behind the `mcp` Cargo feature that exposes the same surface to AI assistants over stdio. See [ADR-0021](docs/adrs/adr-0021.md).
+The core workflow is a four-stage pipeline, each stage consuming the previous stage's output:
 
-The git/AI workflows are:
+```
+capture  →  transcribe  →  reflect  →  review
+  WAV         events        reflection    materialised
+            (jsonl/md)      events.jsonl  markdown
+```
 
-- **twiddle** — Generate or improve commit messages using AI analysis of diffs
-- **check** — Validate existing commit messages against project guidelines
-- **create-pr** — Generate pull request titles and descriptions from branch commits
+- **capture** records the microphone to a 16 kHz mono WAV file.
+- **transcribe** turns a WAV into transcript events (JSONL or markdown), via a selectable speech-to-text backend.
+- **reflect** feeds a `transcript.jsonl` through an AI model and emits structured reflection events.
+- **review** reconciles a session's `events.jsonl` into materialised markdown (`todos.md`, `decisions.md`) with a TTL-expiry pass.
 
-All AI-powered workflows share the same pipeline: parse CLI arguments, read git repository state, build a structured YAML representation, construct a token-budget-aware prompt, call an AI provider, parse the response, and apply or display the result. The Atlassian and Datadog command trees are thinner — they wrap typed REST clients and emit YAML/table/json/yamls/jsonl output without invoking AI.
+Two supporting commands round out the surface: **enroll** captures a speaker sample and persists an embedding so `transcribe --speaker` can filter to a single voice, and **install-model** downloads the Whisper / wespeaker model artefacts.
 
 ## Module map
 
 ```
 src/
-├── main.rs              `omni-voice` entry point: tracing, Cli::parse(), execute()
-├── mcp_server.rs        `omni-voice-mcp` entry point (gated by `mcp` feature)
-├── lib.rs               Public module exports and VERSION constant
-├── cli.rs               Clap command hierarchy root + global flags
+├── main.rs              Binary entry point: tracing init, Cli::parse(), execute()
+├── lib.rs               Public module exports (claude, cli, utils, voice) + VERSION
+├── cli.rs               Clap command hierarchy root + global flags (AI backend, models.yaml)
 ├── cli/
-│   ├── git/             twiddle / check / view / amend / info / create_pr
-│   ├── ai/              chat, claude history, claude skills, claude cli model
-│   ├── atlassian/       jira/* and confluence/* command trees, convert
-│   ├── datadog/         metrics / monitor / dashboard / logs / events / slo / hosts / downtime / auth
-│   ├── config.rs        Model registry display
-│   ├── commands.rs      Command template generators (`commands generate ...`)
-│   └── help.rs          Help system (`help-all`)
-├── mcp/                 (mcp feature) MCP server runtime
-│   ├── server.rs        rmcp ServerHandler implementation
-│   ├── runtime.rs       stdio transport bootstrapping
-│   ├── git_tools.rs     git_view_commits, git_branch_info, git_check_commits, git_twiddle_commits, git_create_pr
-│   ├── jira_core_tools.rs / jira_tools.rs   ~28 jira_* tools
-│   ├── confluence_tools.rs                  13 confluence_* tools
-│   ├── atlassian_tools.rs                   atlassian_convert (offline JFM ↔ ADF)
-│   ├── datadog_tools.rs                     14 datadog_* tools
-│   ├── ai_tools.rs                          ai_chat, claude_skills_*
-│   ├── config_tools.rs                      config_models_show, atlassian_auth_status
-│   ├── resources.rs                         git://, jira://, confluence://, omni-voice://specs/{name}
-│   ├── specs.rs                             include_str! reference specs (jfm)
-│   ├── output_file.rs                       Off-context write helper for read tools
-│   └── truncate.rs / validate.rs / cancel.rs / error.rs
-├── claude/
-│   ├── ai.rs            AiClient trait and metadata types
+│   ├── voice.rs         `voice` subcommand dispatch
+│   ├── voice/
+│   │   ├── capture.rs        `voice capture` args + execute
+│   │   ├── transcribe.rs     `voice transcribe` args + execute
+│   │   ├── reflect.rs        `voice reflect` args + execute
+│   │   ├── review.rs         `voice review` args + execute
+│   │   ├── install_model.rs  `voice install-model` args + execute
+│   │   └── enroll.rs         `voice enroll` args + execute
+│   ├── completions.rs   `completions <shell>` (hidden) — clap_complete script generation
+│   └── help.rs          `help-all` — HelpGenerator walks the derive-generated command tree
+├── claude/              AI client infrastructure consumed by `voice reflect`
+│   ├── ai.rs            `AiClient` trait, metadata, and capability types
 │   ├── ai/
-│   │   ├── claude.rs    Anthropic API implementation
-│   │   ├── claude_cli.rs Subprocess `claude -p` backend with sandbox + budget cap
-│   │   ├── openai.rs    OpenAI/Ollama implementation
-│   │   └── bedrock.rs   AWS Bedrock implementation
-│   ├── client.rs        Backend dispatch (create_default_claude_client) + orchestrator
-│   ├── prompts.rs       System and user prompt templates
-│   ├── model_config.rs  Model registry with fuzzy matching
-│   ├── token_budget.rs  Token estimation and budget validation
-│   ├── batch.rs         Token-budget-aware commit batching
-│   ├── error.rs         ClaudeError types
-│   └── context/         discovery / branch / files / patterns
-├── atlassian/           Typed Atlassian client + ADF/JFM bidirectional conversion
-│   ├── client.rs        REST client (JIRA + Confluence)
-│   ├── adf/ jfm/        ADF and JIRA-Flavoured Markdown types
-│   ├── custom_fields.rs Custom-field overrides (`--set-field` / assignee / reporter)
-│   └── ...              issues, sprints, boards, links, watchers, worklogs, attachments
-├── datadog/             Typed Datadog client + per-endpoint API façades
-│   ├── client.rs        Auth, 429 handling, X-RateLimit-* surfacing
-│   ├── metrics_api.rs / monitors_api.rs / dashboards_api.rs / logs_api.rs / events_api.rs / slo_api.rs / hosts_api.rs / downtimes_api.rs / metrics_catalog_api.rs
-│   └── types.rs / time.rs
-├── data/                RepositoryView, AmendmentFile, CheckReport, ProjectContext, YAML utils
-├── git/                 GitRepository (git2 wrapper), CommitInfo, AmendmentHandler, RemoteInfo
+│   │   ├── claude.rs        Direct Anthropic API backend
+│   │   ├── claude_cli.rs    Sandboxed subprocess `claude -p` backend (budget cap, escape hatches)
+│   │   ├── openai.rs        OpenAI / Ollama backend
+│   │   └── bedrock.rs       AWS Bedrock backend
+│   ├── client.rs        Backend dispatch (`create_default_claude_client`)
+│   ├── model_config.rs  Model registry with fuzzy matching (embedded `models.yaml`)
+│   ├── error.rs         `ClaudeError` types
+│   └── test_utils.rs    Mock AiClient for reflect tests
+├── voice/               Voice subsystem (CLI-free; unit-testable against fixtures)
+│   ├── audio.rs         `AudioSource` trait + cpal microphone source (test seam)
+│   ├── wav.rs           Mixdown, resampling (rubato), WAV writing (hound)
+│   ├── capture.rs       End-to-end capture pipeline orchestrator
+│   ├── idle.rs          Idle (silence) detection and trailing-silence trimming
+│   ├── vad.rs           Pure-Rust voice-activity gate (streaming silence boundary)
+│   ├── features.rs      Kaldi-style FBANK (log-mel filterbank) feature extraction (rustfft)
+│   ├── transcriber.rs   `Transcriber` / `AudioInput` / `EventStream` traits + WAV adapter
+│   ├── factory.rs       Transcriber backend dispatch (`create_default_transcriber`)
+│   ├── backends/        `Transcriber` implementations
+│   │   ├── candle.rs            Pure-Rust Whisper (batch)
+│   │   ├── candle_streaming.rs  Pure-Rust streaming Whisper (VAD chunking + LocalAgreement-2)
+│   │   └── mock.rs              Scripted events for tests / default until ASR lands
+│   ├── speaker.rs       Speaker embedding (tract-onnx + wespeaker) + enrolment JSON
+│   ├── render.rs        Streaming TranscriptEvent → JSONL / markdown renderers
+│   ├── events.rs        Reflection event schema (the `events.jsonl` wire contract)
+│   ├── reflect/         `voice reflect` — transcript → reflection events
+│   │   ├── mod.rs           Orchestration: read transcript, call AiClient, append events
+│   │   ├── prompt.rs        Prompt template loading and rendering
+│   │   └── validate.rs      Parse + validate the model's YAML reflection response
+│   ├── reconcile.rs     Pure reconciliation of `events.jsonl` → markdown + TTL events
+│   ├── review.rs        `voice review` driver (I/O around the pure reconcile function)
+│   ├── session.rs       `~/.omni-voice/voice/<id>/` session directory layout + I/O
+│   ├── models.rs        Model storage convention and path resolution
+│   ├── paths.rs         `~/.omni-voice/voice/...` path helpers (single source of truth)
+│   ├── det.rs           Pluggable RNG for ULID event-id generation
+│   └── clock.rs         Pluggable wall clock for deterministic test timestamps
 ├── utils/
-│   ├── settings.rs      Settings loading (env vars → ~/.omni-voice/settings.json)
-│   ├── preflight.rs     AI credential / GitHub CLI / Atlassian / Datadog preflight
-│   ├── ai_scratch.rs    `~/.cache/omni-voice/ai-scratch/` management
-│   └── general.rs       General utilities
+│   └── settings.rs      Settings loading (env vars → ~/.omni-voice/settings.json)
 └── templates/
-    ├── models.yaml                  AI model specifications
-    └── default-commit-guidelines.md Embedded default guidelines
+    └── models.yaml      Embedded AI model registry (see ADR-0004)
 ```
 
 ### Module responsibilities
 
-**`claude/`** — AI integration layer. Contains the provider abstraction (`AiClient` trait), the orchestration logic (`ClaudeClient`), prompt engineering, token budget management, and project context discovery. This is the largest module.
+**`voice/`** — the heart of the tool. Deliberately CLI-free so the audio pipeline (source → mixdown → resample → idle-detect → trim → write) and the transcription/reflection/reconciliation stages can be unit-tested against fixture WAVs and event logs without a real microphone or network. The `AudioSource`, `Transcriber`, and clock/RNG traits are the test seams.
 
-**`cli/`** — Command-line interface. Each command is a `#[derive(Parser)]` struct with an `execute()` method. Commands construct a `RepositoryView`, delegate to `ClaudeClient` methods, and handle output formatting.
+**`cli/`** — command-line interface. Each command is a `#[derive(Parser)]` struct with an `execute()` method; the `voice` subtree groups the pipeline commands. Commands are thin wrappers that parse arguments and delegate to `voice/` (and, for `reflect`, to `claude/`). See [ADR-0016](docs/adrs/adr-0016.md) for the clap-derive hierarchy.
 
-**`data/`** — Shared data structures. `RepositoryView` is the standard git state representation; `RepositoryViewForAI` adds full diff content. Amendment and check result types live here. All types derive `Serialize`/`Deserialize` for YAML exchange.
+**`claude/`** — AI client infrastructure reused by `voice reflect`. Contains the `AiClient` trait, four provider backends, the env-var/flag dispatch factory, and the model registry. The commit-analysis machinery that once drove this module was removed in the strip-to-voice-cli refactor; only the reflect-facing pieces remain.
 
-**`git/`** — Git operations via the `git2` crate. `GitRepository` wraps `git2::Repository` with higher-level methods for commit enumeration, diff generation, and working directory status. `AmendmentHandler` applies message changes through `git commit --amend` or interactive rebase.
+**`utils/`** — cross-cutting settings resolution (`~/.omni-voice/settings.json` layered under env vars).
 
-**`utils/`** — Cross-cutting utilities. Settings resolution, preflight credential checks, and AI scratch directory management.
+## AI backend dispatch
 
-**`atlassian/`** — Typed JIRA + Confluence REST client and the bidirectional ADF ↔ JFM (JIRA-Flavoured Markdown) conversion layer. The CLI subcommands and the MCP `jira_*` / `confluence_*` tools are thin wrappers over this client; both paths share `custom_fields.rs` for typed assignee/reporter/`set_field` handling. See [ADR-0020](docs/adrs/adr-0020.md) for the ADF/JFM design.
+`src/claude/client.rs::create_default_claude_client` returns a `Box<dyn AiClient>` selected from environment variables and global flags, in this order:
 
-**`datadog/`** — Typed Datadog v1/v2 client. Each endpoint family has its own façade (`monitors_api.rs`, `dashboards_api.rs`, etc.) emitting strongly-typed responses. The base `DatadogClient` handles 429 with `Retry-After` / `X-RateLimit-Reset` and surfaces rate-limit headers in error output.
-
-**`mcp/`** *(feature `mcp`)* — MCP server runtime built on `rmcp`. Each tool family lives in its own module; tools are registered via the `#[tool]` macro and the per-domain `tool_router()` builders in `OmniVoiceServer::new()`. Tools build a fresh client per invocation so credential changes take effect without restart.
-
-### AI backend dispatch
-
-`src/claude/client.rs::create_default_claude_client` selects an `AiClient` implementation in this order:
-
-1. `OMNI_VOICE_AI_BACKEND=claude-cli` (or `--ai-backend claude-cli`) → `ClaudeCliAiClient` — shells out to `claude -p` in a sandbox (tools off, MCP off, settings skipped, fresh temp cwd, scrubbed env). Honours escape hatches `OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS` / `OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP` and the per-call cap `OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD`.
+1. `OMNI_VOICE_AI_BACKEND=claude-cli` (or `--ai-backend claude-cli`) → `ClaudeCliAiClient` — shells out to `claude -p` in a sandbox (tools off, MCP off, settings skipped, fresh temp cwd). Honours the escape hatches `--claude-cli-allow-tools` / `--claude-cli-allow-mcp` and the per-call cap `--claude-cli-max-budget-usd`. See [ADR-0028](docs/adrs/adr-0028.md).
 2. `USE_OLLAMA=true` → `OpenAiAiClient::new_ollama`.
 3. `USE_OPENAI=true` → `OpenAiAiClient::new_openai`.
 4. `CLAUDE_CODE_USE_BEDROCK=true` → `BedrockAiClient`.
 5. Default → `ClaudeAiClient` (direct Anthropic API).
 
-`src/utils/preflight.rs` mirrors this switch and must change in lock-step when adding backends.
+`voice reflect` is the sole live consumer. User-facing details (required env vars, model selection, sandbox semantics) live in [docs/ai-backends.md](docs/ai-backends.md).
+
+## Transcription backend dispatch
+
+`src/voice/factory.rs::create_default_transcriber` mirrors the AI dispatch pattern. Backend choice flows from, in order: the `--backend` flag, the `OMNI_VOICE_VOICE_BACKEND` env var (and project `settings.json`), then the default. Three backends are wired up:
+
+- **`whisper-candle`** — pure-Rust Whisper inference on `candle` (batch).
+- **`whisper-candle` streaming** — VAD-driven chunking with LocalAgreement-2 incremental decoding.
+- **`mock`** — emits a caller-supplied event script; the default until a real ASR backend lands (see [ADR-0032](docs/adrs/adr-0032.md)).
 
 ## Data flow
 
-A typical `twiddle` invocation flows through these stages:
+A typical session flows through the pipeline:
 
 ```
-CLI parsing (clap)
+voice capture
+  ├─ cpal microphone source → mixdown → resample to 16 kHz mono (rubato)
+  ├─ idle detection trims trailing silence
+  └─ write WAV (hound)
     │
     ▼
-Git repository operations (git2)
-  ├─ Open repository
-  ├─ Resolve commit range
-  ├─ Extract CommitInfo for each commit (metadata, diff stats)
-  └─ Read working directory status, remotes
+voice transcribe <WAV>
+  ├─ WAV → AudioInput (16 kHz mono i16 chunks)
+  ├─ Transcriber backend → EventStream of TranscriptEvents
+  ├─ (optional) speaker filter via enrolled embedding (tract-onnx + wespeaker)
+  └─ render to JSONL / markdown (streamed)
     │
     ▼
-RepositoryView construction
-  ├─ Assemble all commit info, branch info, remotes
-  └─ (Optional) Load project context via ProjectDiscovery
-       ├─ Commit guidelines from .omni-voice/commit-guidelines.md
-       ├─ Scopes from .omni-voice/scopes.yaml + ecosystem defaults
-       └─ Branch, file, and work pattern analysis
+voice reflect [transcript.jsonl]
+  ├─ read Final transcript events (file / stdin / session dir)
+  ├─ build prompt, call AiClient (backend-dispatched)
+  ├─ parse + validate YAML response into Events
+  └─ append to events.jsonl (or stdout)
     │
     ▼
-RepositoryView → RepositoryViewForAI
-  └─ Expand with full diff content for each commit
-    │
-    ▼
-Prompt construction with token budget fitting
-  ├─ Serialize to YAML as user prompt
-  ├─ Estimate token count (chars ÷ 3.5 × 1.10 safety margin)
-  ├─ If over budget, progressively reduce diff detail:
-  │     Full → Truncated → StatOnly → FileListOnly
-  └─ Validate final prompt fits model context window
-    │
-    ▼
-AI API request
-  ├─ System prompt (from prompts.rs with guidelines + scopes)
-  ├─ User prompt (serialized YAML)
-  └─ HTTP POST via AiClient implementation
-    │
-    ▼
-Response parsing
-  ├─ Parse YAML response (handle markdown-wrapped blocks)
-  └─ Deserialize into AmendmentFile or CheckReport
-    │
-    ▼
-(Optional) Coherence pass
-  └─ Second AI call to normalize across multiple commits
-    │
-    ▼
-Output / Application
-  ├─ twiddle: Apply amendments via git rebase
-  ├─ check: Display report with severity-colored output
-  └─ create-pr: Create PR via GitHub CLI
+voice review <session-id>
+  └─ reconcile(events.jsonl) → todos.md / decisions.md + TTL-expiry events
 ```
 
-### Multi-commit processing
-
-When multiple commits are involved, the system uses a map-reduce pattern:
-
-1. **Batching** — Commits are grouped into token-budget-aware batches using first-fit-decreasing bin-packing
-2. **Parallel map** — Batches are processed concurrently with semaphore-based concurrency control (default: 4)
-3. **Reduce** — An optional coherence pass normalizes results across batches
+`reconcile()` is a pure function from event log to markdown plus new TTL-expiry events; `voice review` wraps it with session I/O. Reflection events use ULID identifiers (`det.rs` RNG seam) and wall-clock timestamps (`clock.rs` seam) so tests are deterministic.
 
 ## Key abstractions
 
@@ -189,80 +157,77 @@ pub trait AiClient: Send + Sync {
     ) -> Pin<Box<dyn Future<Output = Result<String>> + Send + 'a>>;
 
     fn get_metadata(&self) -> AiClientMetadata;
+    // plus a defaulted capabilities() for opt-in backend features
 }
 ```
 
-Three implementations exist: `ClaudeAiClient` (Anthropic API), `OpenAiAiClient` (OpenAI and Ollama), and `BedrockAiClient` (AWS Bedrock). Provider selection is determined by environment variables at startup in `create_default_claude_client()`.
+Four implementations exist — `ClaudeAiClient` (Anthropic), `ClaudeCliAiClient` (subprocess), `OpenAiAiClient` (OpenAI/Ollama), and `BedrockAiClient` (AWS Bedrock) — selected at runtime by `create_default_claude_client()`.
 
-### ClaudeClient (`src/claude/client.rs`)
+### Transcriber trait (`src/voice/transcriber.rs`)
 
-The main orchestrator. Wraps a `Box<dyn AiClient>` and provides high-level methods:
+```rust
+pub trait Transcriber: Send + Sync {
+    fn transcribe(&self, audio: Box<dyn AudioInput>) -> Result<Box<dyn EventStream>>;
+}
+```
 
-- `generate_amendments()` / `generate_contextual_amendments()` — twiddle workflow
-- `check_commits_with_scopes()` — check workflow with scope validation
-- `generate_pr_content_with_context()` — PR creation workflow
-- `refine_amendments_coherence()` / `refine_checks_coherence()` — cross-commit coherence passes
+`AudioInput` yields 16 kHz mono signed-PCM chunks; `EventStream` yields `TranscriptEvent`s. The split lets a backend stream partial results as audio arrives. Backends are selected by `create_default_transcriber()`.
 
-All methods handle token budget fitting internally using progressive diff reduction.
+### Event schema (`src/voice/events.rs`)
+
+The append-only `events.jsonl` log is the load-bearing contract between `voice reflect` (producer) and `voice review` (consumer). The `project` helper enforces the reconciliation invariants (sort-by-event-id, supersession, TTL expiry).
 
 ### Model registry (`src/claude/model_config.rs`)
 
-Loads model specifications from an embedded YAML file (`src/templates/models.yaml`). Provides token limits, provider info, and beta header definitions. Supports fuzzy matching for Bedrock-style model identifiers (e.g., `us.anthropic.claude-sonnet-4-5-20250929-v1:0` matches `claude-sonnet-4-5-20250929`).
-
-### Context discovery (`src/claude/context/discovery.rs`)
-
-Resolves project configuration with cascading priority:
-
-```
-.omni-voice/local/{file}    ← local override (gitignored)
-.omni-voice/{file}           ← project shared config
-~/.omni-voice/{file}         ← user home fallback
-```
-
-Detects the project ecosystem from marker files (`Cargo.toml` → Rust, `package.json` → Node, etc.) and merges ecosystem-specific default scopes into the project's custom scopes.
-
-### Pre-validation (`src/git/commit.rs`)
-
-Deterministic checks run before AI processing. Scope validity and format are verified locally; passing checks are recorded in `pre_validated_checks` so the AI treats them as authoritative and skips re-checking.
+Loads model specifications from the embedded `models.yaml` (see [ADR-0004](docs/adrs/adr-0004.md)) into a typed registry. Supports fuzzy matching for Bedrock-style identifiers and applies per-model token limits. Overridable via `--models-yaml` / `OMNI_VOICE_MODELS_YAML` (merged over the embedded catalog; see [ADR-0022](docs/adrs/adr-0022.md)).
 
 ## Extension guide
 
+### Adding a new voice subcommand
+
+1. Create `src/cli/voice/mycommand.rs` with a `#[derive(Parser)]` struct and `execute()` method.
+2. Add a variant to `VoiceSubcommands` in `src/cli/voice.rs`.
+3. Wire the execute call into the parent's `execute()` match.
+4. Run the [`update-snapshots`](.claude/skills/update-snapshots/SKILL.md) skill to refresh the `help-all` golden snapshot.
+
+### Adding a new transcription backend
+
+1. Implement `Transcriber` in `src/voice/backends/mybackend.rs` and export it from `backends/mod.rs`.
+2. Add a dispatch arm in `create_default_transcriber()` (`src/voice/factory.rs`), keyed on the backend name.
+
 ### Adding a new AI provider
 
-1. Create `src/claude/ai/myprovider.rs` implementing `AiClient`
-2. Export from `src/claude/ai.rs`
-3. Add provider selection logic in `create_default_claude_client()` (`src/claude/client.rs`) — check an environment variable and construct the implementation
-4. Add model entries to `src/templates/models.yaml`
-
-### Adding a new CLI command
-
-1. Create `src/cli/git/mycommand.rs` with a `#[derive(Parser)]` struct and `execute()` method
-2. Add a variant to the parent subcommand enum (e.g., `CommitSubcommands` in `src/cli/git.rs`)
-3. Wire the execute call in the parent's `execute()` match
-
-### Adding a new output format
-
-1. Add a variant to `OutputFormat` in `src/data/check.rs`
-2. Implement the `FromStr` conversion for CLI parsing
-3. Add the serialization branch in the command's `output_report()` method
+1. Implement `AiClient` in `src/claude/ai/myprovider.rs` and export it from `src/claude/ai.rs`.
+2. Add provider selection logic in `create_default_claude_client()` (`src/claude/client.rs`) gated on an environment variable.
+3. Add model entries to `src/templates/models.yaml` as needed.
 
 ## Dependency rationale
 
 | Crate | Role |
 |-------|------|
-| `clap` (derive) | CLI parsing with compile-time validation |
-| `git2` | Native git operations without shelling out to `git` |
-| `reqwest` | HTTP client for AI provider APIs |
-| `tokio` | Async runtime for concurrent API requests |
-| `serde` + `serde_yaml` | Structured data exchange (YAML is the primary format — see ADR-0001) |
-| `serde_json` | JSON parsing for API responses and settings |
+| `clap` (derive) + `clap_complete` | CLI parsing and shell-completion generation |
+| `tokio` | Async runtime (`voice reflect` and AI provider calls) |
 | `anyhow` | Application-level error propagation with context chains |
 | `thiserror` | Typed errors for the AI client layer (`ClaudeError`) |
-| `regex` | Commit message parsing (scope extraction, conventional commit detection) |
-| `tracing` | Structured logging controlled via `RUST_LOG` |
-| `globset` | File pattern matching for scope refinement |
-| `dirs` | Cross-platform home directory resolution for config fallback |
-| `crossterm` | Terminal interaction for interactive chat |
-| `tempfile` | Temporary files for amendment workflows |
-| `chrono` | Date/time handling in commit metadata |
-| `url` | URL parsing for remote repository information |
+| `serde` + `serde_json` + `serde_yaml` | `events.jsonl`, `models.yaml`, and reflection-response (de)serialization |
+| `cpal` | Cross-platform microphone capture |
+| `hound` | WAV read/write |
+| `rubato` | Audio resampling to 16 kHz |
+| `ringbuf` | Lock-free ring buffer between the capture callback and the consumer |
+| `signal-hook` | Ctrl-C handling to stop capture cleanly |
+| `earshot` | Voice-activity detection (silence boundaries) |
+| `rustfft` | FFT for FBANK feature extraction |
+| `candle-core` / `candle-nn` / `candle-transformers` | Pure-Rust Whisper inference |
+| `tokenizers` | Whisper tokenizer |
+| `tract-onnx` | ONNX inference for wespeaker speaker embeddings |
+| `hf-hub` + `ureq` | Model artefact downloads (`voice install-model`) |
+| `sha2` | Model file checksum verification |
+| `reqwest` | HTTP client for AI provider APIs |
+| `ulid` | ULID event identifiers |
+| `chrono` | Timestamps in events and sessions |
+| `dirs` | Cross-platform `~/.omni-voice` resolution |
+| `regex` | Text parsing |
+| `byteorder` | Binary WAV/PCM byte handling |
+| `tracing` + `tracing-subscriber` | Structured logging controlled via `RUST_LOG` |
+
+Dev-only: `insta` (golden snapshots), `proptest` (property tests), `wiremock` (HTTP mocking for AI client tests), `tempfile` (filesystem-touching tests).

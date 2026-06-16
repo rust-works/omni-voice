@@ -30,7 +30,7 @@ by Michael Nygard.
 | [ADR-0004](adr-0004.md)  | ✅ Accepted                              | 2026-02-21 | Embedded Templates via `include_str!`                                                  |
 | [ADR-0005](adr-0005.md)  | ✅ Accepted                              | 2026-02-21 | Hierarchical Configuration Resolution with Walk-Up Discovery                           |
 | [ADR-0006](adr-0006.md)  | ❌ Deprecated                            | 2026-02-22 | Two-View Repository Data Model via Generics and Composition                            |
-| [ADR-0007](adr-0007.md)  | ✅ Accepted                              | 2026-02-22 | Preflight Validation Pattern                                                           |
+| [ADR-0007](adr-0007.md)  | ❌ Deprecated                            | 2026-02-22 | Preflight Validation Pattern                                                           |
 | [ADR-0008](adr-0008.md)  | ❌ Deprecated                            | 2026-02-22 | Deterministic Pre-Validation Before AI Analysis                                        |
 | [ADR-0009](adr-0009.md)  | ❌ Deprecated                            | 2026-02-22 | Token-Budget-Aware Batch Planning                                                      |
 | [ADR-0010](adr-0010.md)  | ❌ Deprecated                            | 2026-02-22 | Multi-Layer Retry Strategy                                                             |
