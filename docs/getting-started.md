@@ -1,34 +1,39 @@
 # Getting Started with omni-voice
 
-omni-voice improves your git commit messages with AI. This guide takes you
-from zero to your first AI-improved commit in under 10 minutes.
+omni-voice is a voice capture and processing CLI. This guide takes you from
+zero to a reconciled session: record audio, turn it into a transcript,
+optionally reflect on it with an AI model, and materialise the results into
+markdown.
 
 ## What you'll do
 
 1. Install the `omni-voice` binary.
-2. Set up authentication for the default Anthropic backend.
-3. Create a minimal `.omni-voice/` configuration directory.
-4. Run `omni-voice git commit message twiddle` on a real commit range and
-   apply the suggested improvement.
+2. Install a transcription model.
+3. Capture audio from your microphone.
+4. Transcribe the recording into a session transcript.
+5. (Optional) Reflect on the transcript to emit reflection events.
+6. Review the session to reconcile those events into markdown.
 
-By the end you'll know the core `view` → `twiddle` → `check` workflow and
-where to dig deeper.
+All persistent state lives under `~/.omni-voice/voice/`.
 
 ## Prerequisites
 
-- **Rust 1.80+** — install via [rustup.rs](https://rustup.rs/) if you
-  don't have it. (`rustc --version` to check.)
-- **Git** — any modern version.
-- **A git repository** with at least one feature-branch commit ahead of
-  `main`. (If you don't have one handy, create a scratch branch first;
-  the "Your First Improvement" tutorial in
-  [user-guide.md](user-guide.md#your-first-improvement) walks through
-  that case.)
+- **Rust 1.80+** — install via [rustup.rs](https://rustup.rs/) if you don't
+  have it (`rustc --version` to check).
+- **A working microphone** for the capture step.
 
 ## 1. Install omni-voice
 
+From crates.io:
+
 ```bash
 cargo install omni-voice
+```
+
+Or build from a checkout:
+
+```bash
+cargo build --release   # binary lands at target/release/omni-voice
 ```
 
 Verify the install:
@@ -38,130 +43,110 @@ omni-voice --version
 ```
 
 If `omni-voice` isn't found, ensure `$HOME/.cargo/bin` is on your `PATH`.
+See the [README](../README.md) for Nix install options.
 
-Alternative install methods (Nix, binary cache) are documented in
-[README.md#installation](../README.md#-quick-start).
+## 2. Install a model
 
-## 2. Authenticate
-
-omni-voice uses Anthropic's Claude API by default. Get a key from the
-[Anthropic Console](https://console.anthropic.com/) and export it:
-
-```bash
-export CLAUDE_API_KEY="sk-ant-api03-..."
-```
-
-The Anthropic backend accepts any of these env vars (first match wins):
-`CLAUDE_API_KEY`, `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`.
-
-To make the export persistent, add it to your shell rc file:
+`voice transcribe` defaults to a built-in `mock` backend that needs no
+model, but for real transcription install the Whisper model. The default
+variant is `whisper-tiny.en`:
 
 ```bash
-echo 'export CLAUDE_API_KEY="sk-ant-api03-..."' >> ~/.zshrc   # zsh
-echo 'export CLAUDE_API_KEY="sk-ant-api03-..."' >> ~/.bashrc  # bash
+omni-voice voice install-model
 ```
 
-Using Bedrock, OpenAI, Ollama, or an already-authenticated Claude Code
-CLI session instead? See
-[AI Backend Selection](configuration.md#ai-backend-selection).
+The files land in `~/.omni-voice/voice/models/whisper-tiny.en/`. The command
+is idempotent — re-running it prints "model already installed" unless you
+pass `--force`. To install the speaker-embedding model used by `voice enroll`
+instead, pass `--variant speaker-wespeaker-en`.
 
-Full reference (`.env` files, CI/CD secrets, troubleshooting): see
-[Authentication](configuration.md#authentication).
+## 3. Capture audio
 
-## 3. Initialise project context
-
-omni-voice reads project conventions from a `.omni-voice/` directory at your
-repo root. Create the minimum two files:
+Record from your default input device:
 
 ```bash
-mkdir .omni-voice
+omni-voice voice capture
 ```
 
-**`.omni-voice/scopes.yaml`** — what parts of your codebase the AI can
-reference in commit scopes:
+Capture auto-stops after 5 seconds of trailing silence (`--idle-after`,
+default `5`; `0` runs until Ctrl-C). The result is a 16 kHz mono 16-bit PCM
+WAV written to `~/.omni-voice/voice/captures/<UTC-timestamp>.wav` — note the
+path in the summary line. Pass `--output <PATH>` to choose a destination.
 
-```yaml
-scopes:
-  - name: "core"
-    description: "Core application changes"
-    examples:
-      - "feat(core): add request middleware"
-    file_patterns:
-      - "src/**"
-```
+## 4. Transcribe
 
-**`.omni-voice/commit-guidelines.md`** — your team's conventions in prose:
-
-```markdown
-# Commit Guidelines
-
-Use conventional commits: `type(scope): description`.
-Types we use: feat, fix, docs, chore, refactor, test.
-```
-
-That's enough for omni-voice to bias suggestions toward your project. For
-the full schema (multiple scopes, `file_patterns`, local overrides,
-monorepo setups) see the [Configuration Guide](configuration.md) and
-[Configuration Best Practices](configuration-best-practices.md).
-<!-- TODO: replace with link to .omni-voice contract doc once issue #765 lands -->
-
-## 4. Improve your first commit
-
-Make sure you're on a feature branch with at least one commit ahead of
-`main`, and that `git status` is clean (omni-voice can't amend commits with
-uncommitted changes).
-
-Run `twiddle` against the range:
+Feed the WAV through a transcriber. The `<WAV>` must be 16 kHz mono (which
+`voice capture` always produces — `transcribe` does not resample):
 
 ```bash
-omni-voice git commit message twiddle 'origin/main..HEAD'
+omni-voice voice transcribe ~/.omni-voice/voice/captures/<timestamp>.wav
 ```
 
-Quote the range — the `..` confuses some shells if left bare.
-
-What to expect:
-
-1. omni-voice prints model info and analyses each commit in the range.
-2. For each commit it shows a suggested rewritten message with a
-   before/after diff. For example:
-
-   ```
-   Before: wip auth fix
-   After:  fix(auth): handle expired refresh tokens
-   ```
-
-3. You'll see a prompt: `Apply these amendments? [y/N]`. Press `y` to
-   rewrite the commit messages in place (the commits are amended; their
-   content is unchanged).
-
-Verify with:
+The backend defaults to `mock`. For real transcription with the model you
+installed in step 2, select the Whisper backend:
 
 ```bash
-git log --oneline origin/main..HEAD
+omni-voice voice transcribe <WAV> --backend whisper-candle
 ```
 
-The subjects should now match the suggestions you approved.
+Output is markdown on a terminal and JSONL when piped. The later reflect and
+review steps operate on a **session** — a directory under
+`~/.omni-voice/voice/<id>/` whose `transcript.jsonl` is the event stream from
+`voice transcribe`. Pick a session id and write the JSONL transcript there:
 
-## 5. Where to go next
+```bash
+mkdir -p ~/.omni-voice/voice/demo
+omni-voice voice transcribe <WAV> --backend whisper-candle --format jsonl \
+  > ~/.omni-voice/voice/demo/transcript.jsonl
+```
 
-- **Learn the full command set** — [user-guide.md](user-guide.md)
-  starts with a "Your First Improvement" tutorial and works up through
-  every command.
-- **Configure for a real project** —
-  [configuration.md](configuration.md) covers multi-scope `scopes.yaml`,
-  monorepo layouts, and local overrides; pair it with
-  [configuration-best-practices.md](configuration-best-practices.md).
-- **Use a different AI backend** —
-  [AI Backend Selection](configuration.md#ai-backend-selection) for
-  Bedrock, OpenAI, Ollama, or claude-cli.
-- **Generate a PR description after twiddling** — see the
-  `create pr` section in [user-guide.md](user-guide.md).
+Here `demo` is the session id you'll use in the remaining steps.
 
-## Troubleshooting quick links
+## 5. (Optional) Reflect
 
-- `CLAUDE_API_KEY not found` →
-  [troubleshooting.md#api-key-problems](troubleshooting.md#api-key-problems)
-- `Cannot amend commits with uncommitted changes` →
-  [troubleshooting.md#git-repository-issues](troubleshooting.md#git-repository-issues)
-- `No commits in range` →
-  [troubleshooting.md#commit-analysis-problems](troubleshooting.md#commit-analysis-problems)
+`voice reflect` runs the transcript through an AI model and emits reflection
+events. Reflect against the session you just populated:
+
+```bash
+omni-voice voice reflect --session demo
+```
+
+This appends events to `~/.omni-voice/voice/demo/events.jsonl`. Because it
+calls an AI model, this step **requires an AI backend** — the default uses
+the Anthropic API and needs a credential such as `CLAUDE_API_KEY`. See
+[AI Backends](ai-backends.md) for the full list of backends, required
+environment variables, and the `--ai-backend` flag. Skip this step and the
+review below simply has fewer events to reconcile.
+
+## 6. Review and reconcile
+
+Reconcile the session's `events.jsonl` into materialised markdown:
+
+```bash
+omni-voice voice review demo
+```
+
+With the default `--what all`, this writes `todos.md` and `decisions.md`
+under `~/.omni-voice/voice/demo/` and applies the time-to-live expiry pass.
+To inspect the raw transcript instead of materialising files, render it to
+stdout:
+
+```bash
+omni-voice voice review demo --what transcript
+```
+
+That completes the loop — capture, transcribe, reflect, review — with all
+artefacts under `~/.omni-voice/voice/demo/`.
+
+## Where to go next
+
+- **AI backends** — [ai-backends.md](ai-backends.md) for configuring the
+  model that `voice reflect` uses (Anthropic API, Claude CLI, OpenAI,
+  Ollama, Bedrock).
+- **Speaker enrolment** — `omni-voice voice enroll --name <NAME>` captures a
+  sample and stores a speaker embedding under
+  `~/.omni-voice/voice/speakers/`, which `voice transcribe --speaker` can
+  then filter on.
+- **Full command reference** — run `omni-voice help-all` for every command,
+  flag, and default.
+- **Project overview** — the [README](../README.md).

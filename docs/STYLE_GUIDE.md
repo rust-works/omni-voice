@@ -18,15 +18,12 @@ which tags apply to the changes and search this file for those tags. Each rule h
 | Adding or changing error handling                | `error-handling`                         |
 | Creating or restructuring a module/file          | `module-organization`, `naming`          |
 | Writing or updating tests                        | `testing`                                |
-| Adding a new Atlassian API client method         | `testing`, `api-design`                  |
 | Adding a new CLI command                         | `testing`, `module-organization`         |
 | Changing visibility (`pub`, `pub(crate)`)        | `api-design`, `module-organization`      |
 | Adding constants or replacing magic values       | `code-style`, `naming`                   |
 | Writing commit messages                          | `commits`                                |
-| After creating commits (before push / PR)        | `commits`                                |
 | Suppressing a lint or considering `unsafe`       | `code-style`, `unsafe`                   |
 | Writing or updating an ADR                       | `adrs`                                   |
-| Adding an MCP tool, resource, or param struct    | `api-design`, `module-organization`, `testing` |
 | Adding or modifying a docs/plan/ file            | `documentation`, `adrs`                  |
 | Reviewing code for style compliance              | All tags relevant to the changed code    |
 
@@ -369,31 +366,16 @@ Writing a commit message.
 
 Follow [`.omni-voice/commit-guidelines.md`](../.omni-voice/commit-guidelines.md) for the full
 specification including types, scopes, subject line rules, body guidelines, and breaking
-change conventions. See [`omni-voice-directory.md`](omni-voice-directory.md#commit-guidelinesmd)
-for the file's format contract, validation behaviour, and how it is resolved relative to
-local overrides and the global fallback.
+change conventions.
 
-The commit guidelines must themselves follow **Conventional Commits** and remain consistent
-with the scope definitions in `.omni-voice/scopes.yaml`:
-
-1. **Scope list** — the `## Scopes` section in `commit-guidelines.md` must list exactly the
-   scopes defined in `scopes.yaml`. When a scope is added, removed, or renamed in
-   `scopes.yaml`, update `commit-guidelines.md` to match.
-2. **Examples** — every `<scope>` used in the `## Examples` section must be a scope that
-   exists in `scopes.yaml`. Do not use scopes from other projects or hypothetical scopes.
-3. **Single source of truth** — `scopes.yaml` is the canonical definition. The scope list in
-   `commit-guidelines.md` exists only so the AI prompt has inline context; it must never
-   diverge from the YAML file.
+Do **not** add a `Co-Authored-By` footer unless a human co-author contributed; AI tool
+attribution footers must not be added to commit messages.
 
 ### Motivation
 
-Keeping the detailed commit specification in `.omni-voice/commit-guidelines.md` allows the AI
-context system to consume it directly, avoiding duplication between this style guide and the
-machine-readable guidelines.
-
-Both `commit-guidelines.md` and `scopes.yaml` are injected into the AI prompt for commit
-checking. If the two files list different scopes the AI receives contradictory instructions
-and may incorrectly flag valid scopes as invalid — or accept scopes that no longer exist.
+Keeping the detailed commit specification in `.omni-voice/commit-guidelines.md` keeps this
+style guide focused on conventions and lets the machine-readable guidelines evolve
+independently.
 
 ---
 
@@ -1086,7 +1068,7 @@ would be clearer in separate submodules.
 **Signals that a module should be split:**
 
 - It contains multiple independent command or handler types that share little or no private
-  state (e.g., `ViewCommand`, `CheckCommand`, and `CreatePrCommand` in one file).
+  state (e.g., `CaptureCommand`, `TranscribeCommand`, and `ReflectCommand` in one file).
 - Unrelated sections require scanning past hundreds of lines to find the piece you need.
 - Changes to one logical area routinely cause merge conflicts with work in another area of
   the same file.
@@ -1102,18 +1084,18 @@ When splitting, apply the layout from STYLE-0004 and extract each distinct respo
 into its own submodule:
 
 ```
-# Before — one file with five unrelated command types
-src/cli/git.rs          # 3 700 lines, five commands + helpers
+# Before — one file with several unrelated command types
+src/cli/voice.rs        # subcommand enum + every command in one file
 
 # After — each command owns its module, shared code is explicit
 src/cli/
-├── git.rs              # re-exports, shared types
-└── git/
-    ├── view.rs         # ViewCommand
-    ├── twiddle.rs      # TwiddleCommand
-    ├── check.rs        # CheckCommand
-    ├── create_pr.rs    # CreatePrCommand
-    └── helpers.rs      # shared repo-view builder, guidance display
+├── voice.rs            # subcommand dispatch, shared types
+└── voice/
+    ├── capture.rs      # CaptureCommand
+    ├── transcribe.rs   # TranscribeCommand
+    ├── reflect.rs      # ReflectCommand
+    ├── review.rs       # ReviewCommand
+    └── install_model.rs # InstallModelCommand
 ```
 
 ### Motivation
@@ -1153,227 +1135,6 @@ A consistent structure makes ADRs scannable and sets clear expectations for both
 and reviewers. Extra sections blur the boundary between architectural decisions and
 operational guidance (which belongs in the style guide) or implementation detail (which
 belongs in code comments or docs).
-
----
-
-## STYLE-0023: Validate commit messages with omni-voice after creation
-
-**Tags:** `commits`
-
-### Situation
-
-After creating one or more commits and before pushing or opening a pull request.
-
-### Guidance
-
-After every `git commit`, invoke the `commit-twiddle` skill to validate and fix the
-message against the guidelines in
-[`.omni-voice/commit-guidelines.md`](omni-voice-directory.md#commit-guidelinesmd). The skill
-calls `omni-voice git commit message view` to analyse the commit, then
-`omni-voice git commit message amend` to rewrite the message if needed.
-
-**Constraints to observe:**
-
-- The target commit must be at the branch tip with **no merge commit above it**. If a
-  merge commit is present the amend step will fail — work on a branch before merging.
-- The amendments file requires the **exact 40-character SHA** from the commit output.
-  An abbreviated hash silently skips the amendment or errors.
-- Do **not** include a `Co-Authored-By` footer unless a human co-author contributed.
-  AI tool attribution footers must not be added to commit messages.
-
-### Motivation
-
-Running the twiddle step after commit creation catches scope, casing, and footer
-violations before they reach the remote, avoiding the costly reset-and-redo cycle
-required to rewrite history once a commit has been merged to `main`.
-
----
-
-## STYLE-0024: Wiremock tests for Atlassian client methods
-
-**Tags:** `testing`, `api-design`
-
-### Situation
-
-Adding a new public method to `AtlassianClient` in `src/atlassian/client.rs`.
-
-### Guidance
-
-Every new public method on `AtlassianClient` must have corresponding `#[tokio::test]`
-tests using `wiremock::MockServer`. At minimum, cover three cases:
-
-1. **Success** — mock the expected HTTP method and path, return a valid response, and
-   assert on the parsed result fields.
-2. **Empty / edge case** — return a valid but minimal response (e.g., empty list, zero
-   count) and assert the method handles it gracefully.
-3. **API error** — return a non-success status code (e.g., 404, 403) and assert the
-   error is propagated with the status code in the message.
-
-Follow the existing test pattern in `client.rs`:
-
-```rust
-#[tokio::test]
-async fn get_watchers_success() {
-    let server = wiremock::MockServer::start().await;
-
-    wiremock::Mock::given(wiremock::matchers::method("GET"))
-        .and(wiremock::matchers::path("/rest/api/3/issue/PROJ-1/watchers"))
-        .respond_with(
-            wiremock::ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "watchCount": 1,
-                "watchers": [{"accountId": "abc123", "displayName": "Alice"}]
-            })),
-        )
-        .expect(1)
-        .mount(&server)
-        .await;
-
-    let client = AtlassianClient::new(&server.uri(), "user@test.com", "token").unwrap();
-    let result = client.get_watchers("PROJ-1").await.unwrap();
-    assert_eq!(result.watchers.len(), 1);
-}
-```
-
-### Motivation
-
-Client methods are the project's primary integration boundary with the Atlassian REST
-API. Wiremock tests verify request construction (method, path, query params, body) and
-response parsing without hitting a live API. Skipping these tests leaves the entire
-HTTP layer uncovered, which CI coverage checks will flag as a patch coverage gap.
-
----
-
-## STYLE-0025: Testable CLI execute methods
-
-**Tags:** `testing`, `module-organization`
-
-### Situation
-
-Adding or modifying a CLI command in `src/cli/atlassian/`.
-
-### Guidance
-
-`create_client()` reads credentials from the environment, making any code after it
-unreachable in unit tests. When an `execute` method contains **non-trivial logic** beyond
-`create_client()`, extract that logic into a standalone `run_*` function that accepts an
-`&AtlassianClient` (or the relevant API wrapper) so it can be tested with wiremock.
-
-**Extract when** the `execute` body contains any of:
-
-- Multi-step orchestration (e.g., fetch → resolve → mutate → confirm).
-- Branching or validation on user input (e.g., resolving a transition by name/ID,
-  parsing and validating issue keys, confirmation prompts).
-- Logic that combines results from multiple API calls.
-
-```rust
-impl TransitionCommand {
-    pub async fn execute(self) -> Result<()> {
-        let (client, _instance_url) = create_client()?;
-        run_transition(&client, &self.key, self.transition.as_deref(), self.list, &self.output).await
-    }
-}
-
-async fn run_transition(
-    client: &AtlassianClient, key: &str, transition: Option<&str>, list: bool, output: &OutputFormat,
-) -> Result<()> {
-    let transitions = client.get_transitions(key).await?;
-    // ... resolve, execute, print ...
-}
-```
-
-Write tests for `run_*` functions covering the success path, structured output formats
-(JSON/YAML), and API error propagation.
-
-**Do not extract when** `execute` is a trivial pipeline — a single API call fed directly
-into `output_as` / print with no branching or validation:
-
-```rust
-impl ListCommand {
-    pub async fn execute(self) -> Result<()> {
-        let (client, _instance_url) = create_client()?;
-        let result = client.get_projects(self.limit).await?;
-        if output_as(&result, &self.output)? {
-            return Ok(());
-        }
-        print_projects(&result);
-        Ok(())
-    }
-}
-```
-
-Here the client method itself should have wiremock tests (per STYLE-0024), and extraction
-would add indirection without catching additional bugs. Inline is fine.
-
-### Motivation
-
-The goal is **testability of logic that can break**, not mechanical conformance. Extracting
-a trivial pipeline adds a function boundary and a signature to maintain without delivering
-new test coverage beyond what STYLE-0024 client tests already provide. Reserving extraction
-for commands with real orchestration or validation keeps the codebase lean while ensuring
-the code most likely to harbour bugs is covered.
-
-## STYLE-0026: MCP tool and resource authoring conventions
-
-**Tags:** `api-design`, `module-organization`, `testing`
-
-### Situation
-
-Adding or modifying MCP tools, resources, or supporting types under `src/mcp/`.
-
-### Guidance
-
-1. **Parameter structs.** Every tool defines its input as a dedicated
-   `#[derive(Debug, Deserialize, schemars::JsonSchema)]` struct with a name
-   ending in `Params` (e.g. `GitViewCommitsParams`). All fields get a doc
-   comment — it flows through to the tool's JSON schema and is what the
-   assistant sees. Optional fields use `#[serde(default)]` and `Option<T>`;
-   never `Default::default()` in the handler body.
-
-2. **One tool router per module.** Group related tools in their own submodule
-   and expose the router via `#[tool_router(router = name_tool_router, vis = "pub")]`
-   (see [src/mcp/git_tools.rs](../src/mcp/git_tools.rs)). `OmniVoiceServer::new`
-   combines all routers — add a new module there rather than cramming tools
-   into an existing router.
-
-3. **Error mapping.** Inside tool handlers, bubble `anyhow::Error` out via
-   the shared [`tool_error`](../src/mcp/error.rs) helper so the full error
-   chain reaches the client. Do **not** build `McpError` values by hand with
-   bespoke messages — go through `tool_error` so the format stays consistent
-   across tools. Resource handlers use `resources::not_found(uri, err)`
-   for URI-lookup failures so the raw URI appears in the response `data`.
-
-4. **Blocking work belongs in `spawn_blocking`.** Tools that call into
-   synchronous business logic (e.g. `git2` operations) must wrap the call
-   in `tokio::task::spawn_blocking` — the MCP transport loop is async, and
-   blocking it stalls every in-flight request.
-
-5. **Output format.** YAML for repository/commit analysis (matches the CLI),
-   markdown for rendered prose (JIRA/Confluence JFM), JSON for raw
-   structured payloads (ADF). Advertise the MIME type on resources so
-   clients can route output appropriately.
-
-6. **Resource URIs.** New URI templates must round-trip through
-   [`ResourceUri::parse`](../src/mcp/resources.rs) with a dedicated unit
-   test per template *and* per malformed-input class (unknown scheme,
-   wrong path shape, empty identifier). Keep the catalogue in
-   `resource_templates()` and `resource_listing()` in sync — add a
-   `templates_include_all_*_uris` assertion when the count changes.
-
-7. **Testing.** Tools and resources both need at least:
-   - A library-level unit test covering the success path with a fabricated
-     input (temp repo, mock API, or hand-built `ContentItem`).
-   - An integration test under `tests/mcp_integration_test.rs` that spins
-     up `OmniVoiceServer` on an in-memory duplex and exercises the MCP
-     protocol round-trip (list + read/call).
-
-### Motivation
-
-The MCP surface is consumed by non-human clients that can only see what the
-schema and error messages tell them. Uniform parameter structs make the
-schema predictable; shared error mapping keeps diagnostics legible across
-tools; router splitting keeps modules small and testable; the paired
-unit+integration test requirement means a regression in protocol wiring is
-caught without requiring a live Claude Desktop to reproduce.
 
 ---
 

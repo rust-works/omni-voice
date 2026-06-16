@@ -147,7 +147,7 @@ Pushing a `v*` tag triggers the following automated workflows:
 
 ### Release Workflow (`.github/workflows/release.yml`)
 - **Creates GitHub Release**: Automatically from the tag
-- **Builds Cross-Platform Binaries** (both `omni-voice` and `omni-voice-mcp` for each target):
+- **Builds Cross-Platform Binaries** (`omni-voice` for each target):
   - Linux (x86_64-unknown-linux-gnu)
   - macOS (aarch64-apple-darwin)
   - Windows (x86_64-pc-windows-msvc)
@@ -184,21 +184,9 @@ After the automated release completes:
    - Update any version-specific documentation
    - Ensure README examples use current version
 
-2. **Update the Glama Listing** (see [Glama Listing Update](#glama-listing-update))
-
-3. **Announce Release** (optional):
+2. **Announce Release** (optional):
    - Share release notes with team
    - Update project status if needed
-
-## Glama Listing Update
-
-After the GitHub release lands, point the [Glama listing](https://glama.ai/mcp/servers/rust-works/omni-voice) at the new commit so the public listing reflects the release. This is a manual web-UI step — Glama's Docker build is pinned to a specific commit SHA and only rebuilds when that SHA is bumped.
-
-See [Glama Listing](glama-listing.md) for the full procedure, the canonical admin-form values (Build steps, CMD arguments, env-var schema), and troubleshooting. The short version:
-
-1. Run `git rev-parse --short vX.Y.Z` to get the release SHA.
-2. Paste it into **Pinned commit SHA** at <https://glama.ai/mcp/servers/rust-works/omni-voice/admin/dockerfile> and **Save**.
-3. Trigger a **build**, wait for it to go green, then trigger a **release**.
 
 ## Troubleshooting
 

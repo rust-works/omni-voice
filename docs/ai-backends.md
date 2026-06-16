@@ -1,9 +1,9 @@
 # AI Backends
 
-omni-voice's AI features — `twiddle`, PR creation, JIRA/Confluence drafting,
-`ai chat` — call out to a large language model through a pluggable
-**backend**. Five backends are supported and selected at runtime by environment
-variables or a CLI flag.
+omni-voice's AI feature — `voice reflect`, which reflects on a transcript and
+emits reflection events — calls out to a large language model through a
+pluggable **backend**. Five backends are supported and selected at runtime by
+environment variables or a CLI flag.
 
 This guide covers what each backend is, how to wire it up, and how to choose
 between them. For dev-facing notes on the dispatch implementation, see the
@@ -81,17 +81,17 @@ export ANTHROPIC_AUTH_TOKEN="sk-ant-..."
 Get a key from [console.anthropic.com](https://console.anthropic.com/).
 
 **Model.** Resolved from the precedence chain above. The registry default is
-`claude-sonnet-4-6`. Override per-invocation with `--model`:
+`claude-sonnet-4-6`. Override per-invocation with `ANTHROPIC_MODEL`:
 
 ```bash
-omni-voice --model claude-opus-4-6 git commit message twiddle 'origin/main..HEAD' --use-context
+ANTHROPIC_MODEL=claude-opus-4-6 omni-voice voice reflect transcript.jsonl
 ```
 
 **Verification.**
 
 ```bash
 export CLAUDE_API_KEY="sk-ant-..."
-omni-voice git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice voice reflect transcript.jsonl
 ```
 
 ## Claude CLI (sandboxed subprocess)
@@ -104,7 +104,7 @@ separate API key when you already have Claude Code installed and signed in.
 **Selection.** Either flag or env var works; the flag wins if both are set:
 
 ```bash
-omni-voice --ai-backend claude-cli git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice --ai-backend claude-cli voice reflect transcript.jsonl
 # or persistently:
 export OMNI_VOICE_AI_BACKEND=claude-cli
 ```
@@ -128,7 +128,7 @@ escape hatches, and the spending cap.
 
 ```bash
 claude --version          # confirm the CLI is installed and authenticated
-omni-voice --ai-backend claude-cli git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice --ai-backend claude-cli voice reflect transcript.jsonl
 ```
 
 ## OpenAI
@@ -149,13 +149,12 @@ export OPENAI_API_KEY="sk-..."
 export OPENAI_AUTH_TOKEN="sk-..."
 ```
 
-**Model.** Registry default is `gpt-5-mini`. Override with `OPENAI_MODEL` or
-`--model`:
+**Model.** Registry default is `gpt-5-mini`. Override with `OPENAI_MODEL`:
 
 ```bash
 export OPENAI_MODEL="gpt-5"
-# or
-omni-voice --model gpt-5 git commit message twiddle ...
+# or per-invocation:
+OPENAI_MODEL=gpt-5 omni-voice voice reflect transcript.jsonl
 ```
 
 **Endpoint.** Fixed to `https://api.openai.com/v1/chat/completions`. To point
@@ -175,7 +174,7 @@ use the [Ollama](#ollama) backend (which exposes `OLLAMA_BASE_URL`).
 ```bash
 export USE_OPENAI=true
 export OPENAI_API_KEY="sk-..."
-omni-voice git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice voice reflect transcript.jsonl
 ```
 
 ## Ollama
@@ -197,7 +196,7 @@ like [LM Studio](https://lmstudio.ai/):
 export OLLAMA_BASE_URL="http://gpu-box.local:11434"
 ```
 
-**Model.** Defaults to `llama2`. Override with `OLLAMA_MODEL` or `--model`:
+**Model.** Defaults to `llama2`. Override with `OLLAMA_MODEL`:
 
 ```bash
 export OLLAMA_MODEL="llama3.1:70b"
@@ -215,7 +214,7 @@ registry default applies and a debug log is emitted.
 **Limitations.**
 
 - Local models often have much smaller context windows than Claude / GPT —
-  large `twiddle` ranges may need `--concurrency` tuning.
+  long transcripts may exceed the available context window.
 - Quality varies sharply by model size.
 - JSON-schema enforcement depends on the model's instruction-following; small
   models may emit invalid YAML.
@@ -227,7 +226,7 @@ ollama serve &              # if not already running
 ollama pull llama3.1
 export USE_OLLAMA=true
 export OLLAMA_MODEL="llama3.1"
-omni-voice git commit message twiddle 'HEAD~1..HEAD' --use-context
+omni-voice voice reflect transcript.jsonl
 ```
 
 ## AWS Bedrock
@@ -275,7 +274,7 @@ export ANTHROPIC_MODEL="us.anthropic.claude-sonnet-4-6-v1:0"
 export CLAUDE_CODE_USE_BEDROCK=true
 export ANTHROPIC_AUTH_TOKEN="..."
 export ANTHROPIC_BEDROCK_BASE_URL="https://bedrock-runtime.us-east-1.amazonaws.com"
-omni-voice git commit message twiddle 'origin/main..HEAD' --use-context
+omni-voice voice reflect transcript.jsonl
 ```
 
 ## Claude CLI Deep-dive
@@ -319,7 +318,7 @@ the model not to emit `function_calls` XML.
 When the nested session needs filesystem or shell access:
 
 ```bash
-omni-voice --ai-backend claude-cli --claude-cli-allow-tools git branch create pr
+omni-voice --ai-backend claude-cli --claude-cli-allow-tools voice reflect transcript.jsonl
 # or persistently:
 export OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS=true
 ```
@@ -342,7 +341,7 @@ claude -p sandbox weakened: tool-access escape hatch is enabled ...
 When the nested session needs MCP servers from your `~/.claude/settings.json`:
 
 ```bash
-omni-voice --ai-backend claude-cli --claude-cli-allow-mcp git branch create pr
+omni-voice --ai-backend claude-cli --claude-cli-allow-mcp voice reflect transcript.jsonl
 # or:
 export OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP=true
 ```
@@ -368,7 +367,7 @@ Pass a per-invocation cap in USD:
 
 ```bash
 omni-voice --ai-backend claude-cli --claude-cli-max-budget-usd 0.50 \
-  git commit message twiddle 'HEAD~3..HEAD'
+  voice reflect transcript.jsonl
 # or:
 export OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD=0.50
 ```
@@ -408,11 +407,11 @@ Prefer the direct [Claude API](#claude-api-default) when:
 ## Model Registry
 
 omni-voice ships with a built-in catalogue of model identifiers and their
-token limits. Inspect it with:
+token limits. The catalogue is assembled by merging several sources; point at a
+single override file with `--models-yaml` (or `OMNI_VOICE_MODELS_YAML`):
 
 ```bash
-omni-voice config models show              # merged catalogue with source annotations
-omni-voice config models show --embedded-only   # just the built-in entries
+omni-voice --models-yaml ./my-models.yaml voice reflect transcript.jsonl
 ```
 
 **Catalogue precedence** — entries from later files override earlier ones:
@@ -420,7 +419,7 @@ omni-voice config models show --embedded-only   # just the built-in entries
 1. Built-in [src/templates/models.yaml](../src/templates/models.yaml)
 2. `~/.omni-voice/models.yaml` (user-level)
 3. `./.omni-voice/models.yaml` (project-local)
-4. The path in `OMNI_VOICE_MODELS_YAML` (if set — short-circuits user/project)
+4. The path in `OMNI_VOICE_MODELS_YAML` / `--models-yaml` (if set — short-circuits user/project)
 
 **Bedrock identifiers** are normalised before lookup: regional prefixes
 (`us.anthropic.…`), provider prefixes (`anthropic.…`), and version suffixes
@@ -467,5 +466,5 @@ errors. The most common cases:
 Enable verbose logging when reporting issues:
 
 ```bash
-RUST_LOG=omni_voice=debug omni-voice git commit message twiddle 'HEAD~1..HEAD' --use-context
+RUST_LOG=omni_voice=debug omni-voice voice reflect transcript.jsonl
 ```
