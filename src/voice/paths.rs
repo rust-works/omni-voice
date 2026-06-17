@@ -15,7 +15,7 @@ pub fn omni_voice_voice_root() -> Result<PathBuf> {
     Ok(home.join(".omni-voice").join("voice"))
 }
 
-/// `~/.omni-voice/voice/captures/` — destination for `voice capture` and
+/// `~/.omni-voice/voice/captures/` — destination for `capture` and
 /// the enrolment tempfile.
 pub fn captures_dir() -> Result<PathBuf> {
     Ok(omni_voice_voice_root()?.join("captures"))

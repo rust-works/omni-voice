@@ -1,4 +1,4 @@
-//! `omni-voice voice reflect` — feed a `transcript.jsonl` through the
+//! `omni-voice reflect` — feed a `transcript.jsonl` through the
 //! configured [`AiClient`](crate::claude::ai::AiClient) and emit
 //! reflection events (per the #799 schema) to `events.jsonl`.
 //!
@@ -86,7 +86,7 @@ fn resolve_source(
 ) -> Result<TranscriptSource> {
     match (transcript, session) {
         (Some(_), Some(_)) => {
-            bail!("voice reflect: pass either a transcript path or --session, not both")
+            bail!("reflect: pass either a transcript path or --session, not both")
         }
         (Some(path), None) => {
             if path.as_os_str() == "-" {

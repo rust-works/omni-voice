@@ -82,7 +82,7 @@ pub enum ModelSource {
 pub struct ModelSpec {
     /// CLI-facing variant identifier: `"whisper-tiny.en"` or
     /// `"speaker-wespeaker-en"`. Matches the `--variant` value the user
-    /// passes to `voice install-model`.
+    /// passes to `install-model`.
     pub variant: &'static str,
     /// Human label used in error messages: `"Whisper"` or `"Speaker"`.
     pub kind_label: &'static str,
@@ -179,7 +179,7 @@ pub const WHISPER_TINY_EN: ModelSpec = ModelSpec {
     default_subdir: DEFAULT_VARIANT_DIR,
     required_files: REQUIRED_FILES,
     env_var: "OMNI_VOICE_VOICE_WHISPER_MODEL",
-    install_command: "omni-voice voice install-model",
+    install_command: "omni-voice install-model",
     model_flag: "--model",
     source: ModelSource::HfHub {
         repo_id: MODEL_ID,
@@ -196,7 +196,7 @@ pub const SPEAKER_WESPEAKER_EN: ModelSpec = ModelSpec {
     default_subdir: "wespeaker-en-voxceleb-resnet34-LM",
     required_files: &["wespeaker_en_voxceleb_resnet34_LM.onnx"],
     env_var: "OMNI_VOICE_VOICE_SPEAKER_MODEL",
-    install_command: "omni-voice voice install-model --variant speaker-wespeaker-en",
+    install_command: "omni-voice install-model --variant speaker-wespeaker-en",
     model_flag: "--speaker-model",
     source: ModelSource::HttpReleaseAsset {
         url: "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/wespeaker_en_voxceleb_resnet34_LM.onnx",
@@ -232,7 +232,7 @@ pub fn resolve_whisper_model_dir(opts: &VoiceOpts) -> Result<PathBuf> {
 /// Verifies that `dir` contains every file in [`REQUIRED_FILES`].
 ///
 /// On failure, returns the install hint specified by issue #802:
-/// `"no Whisper model found at <path>; run `omni-voice voice install-model`
+/// `"no Whisper model found at <path>; run `omni-voice install-model`
 /// or pass --model <path>"`.
 pub fn ensure_model_present(dir: &Path) -> Result<()> {
     WHISPER_TINY_EN.ensure_present(dir)
@@ -306,7 +306,7 @@ mod tests {
         let err = ensure_model_present(tmp.path()).unwrap_err();
         let msg = format!("{err:#}");
         assert!(msg.contains("no Whisper model found"), "got: {msg}");
-        assert!(msg.contains("voice install-model"), "got: {msg}");
+        assert!(msg.contains("install-model"), "got: {msg}");
         assert!(msg.contains("--model"), "got: {msg}");
     }
 

@@ -1,11 +1,11 @@
-//! `omni-voice voice transcribe` — feed a 16 kHz mono WAV file through the
+//! `omni-voice transcribe` — feed a 16 kHz mono WAV file through the
 //! configured [`crate::voice::Transcriber`] and emit JSONL events to stdout
 //! (markdown when stdout is a tty).
 //!
 //! WAV validation is delegated to
 //! [`crate::voice::VecAudioInput::from_wav_path`] — non-16 kHz, non-mono,
 //! non-16-bit-PCM files error with a descriptive message pointing at
-//! `voice capture` as the source of normalised audio.
+//! `capture` as the source of normalised audio.
 
 use std::io::IsTerminal;
 use std::io::Write;
@@ -45,7 +45,7 @@ pub const DEFAULT_SPEAKER_THRESHOLD: f32 = 0.5;
 /// (`"mock"` until a real ASR backend lands — see ADR-0032).
 #[derive(Parser)]
 pub struct TranscribeCommand {
-    /// Path to a 16 kHz mono 16-bit PCM WAV file. Use `voice capture` to
+    /// Path to a 16 kHz mono 16-bit PCM WAV file. Use `capture` to
     /// produce one — `transcribe` does not resample.
     pub wav: PathBuf,
 

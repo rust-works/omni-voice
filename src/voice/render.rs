@@ -11,7 +11,7 @@
 //!   when no speaker is attached).
 //!
 //! Lives under `src/voice/` rather than `src/cli/voice/` because the
-//! `voice review` command in #804 will reuse `render_markdown`.
+//! `review` command in #804 will reuse `render_markdown`.
 //!
 //! `Partial` and `Endpoint` events are skipped in markdown mode: the batch
 //! backend in #801 emits no partials, and endpoint markers add no signal
@@ -167,7 +167,7 @@ fn fmt_timestamp(d: Duration) -> String {
 use crate::voice::events::{ItemClass, Priority};
 use crate::voice::reconcile::{ReconciledDecision, ReconciledItem};
 
-/// Renders the `todos.md` body for a `voice review` pass.
+/// Renders the `todos.md` body for a `review` pass.
 ///
 /// Items are grouped by priority (High → Normal → Low), each group as
 /// a `## <Priority> priority` section. Within a group, items are sorted
@@ -224,7 +224,7 @@ fn render_todo_line(entry: &ReconciledItem) -> String {
     }
 }
 
-/// Renders the `decisions.md` body for a `voice review` pass.
+/// Renders the `decisions.md` body for a `review` pass.
 ///
 /// Decisions sort newest-first by their create-event id. When a
 /// decision recorded alternatives, they render as an indented

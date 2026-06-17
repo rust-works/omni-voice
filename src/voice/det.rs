@@ -1,7 +1,7 @@
 //! Pluggable RNG for [`EventId`](super::EventId) (ULID) generation.
 //!
 //! Lives at `voice/` scope rather than under `backends/mock.rs` because
-//! the same trait is consumed by [`voice reflect`](super::reflect) for
+//! the same trait is consumed by [`reflect`](super::reflect) for
 //! deterministic event minting in snapshot tests. Production code uses
 //! [`SystemUlidRng`]; tests use [`CountingUlidRng`].
 

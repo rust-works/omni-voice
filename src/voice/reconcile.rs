@@ -1,7 +1,7 @@
 //! Pure reconciliation of `events.jsonl` into materialised markdown.
 //!
 //! The `reconcile()` function is a pure function from event log to
-//! markdown + new TTL-expiry events; the `voice review` CLI wrapper
+//! markdown + new TTL-expiry events; the `review` CLI wrapper
 //! (in [`crate::voice::review`]) handles all I/O around it.
 //!
 //! Reuses [`crate::voice::events::project`] for the bulk of the

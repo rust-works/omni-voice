@@ -4,7 +4,7 @@
 //! The runtime choice (wespeaker `voxceleb_resnet34_LM` under
 //! `tract-onnx`) is fixed by [ADR-0034](../../docs/adrs/adr-0034.md).
 //! This module is the load-and-embed half; CLI plumbing for
-//! `voice enroll` and `voice transcribe --speaker` lives in
+//! `enroll` and `transcribe --speaker` lives in
 //! [`crate::cli::voice`].
 
 use std::path::Path;
@@ -50,7 +50,7 @@ impl WespeakerEmbedder {
     pub fn new(model_path: &Path) -> Result<Self> {
         if !model_path.is_file() {
             return Err(anyhow!(
-                "wespeaker ONNX not found at {}; run `omni-voice voice install-model \
+                "wespeaker ONNX not found at {}; run `omni-voice install-model \
                  --variant speaker-wespeaker-en` or pass --speaker-model <path>",
                 model_path.display()
             ));

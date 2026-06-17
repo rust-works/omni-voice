@@ -1,4 +1,4 @@
-//! `voice reflect` — transcript-to-events Claude consumer.
+//! `reflect` — transcript-to-events Claude consumer.
 //!
 //! Consumes `TranscriptEvent::Final` events from a `transcript.jsonl`
 //! source (file path, stdin, or session directory), calls Claude via the

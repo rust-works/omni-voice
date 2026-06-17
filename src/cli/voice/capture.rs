@@ -1,4 +1,4 @@
-//! `omni-voice voice capture` — record microphone audio to a 16 kHz mono WAV file.
+//! `omni-voice capture` — record microphone audio to a 16 kHz mono WAV file.
 
 use std::path::PathBuf;
 

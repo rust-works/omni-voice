@@ -1,4 +1,4 @@
-//! `omni-voice voice install-model` — one-time fetch of model artefacts.
+//! `omni-voice install-model` — one-time fetch of model artefacts.
 //!
 //! Supports two variants: `whisper-tiny.en` for the `whisper-candle` ASR
 //! backend, and `speaker-wespeaker-en` for the speaker-embedding runtime
@@ -23,7 +23,7 @@ use crate::voice::models::{ModelSource, ModelSpec, SPEAKER_WESPEAKER_EN, WHISPER
 /// Which model variant to install.
 ///
 /// `--variant` defaults to `whisper-tiny.en` so bare
-/// `voice install-model` continues to install the ASR model — the
+/// `install-model` continues to install the ASR model — the
 /// pre-#805 behaviour.
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, ValueEnum)]
 pub enum Variant {
