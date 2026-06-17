@@ -95,12 +95,25 @@ pub struct Cli {
 /// Top-level subcommand dispatch enum.
 ///
 /// Each variant wraps the subcommand-specific argument struct (e.g.
-/// [`voice::VoiceCommand`]); follow the variant's payload type for the
-/// per-command argument surface.
+/// [`voice::capture::CaptureCommand`]); follow the variant's payload type
+/// for the per-command argument surface.
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Voice capture and processing operations.
-    Voice(voice::VoiceCommand),
+    /// Captures audio from a microphone to a 16 kHz mono WAV file.
+    Capture(voice::capture::CaptureCommand),
+    /// Transcribes a 16 kHz mono WAV file to JSONL or markdown.
+    Transcribe(voice::transcribe::TranscribeCommand),
+    /// Reflects on a transcript and emits reflection events.
+    Reflect(voice::reflect::ReflectCommand),
+    /// Reconciles a session's events.jsonl into materialized markdown.
+    Review(voice::review::ReviewCommand),
+    /// Downloads the model files for a chosen variant (Whisper tiny.en
+    /// for the `whisper-candle` backend, or wespeaker for speaker
+    /// embedding) into `~/.omni-voice/voice/models/<variant>/`.
+    InstallModel(voice::install_model::InstallModelCommand),
+    /// Captures a microphone sample and persists a speaker embedding to
+    /// `~/.omni-voice/voice/speakers/<name>.json`.
+    Enroll(voice::enroll::EnrollCommand),
     /// Generates shell completion scripts.
     #[command(hide = true)]
     Completions(completions::CompletionsCommand),
@@ -144,7 +157,12 @@ impl Cli {
         self.propagate_global_flags();
 
         match self.command {
-            Commands::Voice(cmd) => cmd.execute().await,
+            Commands::Capture(cmd) => cmd.execute(),
+            Commands::Transcribe(cmd) => cmd.execute(),
+            Commands::Reflect(cmd) => cmd.execute().await,
+            Commands::Review(cmd) => cmd.execute(),
+            Commands::InstallModel(cmd) => cmd.execute(),
+            Commands::Enroll(cmd) => cmd.execute(),
             Commands::Completions(completions_cmd) => completions_cmd.execute(),
             Commands::HelpAll(help_cmd) => help_cmd.execute(),
         }
@@ -155,6 +173,32 @@ impl Cli {
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn install_model_dispatches_via_execute() {
+        // Drives Cli::execute through the top-level InstallModel arm
+        // end-to-end: covers the async dispatch in cli.rs and the
+        // stderr-locking wrapper in install_model::execute. Uses a
+        // pre-staged tempdir so the idempotent early-return path keeps
+        // the test off the network.
+        use crate::voice::models::REQUIRED_FILES;
+
+        let tmp = tempfile::TempDir::new().unwrap();
+        for f in REQUIRED_FILES {
+            std::fs::write(tmp.path().join(f), b"placeholder").unwrap();
+        }
+
+        let cli = Cli::try_parse_from([
+            "omni-voice",
+            "install-model",
+            "--dest",
+            tmp.path().to_str().unwrap(),
+        ])
+        .unwrap();
+        cli.execute()
+            .await
+            .expect("install-model dispatch should succeed on pre-staged dir");
+    }
 
     #[test]
     fn parses_ai_backend_claude_cli() {
