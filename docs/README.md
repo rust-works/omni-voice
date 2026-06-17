@@ -8,7 +8,7 @@ transcribe, reflect, and reconcile.
 - **[Getting Started](getting-started.md)** — install to first reconciled session
 - **[README](../README.md)** — overview and installation
 - **[User Guide](user-guide.md#command-reference)** — full command reference with examples
-- **[AI Backends](ai-backends.md)** — Claude API, Claude CLI, OpenAI, Ollama, and Bedrock setup for `voice reflect`
+- **[AI Backends](ai-backends.md)** — Claude API, Claude CLI, OpenAI, Ollama, and Bedrock setup for `reflect`
 - **[ASR Backends](asr-backends.md)** — transcriber backends (`mock`, `whisper-candle`, streaming) and runtime choices
 - **[Shell Completion](shell-completion.md)** — install per-shell completion scripts
 - **[Troubleshooting](troubleshooting.md)** — common issues and solutions

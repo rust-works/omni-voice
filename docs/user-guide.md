@@ -35,7 +35,7 @@ omni-voice help-all
 
 ## The voice pipeline
 
-The four voice subcommands chain into a pipeline. Each stage consumes the
+The four voice commands chain into a pipeline. Each stage consumes the
 output of the previous one:
 
 ```text
@@ -44,51 +44,51 @@ capture  →  transcribe  →  reflect  →  review
             (jsonl/md)     events.jsonl  markdown
 ```
 
-1. **`voice capture`** records the microphone to a 16 kHz mono WAV file.
-2. **`voice transcribe`** turns that WAV into transcript events (JSONL or
+1. **`capture`** records the microphone to a 16 kHz mono WAV file.
+2. **`transcribe`** turns that WAV into transcript events (JSONL or
    markdown).
-3. **`voice reflect`** feeds a `transcript.jsonl` through an AI model and emits
+3. **`reflect`** feeds a `transcript.jsonl` through an AI model and emits
    reflection events.
-4. **`voice review`** reconciles a session's `events.jsonl` into materialised
+4. **`review`** reconciles a session's `events.jsonl` into materialised
    markdown (`todos.md`, `decisions.md`).
 
 Two further subcommands support the pipeline:
 
-- **`voice install-model`** downloads the model artefacts used by the real
+- **`install-model`** downloads the model artefacts used by the real
   transcriber and speaker-embedding backends.
-- **`voice enroll`** records a speaker sample and persists an embedding so
-  `voice transcribe --speaker` can filter the transcript to a single voice.
+- **`enroll`** records a speaker sample and persists an embedding so
+  `transcribe --speaker` can filter the transcript to a single voice.
 
 A minimal end-to-end run:
 
 ```bash
 # 1. Record until 5 s of trailing silence (Ctrl-C also stops).
-omni-voice voice capture --output session.wav
+omni-voice capture --output session.wav
 
 # 2. Transcribe to JSONL.
-omni-voice voice transcribe session.wav --format jsonl > transcript.jsonl
+omni-voice transcribe session.wav --format jsonl > transcript.jsonl
 
 # 3. Reflect on the transcript (uses the configured AI backend).
-omni-voice voice reflect transcript.jsonl > events.jsonl
+omni-voice reflect transcript.jsonl > events.jsonl
 
 # 4. Reconcile a named session into todos.md / decisions.md.
-omni-voice voice review my-session
+omni-voice review my-session
 ```
 
-> `voice reflect` and `voice review` work most cleanly against a *session* — a
+> `reflect` and `review` work most cleanly against a *session* — a
 > directory under `~/.omni-voice/voice/<id>/` holding `transcript.jsonl` and
 > `events.jsonl`. Pass `--session <id>` to `reflect` and a `<SESSION_ID>` to
 > `review` to operate against one. See [Files and directories](#files-and-directories).
 
 ## Command reference
 
-### `voice capture`
+### `capture`
 
 Captures audio from a microphone to a 16 kHz mono 16-bit PCM WAV file.
 Auto-stops after a configurable run of trailing silence, or on Ctrl-C.
 
 ```text
-omni-voice voice capture [OPTIONS]
+omni-voice capture [OPTIONS]
 ```
 
 | Option | Default | Purpose |
@@ -99,18 +99,18 @@ omni-voice voice capture [OPTIONS]
 
 ```bash
 # Record to an explicit file, stopping after 3 s of silence.
-omni-voice voice capture --output meeting.wav --idle-after 3
+omni-voice capture --output meeting.wav --idle-after 3
 ```
 
-The WAV is always 16 kHz mono — the format `voice transcribe` requires.
+The WAV is always 16 kHz mono — the format `transcribe` requires.
 
-### `voice transcribe`
+### `transcribe`
 
 Transcribes a 16 kHz mono 16-bit PCM WAV file to transcript events. It does
-**not** resample; use `voice capture` to produce a correctly-formatted file.
+**not** resample; use `capture` to produce a correctly-formatted file.
 
 ```text
-omni-voice voice transcribe [OPTIONS] <WAV>
+omni-voice transcribe [OPTIONS] <WAV>
 ```
 
 | Option | Default | Purpose |
@@ -125,19 +125,19 @@ omni-voice voice transcribe [OPTIONS] <WAV>
 
 ```bash
 # Pipe JSONL events into a transcript file with the real Whisper backend.
-omni-voice voice transcribe meeting.wav \
+omni-voice transcribe meeting.wav \
   --backend whisper-candle \
   --format jsonl > transcript.jsonl
 
 # Keep only segments matching an enrolled speaker.
-omni-voice voice transcribe meeting.wav --speaker alice --threshold 0.6
+omni-voice transcribe meeting.wav --speaker alice --threshold 0.6
 ```
 
 The Whisper backends need their model installed first (see
-[`voice install-model`](#voice-install-model)). `--speaker` needs the speaker
-to be enrolled first (see [`voice enroll`](#voice-enroll)).
+[`install-model`](#install-model)). `--speaker` needs the speaker
+to be enrolled first (see [`enroll`](#enroll)).
 
-### `voice reflect`
+### `reflect`
 
 Reflects on a `transcript.jsonl` through the configured AI model and emits
 reflection events. The transcript source is resolved in this order:
@@ -145,7 +145,7 @@ positional `<TRANSCRIPT>` argument → `--session <id>` → stdin. A literal `-`
 as the positional argument also means stdin.
 
 ```text
-omni-voice voice reflect [OPTIONS] [TRANSCRIPT]
+omni-voice reflect [OPTIONS] [TRANSCRIPT]
 ```
 
 | Option | Default | Purpose |
@@ -159,26 +159,26 @@ reflects on newly-arrived transcript events. Otherwise events stream to stdout.
 
 ```bash
 # Reflect on a transcript file, writing events to stdout.
-omni-voice voice reflect transcript.jsonl > events.jsonl
+omni-voice reflect transcript.jsonl > events.jsonl
 
 # Read a transcript from stdin.
-omni-voice voice transcribe meeting.wav --format jsonl | omni-voice voice reflect -
+omni-voice transcribe meeting.wav --format jsonl | omni-voice reflect -
 
 # Append reflection events to a named session.
-omni-voice voice reflect --session my-session
+omni-voice reflect --session my-session
 ```
 
-`voice reflect` is the only voice subcommand that calls an AI model — see
+`reflect` is the only voice command that calls an AI model — see
 [Selecting the AI backend](#selecting-the-ai-backend).
 
-### `voice review`
+### `review`
 
 Reconciles a session's `events.jsonl` into materialised markdown. Reads the
 reflection log under the session directory, computes projections, applies a TTL
 expiry pass, and writes `todos.md` / `decisions.md`.
 
 ```text
-omni-voice voice review [OPTIONS] <SESSION_ID>
+omni-voice review [OPTIONS] <SESSION_ID>
 ```
 
 | Option | Default | Purpose |
@@ -188,13 +188,13 @@ omni-voice voice review [OPTIONS] <SESSION_ID>
 
 ```bash
 # Materialise todos.md and decisions.md for a session.
-omni-voice voice review my-session
+omni-voice review my-session
 
 # Render the session transcript to stdout.
-omni-voice voice review my-session --what transcript
+omni-voice review my-session --what transcript
 ```
 
-### `voice install-model`
+### `install-model`
 
 Downloads the model files for a chosen variant into the conventional install
 location under `~/.omni-voice/voice/models/<variant>/`. Idempotent: if every
@@ -202,7 +202,7 @@ required file is already present and non-empty, it reports "model already
 installed" and exits without re-downloading.
 
 ```text
-omni-voice voice install-model [OPTIONS]
+omni-voice install-model [OPTIONS]
 ```
 
 | Option | Default | Purpose |
@@ -213,21 +213,21 @@ omni-voice voice install-model [OPTIONS]
 
 ```bash
 # Install the Whisper ASR model (the default variant).
-omni-voice voice install-model
+omni-voice install-model
 
 # Install the speaker-embedding model used by enroll / --speaker.
-omni-voice voice install-model --variant speaker-wespeaker-en
+omni-voice install-model --variant speaker-wespeaker-en
 ```
 
-### `voice enroll`
+### `enroll`
 
 Captures a microphone sample, computes a speaker embedding, and persists it to
 `~/.omni-voice/voice/speakers/<name>.json`. The enrolled embedding is what
-`voice transcribe --speaker` matches against. Capture stops on the first of:
+`transcribe --speaker` matches against. Capture stops on the first of:
 `--idle-after` seconds of trailing silence, `--max-secs` elapsed, or Ctrl-C.
 
 ```text
-omni-voice voice enroll [OPTIONS]
+omni-voice enroll [OPTIONS]
 ```
 
 | Option | Default | Purpose |
@@ -241,11 +241,11 @@ omni-voice voice enroll [OPTIONS]
 
 ```bash
 # Enrol a speaker named "alice" (needs the speaker model installed).
-omni-voice voice enroll --name alice
+omni-voice enroll --name alice
 ```
 
-`voice enroll` requires the speaker model — install it with
-`omni-voice voice install-model --variant speaker-wespeaker-en`.
+`enroll` requires the speaker model — install it with
+`omni-voice install-model --variant speaker-wespeaker-en`.
 
 ## Completions
 
@@ -270,7 +270,7 @@ omni-voice completions zsh > ~/.zfunc/_omni-voice
 
 ## Selecting the AI backend
 
-`voice reflect` is the only command that invokes an AI model. The backend is
+`reflect` is the only command that invokes an AI model. The backend is
 chosen by the global options below (placed before the subcommand) together
 with backend-specific environment variables.
 
@@ -285,7 +285,7 @@ with backend-specific environment variables.
 ```bash
 # Reflect using the sandboxed Claude CLI backend with a spending cap.
 omni-voice --ai-backend claude-cli --claude-cli-max-budget-usd 0.50 \
-  voice reflect transcript.jsonl
+  reflect transcript.jsonl
 ```
 
 The full set of backends (Claude API, Claude CLI, OpenAI, Ollama, AWS Bedrock),
@@ -299,9 +299,9 @@ the sandbox semantics of the `claude-cli` backend are documented in
 
 | Path | Holds |
 |------|-------|
-| `~/.omni-voice/voice/captures/` | WAV files written by `voice capture` (when `--output` is omitted). |
-| `~/.omni-voice/voice/models/<variant>/` | Model artefacts downloaded by `voice install-model`. |
-| `~/.omni-voice/voice/speakers/<name>.json` | Speaker embeddings written by `voice enroll`. |
+| `~/.omni-voice/voice/captures/` | WAV files written by `capture` (when `--output` is omitted). |
+| `~/.omni-voice/voice/models/<variant>/` | Model artefacts downloaded by `install-model`. |
+| `~/.omni-voice/voice/speakers/<name>.json` | Speaker embeddings written by `enroll`. |
 | `~/.omni-voice/voice/<id>/` | A named session: `transcript.jsonl`, `events.jsonl`, and the materialised `todos.md` / `decisions.md`. |
 
 For the speech-recognition backends and their trade-offs, see

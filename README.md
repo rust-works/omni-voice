@@ -11,17 +11,17 @@ reconcile the results into materialized notes.
 
 ## ✨ What it does
 
-- 🎙️ **Capture** microphone audio to a 16 kHz mono WAV (`voice capture`)
+- 🎙️ **Capture** microphone audio to a 16 kHz mono WAV (`capture`)
 - 📝 **Transcribe** speech to text with selectable backends, including a local
-  `whisper-candle` runtime (`voice transcribe`)
+  `whisper-candle` runtime (`transcribe`)
 - 🧑‍🤝‍🧑 **Speaker enrollment** and speaker-filtered transcription
-  (`voice enroll`, `voice transcribe --speaker`)
+  (`enroll`, `transcribe --speaker`)
 - 🤖 **Reflect** over a transcript with an AI model to emit structured
-  reflection events (`voice reflect`)
+  reflection events (`reflect`)
 - 🗂️ **Review** a session, reconciling its events into markdown with a TTL pass
-  (`voice review`)
+  (`review`)
 - 📦 **Model management** for the Whisper and wespeaker variants
-  (`voice install-model`)
+  (`install-model`)
 
 ## 🚀 Quick start
 
@@ -40,13 +40,13 @@ Then run the pipeline:
 
 ```bash
 # 1. Download the default Whisper model into ~/.omni-voice/voice/models/
-omni-voice voice install-model
+omni-voice install-model
 
 # 2. Record from the default microphone (stops after 5 s of silence)
-omni-voice voice capture --output recording.wav
+omni-voice capture --output recording.wav
 
 # 3. Transcribe the WAV (use the local Whisper backend)
-omni-voice voice transcribe recording.wav --backend whisper-candle
+omni-voice transcribe recording.wav --backend whisper-candle
 ```
 
 See **[Getting Started](docs/getting-started.md)** for the full
@@ -69,12 +69,12 @@ recipes and the `$fpath`/`compinit` setup zsh requires.
 
 | Command | Purpose |
 |---------|---------|
-| `voice capture` | Record microphone audio to a 16 kHz mono WAV |
-| `voice transcribe <WAV>` | Transcribe a 16 kHz mono WAV to JSONL or markdown |
-| `voice reflect [TRANSCRIPT]` | Reflect on a transcript and emit reflection events (needs an AI backend) |
-| `voice review <SESSION_ID>` | Reconcile a session's events into materialized markdown |
-| `voice install-model` | Download model files (Whisper tiny.en, or wespeaker for speaker embedding) |
-| `voice enroll` | Capture a sample and persist a speaker embedding |
+| `capture` | Record microphone audio to a 16 kHz mono WAV |
+| `transcribe <WAV>` | Transcribe a 16 kHz mono WAV to JSONL or markdown |
+| `reflect [TRANSCRIPT]` | Reflect on a transcript and emit reflection events (needs an AI backend) |
+| `review <SESSION_ID>` | Reconcile a session's events into materialized markdown |
+| `install-model` | Download model files (Whisper tiny.en, or wespeaker for speaker embedding) |
+| `enroll` | Capture a sample and persist a speaker embedding |
 | `completions <shell>` | Print a shell completion script |
 | `help-all` | Print comprehensive help for every command |
 
@@ -83,7 +83,7 @@ and examples.
 
 ## 🤖 AI backend selection
 
-`voice reflect` is the only command that calls an AI model. The backend is
+`reflect` is the only command that calls an AI model. The backend is
 selected by environment variable or the `--ai-backend` flag (priority order,
 first match wins):
 
@@ -102,11 +102,11 @@ model selection, the Claude CLI sandbox and its escape hatches
 ## 🔧 Requirements
 
 - **Rust**: 1.80+ (to build or install from source)
-- **A microphone** for `voice capture` / `voice enroll`
-- **Model files** for real transcription — `omni-voice voice install-model`
+- **A microphone** for `capture` / `enroll`
+- **Model files** for real transcription — `omni-voice install-model`
   downloads them into `~/.omni-voice/voice/models/`. The default `mock`
   transcriber backend needs no model.
-- **An AI backend** for `voice reflect` only — see
+- **An AI backend** for `reflect` only — see
   [AI backend selection](#-ai-backend-selection) above. The other commands run
   entirely offline.
 
@@ -116,10 +116,10 @@ Use the `RUST_LOG` environment variable for detailed logging:
 
 ```bash
 # Debug logging for omni-voice
-RUST_LOG=omni_voice=debug omni-voice voice transcribe recording.wav
+RUST_LOG=omni_voice=debug omni-voice transcribe recording.wav
 
 # Errors and warnings only
-RUST_LOG=warn omni-voice voice capture
+RUST_LOG=warn omni-voice capture
 ```
 
 See the [Troubleshooting Guide](docs/troubleshooting.md) for common issues.
@@ -148,7 +148,7 @@ cargo fmt      # format
 
 - **[Getting Started](docs/getting-started.md)** — install to first reconciled session
 - **[User Guide](docs/user-guide.md)** — full command reference with examples
-- **[AI Backends](docs/ai-backends.md)** — backend selection and setup for `voice reflect`
+- **[AI Backends](docs/ai-backends.md)** — backend selection and setup for `reflect`
 - **[ASR Backends](docs/asr-backends.md)** — transcriber backends and runtime choices
 - **[Shell Completion](docs/shell-completion.md)** — per-shell completion install
 - **[Troubleshooting](docs/troubleshooting.md)** — common issues and solutions

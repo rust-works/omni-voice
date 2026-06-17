@@ -29,17 +29,17 @@ src/
 ├── lib.rs               Public module exports (claude, cli, utils, voice) + VERSION
 ├── cli.rs               Clap command hierarchy root + global flags (AI backend, models.yaml)
 ├── cli/
-│   ├── voice.rs         `voice` subcommand dispatch
+│   ├── voice.rs         voice command module group (re-exports the submodules below)
 │   ├── voice/
-│   │   ├── capture.rs        `voice capture` args + execute
-│   │   ├── transcribe.rs     `voice transcribe` args + execute
-│   │   ├── reflect.rs        `voice reflect` args + execute
-│   │   ├── review.rs         `voice review` args + execute
-│   │   ├── install_model.rs  `voice install-model` args + execute
-│   │   └── enroll.rs         `voice enroll` args + execute
+│   │   ├── capture.rs        `capture` args + execute
+│   │   ├── transcribe.rs     `transcribe` args + execute
+│   │   ├── reflect.rs        `reflect` args + execute
+│   │   ├── review.rs         `review` args + execute
+│   │   ├── install_model.rs  `install-model` args + execute
+│   │   └── enroll.rs         `enroll` args + execute
 │   ├── completions.rs   `completions <shell>` (hidden) — clap_complete script generation
 │   └── help.rs          `help-all` — HelpGenerator walks the derive-generated command tree
-├── claude/              AI client infrastructure consumed by `voice reflect`
+├── claude/              AI client infrastructure consumed by `reflect`
 │   ├── ai.rs            `AiClient` trait, metadata, and capability types
 │   ├── ai/
 │   │   ├── claude.rs        Direct Anthropic API backend
@@ -66,12 +66,12 @@ src/
 │   ├── speaker.rs       Speaker embedding (tract-onnx + wespeaker) + enrolment JSON
 │   ├── render.rs        Streaming TranscriptEvent → JSONL / markdown renderers
 │   ├── events.rs        Reflection event schema (the `events.jsonl` wire contract)
-│   ├── reflect/         `voice reflect` — transcript → reflection events
+│   ├── reflect/         `reflect` — transcript → reflection events
 │   │   ├── mod.rs           Orchestration: read transcript, call AiClient, append events
 │   │   ├── prompt.rs        Prompt template loading and rendering
 │   │   └── validate.rs      Parse + validate the model's YAML reflection response
 │   ├── reconcile.rs     Pure reconciliation of `events.jsonl` → markdown + TTL events
-│   ├── review.rs        `voice review` driver (I/O around the pure reconcile function)
+│   ├── review.rs        `review` driver (I/O around the pure reconcile function)
 │   ├── session.rs       `~/.omni-voice/voice/<id>/` session directory layout + I/O
 │   ├── models.rs        Model storage convention and path resolution
 │   ├── paths.rs         `~/.omni-voice/voice/...` path helpers (single source of truth)
@@ -89,7 +89,7 @@ src/
 
 **`cli/`** — command-line interface. Each command is a `#[derive(Parser)]` struct with an `execute()` method; the `voice` subtree groups the pipeline commands. Commands are thin wrappers that parse arguments and delegate to `voice/` (and, for `reflect`, to `claude/`). See [ADR-0016](docs/adrs/adr-0016.md) for the clap-derive hierarchy.
 
-**`claude/`** — AI client infrastructure reused by `voice reflect`. Contains the `AiClient` trait, four provider backends, the env-var/flag dispatch factory, and the model registry. The commit-analysis machinery that once drove this module was removed in the strip-to-voice-cli refactor; only the reflect-facing pieces remain.
+**`claude/`** — AI client infrastructure reused by `reflect`. Contains the `AiClient` trait, four provider backends, the env-var/flag dispatch factory, and the model registry. The commit-analysis machinery that once drove this module was removed in the strip-to-voice-cli refactor; only the reflect-facing pieces remain.
 
 **`utils/`** — cross-cutting settings resolution (`~/.omni-voice/settings.json` layered under env vars).
 
@@ -103,7 +103,7 @@ src/
 4. `CLAUDE_CODE_USE_BEDROCK=true` → `BedrockAiClient`.
 5. Default → `ClaudeAiClient` (direct Anthropic API).
 
-`voice reflect` is the sole live consumer. User-facing details (required env vars, model selection, sandbox semantics) live in [docs/ai-backends.md](docs/ai-backends.md).
+`reflect` is the sole live consumer. User-facing details (required env vars, model selection, sandbox semantics) live in [docs/ai-backends.md](docs/ai-backends.md).
 
 ## Transcription backend dispatch
 
@@ -118,31 +118,31 @@ src/
 A typical session flows through the pipeline:
 
 ```
-voice capture
+capture
   ├─ cpal microphone source → mixdown → resample to 16 kHz mono (rubato)
   ├─ idle detection trims trailing silence
   └─ write WAV (hound)
     │
     ▼
-voice transcribe <WAV>
+transcribe <WAV>
   ├─ WAV → AudioInput (16 kHz mono i16 chunks)
   ├─ Transcriber backend → EventStream of TranscriptEvents
   ├─ (optional) speaker filter via enrolled embedding (tract-onnx + wespeaker)
   └─ render to JSONL / markdown (streamed)
     │
     ▼
-voice reflect [transcript.jsonl]
+reflect [transcript.jsonl]
   ├─ read Final transcript events (file / stdin / session dir)
   ├─ build prompt, call AiClient (backend-dispatched)
   ├─ parse + validate YAML response into Events
   └─ append to events.jsonl (or stdout)
     │
     ▼
-voice review <session-id>
+review <session-id>
   └─ reconcile(events.jsonl) → todos.md / decisions.md + TTL-expiry events
 ```
 
-`reconcile()` is a pure function from event log to markdown plus new TTL-expiry events; `voice review` wraps it with session I/O. Reflection events use ULID identifiers (`det.rs` RNG seam) and wall-clock timestamps (`clock.rs` seam) so tests are deterministic.
+`reconcile()` is a pure function from event log to markdown plus new TTL-expiry events; `review` wraps it with session I/O. Reflection events use ULID identifiers (`det.rs` RNG seam) and wall-clock timestamps (`clock.rs` seam) so tests are deterministic.
 
 ## Key abstractions
 
@@ -175,7 +175,7 @@ pub trait Transcriber: Send + Sync {
 
 ### Event schema (`src/voice/events.rs`)
 
-The append-only `events.jsonl` log is the load-bearing contract between `voice reflect` (producer) and `voice review` (consumer). The `project` helper enforces the reconciliation invariants (sort-by-event-id, supersession, TTL expiry).
+The append-only `events.jsonl` log is the load-bearing contract between `reflect` (producer) and `review` (consumer). The `project` helper enforces the reconciliation invariants (sort-by-event-id, supersession, TTL expiry).
 
 ### Model registry (`src/claude/model_config.rs`)
 
@@ -183,11 +183,11 @@ Loads model specifications from the embedded `models.yaml` (see [ADR-0004](docs/
 
 ## Extension guide
 
-### Adding a new voice subcommand
+### Adding a new voice command
 
-1. Create `src/cli/voice/mycommand.rs` with a `#[derive(Parser)]` struct and `execute()` method.
-2. Add a variant to `VoiceSubcommands` in `src/cli/voice.rs`.
-3. Wire the execute call into the parent's `execute()` match.
+1. Create `src/cli/voice/mycommand.rs` with a `#[derive(Parser)]` struct and `execute()` method, and declare the module in `src/cli/voice.rs`.
+2. Add a variant to `Commands` in `src/cli.rs` (e.g. `MyCommand(voice::mycommand::MyCommand)`).
+3. Wire the execute call into the `Cli::execute()` match in `src/cli.rs`.
 4. Run the [`update-snapshots`](.claude/skills/update-snapshots/SKILL.md) skill to refresh the `help-all` golden snapshot.
 
 ### Adding a new transcription backend
@@ -206,7 +206,7 @@ Loads model specifications from the embedded `models.yaml` (see [ADR-0004](docs/
 | Crate | Role |
 |-------|------|
 | `clap` (derive) + `clap_complete` | CLI parsing and shell-completion generation |
-| `tokio` | Async runtime (`voice reflect` and AI provider calls) |
+| `tokio` | Async runtime (`reflect` and AI provider calls) |
 | `anyhow` | Application-level error propagation with context chains |
 | `thiserror` | Typed errors for the AI client layer (`ClaudeError`) |
 | `serde` + `serde_json` + `serde_yaml` | `events.jsonl`, `models.yaml`, and reflection-response (de)serialization |
@@ -220,7 +220,7 @@ Loads model specifications from the embedded `models.yaml` (see [ADR-0004](docs/
 | `candle-core` / `candle-nn` / `candle-transformers` | Pure-Rust Whisper inference |
 | `tokenizers` | Whisper tokenizer |
 | `tract-onnx` | ONNX inference for wespeaker speaker embeddings |
-| `hf-hub` + `ureq` | Model artefact downloads (`voice install-model`) |
+| `hf-hub` + `ureq` | Model artefact downloads (`install-model`) |
 | `sha2` | Model file checksum verification |
 | `reqwest` | HTTP client for AI provider APIs |
 | `ulid` | ULID event identifiers |
