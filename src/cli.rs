@@ -200,6 +200,50 @@ mod tests {
             .expect("install-model dispatch should succeed on pre-staged dir");
     }
 
+    #[tokio::test]
+    async fn capture_dispatches_via_execute() {
+        // Drives Cli::execute through the top-level Capture arm. A bogus
+        // `--device` makes CpalAudioSource::new fail fast — before the
+        // capture loop or any real microphone access — so the dispatch arm
+        // is exercised without hardware. We only assert the arm was reached
+        // and surfaced the error.
+        let tmp = tempfile::TempDir::new().unwrap();
+        let out = tmp.path().join("out.wav");
+        let cli = Cli::try_parse_from([
+            "omni-voice",
+            "capture",
+            "--output",
+            out.to_str().unwrap(),
+            "--device",
+            "this-device-name-definitely-does-not-exist-on-anyone-system",
+        ])
+        .unwrap();
+        assert!(
+            cli.execute().await.is_err(),
+            "capture with an unknown device should error rather than record"
+        );
+    }
+
+    #[tokio::test]
+    async fn enroll_dispatches_via_execute() {
+        // Drives Cli::execute through the top-level Enroll arm. Pointing
+        // `--speaker-model` at an empty directory makes the model-resolution
+        // step fail before any capture, exercising the dispatch arm without
+        // a microphone or an installed speaker model.
+        let tmp = tempfile::TempDir::new().unwrap();
+        let cli = Cli::try_parse_from([
+            "omni-voice",
+            "enroll",
+            "--speaker-model",
+            tmp.path().to_str().unwrap(),
+        ])
+        .unwrap();
+        assert!(
+            cli.execute().await.is_err(),
+            "enroll without an installed speaker model should error"
+        );
+    }
+
     #[test]
     fn parses_ai_backend_claude_cli() {
         let cli =

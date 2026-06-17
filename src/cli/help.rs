@@ -155,6 +155,23 @@ mod tests {
     }
 
     #[test]
+    fn collect_help_recursive_joins_nested_paths() {
+        // The flattened top-level CLI never nests subcommands, so the
+        // non-empty-prefix path-join branch only runs against a deeper tree.
+        // Drive it directly with a synthetic two-level command so the nested
+        // path formatting stays covered regardless of the live CLI shape.
+        let app =
+            Command::new("root").subcommand(Command::new("group").subcommand(Command::new("leaf")));
+        let gen = HelpGenerator::new();
+        let mut sections = Vec::new();
+        gen.collect_help_recursive(&app, "", &mut sections);
+        assert!(
+            sections.iter().any(|s| s.contains("omni-voice group leaf")),
+            "nested leaf should render with a joined path; got: {sections:?}"
+        );
+    }
+
+    #[test]
     fn generate_all_help_uses_section_separators() {
         let gen = HelpGenerator::new();
         let output = gen.generate_all_help().unwrap();
