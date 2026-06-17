@@ -136,7 +136,7 @@ jobs:
         # shellcheck disable=SC1090
         source <(cargo llvm-cov show-env --sh)
         export LLVM_PROFILE_FILE=/dev/null
-        cargo run --all-features --bin omni-voice -- voice install-model
+        cargo run --all-features --bin omni-voice -- install-model
     - name: Run model-gated voice tests with coverage
       # Covers the candle Whisper inference path (WhisperEngine and the
       # streaming backend's real-decode seam), which the default suite
