@@ -5,7 +5,7 @@
 //! Run locally with:
 //!
 //! ```text
-//! omni-voice voice install-model
+//! omni-voice install-model
 //! cargo test --test voice_transcribe_candle_test -- --ignored
 //! ```
 //!
@@ -50,11 +50,11 @@ fn resolve_model_dir() -> Option<PathBuf> {
 }
 
 #[test]
-#[ignore = "requires Whisper tiny.en model on disk; run `omni-voice voice install-model` first"]
+#[ignore = "requires Whisper tiny.en model on disk; run `omni-voice install-model` first"]
 fn whisper_candle_transcribes_short_en_with_content_words() {
     let Some(model_dir) = resolve_model_dir() else {
         panic!(
-            "Whisper model not found. Run `omni-voice voice install-model` or set \
+            "Whisper model not found. Run `omni-voice install-model` or set \
              OMNI_VOICE_VOICE_WHISPER_MODEL=<path> to point at a pre-staged install."
         );
     };

@@ -59,7 +59,7 @@ fn binary_help_all_succeeds() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("omni-voice"));
-    assert!(stdout.contains("voice"));
+    assert!(stdout.contains("transcribe"));
 }
 
 #[test]

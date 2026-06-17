@@ -10,7 +10,7 @@
 //! magnitude slower):
 //!
 //! ```text
-//! omni-voice voice install-model
+//! omni-voice install-model
 //! cargo test --release --test voice_streaming_candle_test -- --ignored --nocapture
 //! ```
 //!
@@ -74,7 +74,7 @@ fn resolve_model_dir() -> Option<PathBuf> {
 
 fn require_model_dir() -> PathBuf {
     resolve_model_dir().expect(
-        "Whisper model not found. Run `omni-voice voice install-model` or set \
+        "Whisper model not found. Run `omni-voice install-model` or set \
          OMNI_VOICE_VOICE_WHISPER_MODEL=<path> to point at a pre-staged install.",
     )
 }
@@ -198,7 +198,7 @@ fn peak_rss_bytes() -> Option<u64> {
 /// `WhisperEngine::decode_pcm`) so the inference code is covered.
 /// Config trades cadence for speed (~3 decodes total).
 #[test]
-#[ignore = "requires Whisper tiny.en model on disk; run `omni-voice voice install-model` first"]
+#[ignore = "requires Whisper tiny.en model on disk; run `omni-voice install-model` first"]
 fn streaming_smoke_short_en_transcribes_with_real_backend() {
     const CONTENT_WORDS: &[&str] = &[
         "wizards",
@@ -264,7 +264,7 @@ fn streaming_smoke_short_en_transcribes_with_real_backend() {
 /// RTF ≤ 0.5 (an upper bound on inference RTF — chunk pulls are instant
 /// when unpaced), and event-stream shape.
 #[test]
-#[ignore = "requires Whisper tiny.en model on disk; run `omni-voice voice install-model` first"]
+#[ignore = "requires Whisper tiny.en model on disk; run `omni-voice install-model` first"]
 fn streaming_unpaced_meets_wer_and_rtf_envelope() {
     let model_dir = require_model_dir();
     let transcriber = CandleStreamingTranscriber::new(&model_dir)
@@ -333,7 +333,7 @@ fn streaming_unpaced_meets_wer_and_rtf_envelope() {
 /// [`CountingUlidRng`] must produce byte-identical serialized event
 /// streams (the #969 determinism gate; per-host).
 #[test]
-#[ignore = "requires Whisper tiny.en model on disk; run `omni-voice voice install-model` first"]
+#[ignore = "requires Whisper tiny.en model on disk; run `omni-voice install-model` first"]
 fn streaming_is_deterministic_across_runs() {
     let model_dir = require_model_dir();
 
@@ -377,7 +377,7 @@ fn streaming_is_deterministic_across_runs() {
 /// RSS reported (RSS gated only under `OMNI_VOICE_STREAMING_RSS_GATE=1`).
 /// Wall-clock runtime ≈ the fixture length (5 min).
 #[test]
-#[ignore = "requires Whisper tiny.en model on disk and ~5 min wall clock; run `omni-voice voice install-model` first"]
+#[ignore = "requires Whisper tiny.en model on disk and ~5 min wall clock; run `omni-voice install-model` first"]
 fn streaming_paced_time_to_final_and_lag_bounded() {
     let model_dir = require_model_dir();
     let transcriber = CandleStreamingTranscriber::new(&model_dir)

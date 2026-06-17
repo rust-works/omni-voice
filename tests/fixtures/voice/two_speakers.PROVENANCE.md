@@ -1,8 +1,8 @@
 # `two_speakers.wav` provenance
 
 Two-speaker fixture used by the speaker-enrolment / speaker-locking work
-on issue #805 (the speaker-embedding spike, the `voice transcribe
---speaker` filter test, and the eventual `voice enroll` integration
+on issue #805 (the speaker-embedding spike, the `transcribe
+--speaker` filter test, and the eventual `enroll` integration
 test).
 
 ## Source

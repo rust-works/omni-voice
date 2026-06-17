@@ -5,7 +5,7 @@
 //! model file staged on disk. Run locally with:
 //!
 //! ```text
-//! omni-voice voice install-model --variant speaker-wespeaker-en
+//! omni-voice install-model --variant speaker-wespeaker-en
 //! cargo test --test voice_enroll_speaker_test -- --ignored
 //! ```
 //!
@@ -78,12 +78,12 @@ fn slice(pcm: &[i16], start_s: f64, end_s: f64) -> &[i16] {
 }
 
 #[test]
-#[ignore = "requires wespeaker ONNX on disk; run `omni-voice voice install-model --variant speaker-wespeaker-en` first"]
+#[ignore = "requires wespeaker ONNX on disk; run `omni-voice install-model --variant speaker-wespeaker-en` first"]
 fn wespeaker_separates_speakers_in_two_speakers_fixture() {
     let Some(model_path) = resolve_speaker_model_path() else {
         panic!(
             "wespeaker model not found. Run \
-             `omni-voice voice install-model --variant speaker-wespeaker-en` or set \
+             `omni-voice install-model --variant speaker-wespeaker-en` or set \
              OMNI_VOICE_VOICE_SPEAKER_MODEL=<dir> to point at a pre-staged install."
         );
     };
@@ -128,12 +128,12 @@ fn wespeaker_separates_speakers_in_two_speakers_fixture() {
 }
 
 #[test]
-#[ignore = "requires wespeaker ONNX on disk; run `omni-voice voice install-model --variant speaker-wespeaker-en` first"]
+#[ignore = "requires wespeaker ONNX on disk; run `omni-voice install-model --variant speaker-wespeaker-en` first"]
 fn wespeaker_default_threshold_picks_correct_speaker() {
     let Some(model_path) = resolve_speaker_model_path() else {
         panic!(
             "wespeaker model not found. Run \
-             `omni-voice voice install-model --variant speaker-wespeaker-en` first."
+             `omni-voice install-model --variant speaker-wespeaker-en` first."
         );
     };
 
@@ -142,7 +142,7 @@ fn wespeaker_default_threshold_picks_correct_speaker() {
 
     // Enroll on the first half of speaker A; verify the *second* half of
     // speaker A clears the 0.5 threshold and both halves of speaker B
-    // fall below it. Mirrors the `voice transcribe --speaker` runtime
+    // fall below it. Mirrors the `transcribe --speaker` runtime
     // path without depending on the Whisper ASR backend being installed.
     const THRESHOLD: f32 = 0.5;
     let enrolled = embedder.embed(slice(&pcm, 1.0, 7.0)).expect("embed enroll");

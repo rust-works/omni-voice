@@ -1,4 +1,4 @@
-//! CLI smoke tests for `voice reflect`.
+//! CLI smoke tests for `reflect`.
 //!
 //! Limited to subprocess-observable concerns: argument parsing, `--help`
 //! shape, and error surface. The full reflect pipeline (transcript →
@@ -16,7 +16,7 @@ fn bin() -> Command {
 
 #[test]
 fn voice_reflect_help_renders() {
-    let out = bin().args(["voice", "reflect", "--help"]).output().unwrap();
+    let out = bin().args(["reflect", "--help"]).output().unwrap();
     assert!(
         out.status.success(),
         "stderr: {}",
@@ -41,7 +41,6 @@ fn voice_reflect_help_renders() {
 fn voice_reflect_rejects_both_transcript_and_session() {
     let out = bin()
         .args([
-            "voice",
             "reflect",
             "/tmp/does-not-need-to-exist.jsonl",
             "--session",
@@ -60,11 +59,7 @@ fn voice_reflect_rejects_both_transcript_and_session() {
 #[test]
 fn voice_reflect_with_nonexistent_path_errors() {
     let out = bin()
-        .args([
-            "voice",
-            "reflect",
-            "/definitely/does/not/exist/transcript.jsonl",
-        ])
+        .args(["reflect", "/definitely/does/not/exist/transcript.jsonl"])
         .output()
         .unwrap();
     assert!(!out.status.success(), "expected non-zero exit");

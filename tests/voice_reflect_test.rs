@@ -1,4 +1,4 @@
-//! Library-level integration tests for `voice reflect`.
+//! Library-level integration tests for `reflect`.
 //!
 //! Exercises the end-to-end reflection pipeline (transcript → prompt →
 //! mocked AI call → schema validation → events.jsonl) via the public

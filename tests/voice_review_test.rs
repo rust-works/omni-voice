@@ -1,4 +1,4 @@
-//! Library-level snapshot tests for `voice review`.
+//! Library-level snapshot tests for `review`.
 //!
 //! Exercises [`omni_voice::voice::reconcile::reconcile`] directly with
 //! curated event-log fixtures and golden-snapshot checks on the
