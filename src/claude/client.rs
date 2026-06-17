@@ -1,6 +1,6 @@
-//! Backend-dispatch factory for the [`AiClient`] used by `voice reflect`.
+//! Backend-dispatch factory for the [`AiClient`] used by `reflect`.
 //!
-//! `voice reflect` is the only live consumer of this module: it calls
+//! `reflect` is the only live consumer of this module: it calls
 //! [`create_default_claude_client`] to obtain a backend-appropriate
 //! [`AiClient`] and drives it directly. The commit-message-improvement
 //! wrapper that once lived here was removed with the strip-to-voice-cli

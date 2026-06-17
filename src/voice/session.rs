@@ -5,12 +5,12 @@
 //! ```text
 //! ~/.omni-voice/voice/<session-id>/
 //!   meta.yaml          # session config (this issue: last_reflected_event_id + ttl defaults)
-//!   transcript.jsonl   # append-only TranscriptEvent stream from `voice transcribe`
-//!   events.jsonl       # append-only Event stream from `voice reflect` (and later `voice review`)
+//!   transcript.jsonl   # append-only TranscriptEvent stream from `transcribe`
+//!   events.jsonl       # append-only Event stream from `reflect` (and later `review`)
 //!   reflections.log    # per-reflection summary line (cost, latency, status)
 //! ```
 //!
-//! Shared with #804 (`voice review`), which reads the same `events.jsonl`
+//! Shared with #804 (`review`), which reads the same `events.jsonl`
 //! to produce materialised markdown projections. The session root path is
 //! derived from `dirs::home_dir()` by default; the `OMNI_VOICE_VOICE_ROOT`
 //! environment variable overrides it (intended for tests, not a stable
@@ -100,7 +100,7 @@ mod ttl_secs {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct SessionMeta {
     /// `event_id` of the last `TranscriptEvent::Final` consumed by a
-    /// previous `voice reflect` invocation. `None` until the first
+    /// previous `reflect` invocation. `None` until the first
     /// reflection completes.
     #[serde(default)]
     pub last_reflected_event_id: Option<EventId>,

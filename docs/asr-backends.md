@@ -1,6 +1,6 @@
 # ASR Backends
 
-How `omni-voice voice transcribe` turns 16 kHz mono WAV audio into transcript
+How `omni-voice transcribe` turns 16 kHz mono WAV audio into transcript
 events, and how to choose between the available speech-to-text backends.
 
 For the AI (LLM) backends used by commit-message generation, see
@@ -28,7 +28,7 @@ Backend choice flows from, in order:
 3. the default: `mock`.
 
 ```bash
-omni-voice voice transcribe recording.wav --backend whisper-candle-streaming
+omni-voice transcribe recording.wav --backend whisper-candle-streaming
 ```
 
 ## Installing the model
@@ -36,7 +36,7 @@ omni-voice voice transcribe recording.wav --backend whisper-candle-streaming
 Both Whisper backends share the same model files:
 
 ```bash
-omni-voice voice install-model            # stages whisper-tiny.en
+omni-voice install-model            # stages whisper-tiny.en
 ```
 
 Files land in `~/.omni-voice/voice/models/whisper-tiny.en/`. Override the
@@ -118,7 +118,7 @@ model-gated suite (`#[ignore]` by default — needs the model on disk and
 minutes of CPU; run under `--release`):
 
 ```bash
-omni-voice voice install-model
+omni-voice install-model
 cargo test --release --test voice_streaming_candle_test -- --ignored --nocapture
 ```
 

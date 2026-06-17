@@ -140,18 +140,35 @@ mod tests {
     fn generate_all_help_contains_all_top_level_commands() {
         let gen = HelpGenerator::new();
         let output = gen.generate_all_help().unwrap();
-        assert!(output.contains("omni-voice voice"));
+        assert!(output.contains("omni-voice capture"));
         assert!(output.contains("omni-voice help-all"));
     }
 
     #[test]
-    fn generate_all_help_contains_nested_commands() {
+    fn generate_all_help_contains_voice_commands() {
         let gen = HelpGenerator::new();
         let output = gen.generate_all_help().unwrap();
-        // Deeply nested commands should be present
-        assert!(output.contains("omni-voice voice transcribe"));
-        assert!(output.contains("omni-voice voice reflect"));
-        assert!(output.contains("omni-voice voice review"));
+        // The former voice subcommands are now top-level commands.
+        assert!(output.contains("omni-voice transcribe"));
+        assert!(output.contains("omni-voice reflect"));
+        assert!(output.contains("omni-voice review"));
+    }
+
+    #[test]
+    fn collect_help_recursive_joins_nested_paths() {
+        // The flattened top-level CLI never nests subcommands, so the
+        // non-empty-prefix path-join branch only runs against a deeper tree.
+        // Drive it directly with a synthetic two-level command so the nested
+        // path formatting stays covered regardless of the live CLI shape.
+        let app =
+            Command::new("root").subcommand(Command::new("group").subcommand(Command::new("leaf")));
+        let gen = HelpGenerator::new();
+        let mut sections = Vec::new();
+        gen.collect_help_recursive(&app, "", &mut sections);
+        assert!(
+            sections.iter().any(|s| s.contains("omni-voice group leaf")),
+            "nested leaf should render with a joined path; got: {sections:?}"
+        );
     }
 
     #[test]

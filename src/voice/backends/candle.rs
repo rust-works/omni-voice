@@ -421,7 +421,7 @@ mod tests {
         };
         let msg = format!("{err:#}");
         assert!(msg.contains("no Whisper model found"), "got: {msg}");
-        assert!(msg.contains("voice install-model"), "got: {msg}");
+        assert!(msg.contains("install-model"), "got: {msg}");
     }
 
     /// Pure half of `resolve_model_dir`: an env override counts only when
@@ -458,14 +458,14 @@ mod tests {
 
     fn load_engine() -> WhisperEngine {
         let dir = resolve_model_dir().expect(
-            "Whisper model not found. Run `omni-voice voice install-model` or set \
+            "Whisper model not found. Run `omni-voice install-model` or set \
              OMNI_VOICE_VOICE_WHISPER_MODEL=<path>.",
         );
         WhisperEngine::load(&dir).expect("WhisperEngine::load should succeed")
     }
 
     #[test]
-    #[ignore = "requires Whisper tiny.en model on disk; run `omni-voice voice install-model` first"]
+    #[ignore = "requires Whisper tiny.en model on disk; run `omni-voice install-model` first"]
     fn decode_pcm_empty_input_returns_empty_text() {
         let engine = load_engine();
         let (text, confidence) = engine.decode_pcm(&[]).unwrap();
@@ -474,7 +474,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires Whisper tiny.en model on disk; run `omni-voice voice install-model` first"]
+    #[ignore = "requires Whisper tiny.en model on disk; run `omni-voice install-model` first"]
     fn decode_pcm_joins_multi_segment_windows() {
         // A >30 s window spans two N_FRAMES segments, exercising the
         // segment loop and the space-join between segment texts (the

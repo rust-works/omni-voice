@@ -38,7 +38,7 @@ jobs:
       - name: Build (release)
         run: cargo build --release
       - name: Install whisper-tiny.en model
-        run: cargo run --release --bin omni-voice -- voice install-model
+        run: cargo run --release --bin omni-voice -- install-model
       - name: Run streaming envelope tests
         env:
           # The paced test runs in isolation (--test-threads=1, single test

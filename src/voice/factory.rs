@@ -172,7 +172,7 @@ mod tests {
         };
         let msg = format!("{err:#}");
         assert!(msg.contains("no Whisper model found"), "got: {msg}");
-        assert!(msg.contains("voice install-model"), "got: {msg}");
+        assert!(msg.contains("install-model"), "got: {msg}");
     }
 
     #[test]
@@ -191,6 +191,6 @@ mod tests {
         };
         let msg = format!("{err:#}");
         assert!(msg.contains("no Whisper model found"), "got: {msg}");
-        assert!(msg.contains("voice install-model"), "got: {msg}");
+        assert!(msg.contains("install-model"), "got: {msg}");
     }
 }

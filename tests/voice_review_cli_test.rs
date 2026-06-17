@@ -1,4 +1,4 @@
-//! CLI smoke tests for `voice review`.
+//! CLI smoke tests for `review`.
 //!
 //! Subprocess-observable concerns only: `--help` shape and argument
 //! parsing. The reconciliation pipeline is covered library-level by
@@ -14,7 +14,7 @@ fn bin() -> Command {
 
 #[test]
 fn voice_review_help_renders() {
-    let out = bin().args(["voice", "review", "--help"]).output().unwrap();
+    let out = bin().args(["review", "--help"]).output().unwrap();
     assert!(
         out.status.success(),
         "stderr: {}",
@@ -44,7 +44,7 @@ fn voice_review_help_renders() {
 #[test]
 fn voice_review_rejects_unknown_what_value() {
     let out = bin()
-        .args(["voice", "review", "demo", "--what", "garbage"])
+        .args(["review", "demo", "--what", "garbage"])
         .output()
         .unwrap();
     assert!(!out.status.success(), "should fail on unknown --what value");
@@ -57,7 +57,7 @@ fn voice_review_rejects_unknown_what_value() {
 
 #[test]
 fn voice_review_executes_against_real_session_directory() {
-    // End-to-end coverage of ReviewCommand::execute → VoiceCommand
+    // End-to-end coverage of ReviewCommand::execute → top-level Cli
     // dispatch → run_review → file writes. Library-level tests inject
     // FixedClock + CountingUlidRng directly into run_review; this one
     // exercises the production SystemClock / SystemUlidRng path via
@@ -98,7 +98,7 @@ fn voice_review_executes_against_real_session_directory() {
 
     let out = bin()
         .env("OMNI_VOICE_VOICE_ROOT", tmp.path())
-        .args(["voice", "review", "demo"])
+        .args(["review", "demo"])
         .output()
         .unwrap();
     assert!(

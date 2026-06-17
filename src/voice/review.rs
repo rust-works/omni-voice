@@ -1,4 +1,4 @@
-//! `voice review` driver — wraps the pure [`crate::voice::reconcile`]
+//! `review` driver — wraps the pure [`crate::voice::reconcile`]
 //! function with the I/O the CLI needs.
 //!
 //! Responsibilities:
@@ -56,7 +56,7 @@ pub struct ReviewOptions {
     pub session_root_override: Option<PathBuf>,
 }
 
-/// Runs one `voice review` invocation end-to-end.
+/// Runs one `review` invocation end-to-end.
 ///
 /// `stdout` is only written to for `What::Transcript`; the other
 /// variants write files under the session root and leave `stdout`

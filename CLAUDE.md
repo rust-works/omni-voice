@@ -8,12 +8,12 @@ omni-voice is a voice capture and processing CLI written in Rust. It records
 microphone audio, transcribes it, reflects on transcripts with an AI model,
 and reconciles the results into materialized notes. It provides:
 
-- Microphone capture to 16 kHz mono WAV (`voice capture`)
-- Speech-to-text transcription with selectable backends (`voice transcribe`)
-- Speaker enrollment and speaker-filtered transcription (`voice enroll`, `voice transcribe --speaker`)
-- AI-driven reflection over transcripts into structured events (`voice reflect`)
-- Session reconciliation into markdown artefacts with a TTL pass (`voice review`)
-- Model download/management for the Whisper and wespeaker variants (`voice install-model`)
+- Microphone capture to 16 kHz mono WAV (`capture`)
+- Speech-to-text transcription with selectable backends (`transcribe`)
+- Speaker enrollment and speaker-filtered transcription (`enroll`, `transcribe --speaker`)
+- AI-driven reflection over transcripts into structured events (`reflect`)
+- Session reconciliation into markdown artefacts with a TTL pass (`review`)
+- Model download/management for the Whisper and wespeaker variants (`install-model`)
 - Command-template generation for downstream tooling (`commands generate`)
 
 It is published to crates.io as both a library (`omni_voice`) and a binary
@@ -28,13 +28,14 @@ It is published to crates.io as both a library (`omni_voice`) and a binary
   - `src/cli/commands.rs` - `commands generate` template management
   - `src/cli/completions.rs` - shell completion generation
   - `src/cli/help.rs` - `help-all` aggregated help (`HelpGenerator`)
-  - `src/cli/voice.rs` + `src/cli/voice/` - the `voice` subcommand tree
-    (`capture`, `transcribe`, `reflect`, `review`, `install-model`, `enroll`)
+  - `src/cli/voice.rs` + `src/cli/voice/` - the voice command modules
+    (`capture`, `transcribe`, `reflect`, `review`, `install-model`, `enroll`),
+    wired directly into the top-level `Commands` enum in `src/cli.rs`
 - `src/voice/` - Voice subsystem: audio capture and WAV I/O, VAD/idle
   detection, transcription backends (`backends/`, incl. candle Whisper),
   speaker embedding (`speaker.rs`), sessions, reflection (`reflect/`),
   reconciliation (`reconcile.rs`), and rendering
-- `src/claude/` - AI client infrastructure consumed by `voice reflect`: the
+- `src/claude/` - AI client infrastructure consumed by `reflect`: the
   `AiClient` trait and provider backends (`ai/`), the backend-dispatch
   factory (`client.rs`), the model registry (`model_config.rs`), and errors
 - `src/utils/` - Utility functions (`settings.rs`)
@@ -105,7 +106,7 @@ When preparing releases, follow the comprehensive guide in [docs/RELEASE.md](doc
 8. Publish to crates.io
 
 ### AI Model Configuration
-The project includes a model registry system used when `voice reflect`
+The project includes a model registry system used when `reflect`
 selects a backend model:
 
 - **Model Registry**: `src/claude/model_config.rs` manages AI model specifications
@@ -117,7 +118,7 @@ selects a backend model:
 ### AI Backend Dispatch
 `src/claude/client.rs::create_default_claude_client` returns a
 `Box<dyn AiClient>` selected from environment variables and global flags, in
-this order. `voice reflect` is the live consumer; it drives the returned
+this order. `reflect` is the live consumer; it drives the returned
 client directly.
 
 1. `OMNI_VOICE_AI_BACKEND=claude-cli` (or `--ai-backend claude-cli`) → `ClaudeCliAiClient` in `src/claude/ai/claude_cli.rs`.
@@ -135,7 +136,7 @@ Dev-only notes:
 - `--beta-header` is ignored for the `claude-cli` backend (`claude`'s `--betas` flag has different semantics).
 
 ### AI Response Parsing
-`voice reflect` prompts the model to emit YAML and parses it in
+`reflect` prompts the model to emit YAML and parses it in
 `src/voice/reflect/validate.rs`: stage one deserialises the whole response
 with `serde_yaml::from_str` into an envelope, stage two validates the
 contained events. Parse the response **as YAML directly** — do not try to
@@ -165,7 +166,7 @@ New git worktrees should be created in the `.work/` directory of the current pro
 - Temporary directories for filesystem-touching tests (`tempfile`)
 - Audio/WAV fixtures under `tests/fixtures/voice/` for the voice pipelines
 - Golden files under `tests/snapshots/` for CLI output validation
-- Mock AI client (`src/claude/test_utils.rs`) for `voice reflect` tests
+- Mock AI client (`src/claude/test_utils.rs`) for `reflect` tests
 
 ## Common Patterns
 
@@ -196,7 +197,7 @@ struct Data {
 
 ### Common Issues
 - **Clippy Warnings**: Use suggested fixes or add `#[allow(clippy::rule)]` with justification
-- **Test Failures**: Model-gated voice tests need installed models (`voice install-model`); check device/audio assumptions for capture tests
+- **Test Failures**: Model-gated voice tests need installed models (`install-model`); check device/audio assumptions for capture tests
 - **YAML Formatting**: Ensure proper serialization attributes
 
 ### Debug Commands

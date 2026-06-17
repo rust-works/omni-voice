@@ -1,6 +1,6 @@
 # AI Backends
 
-omni-voice's AI feature — `voice reflect`, which reflects on a transcript and
+omni-voice's AI feature — `reflect`, which reflects on a transcript and
 emits reflection events — calls out to a large language model through a
 pluggable **backend**. Five backends are supported and selected at runtime by
 environment variables or a CLI flag.
@@ -84,14 +84,14 @@ Get a key from [console.anthropic.com](https://console.anthropic.com/).
 `claude-sonnet-4-6`. Override per-invocation with `ANTHROPIC_MODEL`:
 
 ```bash
-ANTHROPIC_MODEL=claude-opus-4-6 omni-voice voice reflect transcript.jsonl
+ANTHROPIC_MODEL=claude-opus-4-6 omni-voice reflect transcript.jsonl
 ```
 
 **Verification.**
 
 ```bash
 export CLAUDE_API_KEY="sk-ant-..."
-omni-voice voice reflect transcript.jsonl
+omni-voice reflect transcript.jsonl
 ```
 
 ## Claude CLI (sandboxed subprocess)
@@ -104,7 +104,7 @@ separate API key when you already have Claude Code installed and signed in.
 **Selection.** Either flag or env var works; the flag wins if both are set:
 
 ```bash
-omni-voice --ai-backend claude-cli voice reflect transcript.jsonl
+omni-voice --ai-backend claude-cli reflect transcript.jsonl
 # or persistently:
 export OMNI_VOICE_AI_BACKEND=claude-cli
 ```
@@ -128,7 +128,7 @@ escape hatches, and the spending cap.
 
 ```bash
 claude --version          # confirm the CLI is installed and authenticated
-omni-voice --ai-backend claude-cli voice reflect transcript.jsonl
+omni-voice --ai-backend claude-cli reflect transcript.jsonl
 ```
 
 ## OpenAI
@@ -154,7 +154,7 @@ export OPENAI_AUTH_TOKEN="sk-..."
 ```bash
 export OPENAI_MODEL="gpt-5"
 # or per-invocation:
-OPENAI_MODEL=gpt-5 omni-voice voice reflect transcript.jsonl
+OPENAI_MODEL=gpt-5 omni-voice reflect transcript.jsonl
 ```
 
 **Endpoint.** Fixed to `https://api.openai.com/v1/chat/completions`. To point
@@ -174,7 +174,7 @@ use the [Ollama](#ollama) backend (which exposes `OLLAMA_BASE_URL`).
 ```bash
 export USE_OPENAI=true
 export OPENAI_API_KEY="sk-..."
-omni-voice voice reflect transcript.jsonl
+omni-voice reflect transcript.jsonl
 ```
 
 ## Ollama
@@ -226,7 +226,7 @@ ollama serve &              # if not already running
 ollama pull llama3.1
 export USE_OLLAMA=true
 export OLLAMA_MODEL="llama3.1"
-omni-voice voice reflect transcript.jsonl
+omni-voice reflect transcript.jsonl
 ```
 
 ## AWS Bedrock
@@ -274,7 +274,7 @@ export ANTHROPIC_MODEL="us.anthropic.claude-sonnet-4-6-v1:0"
 export CLAUDE_CODE_USE_BEDROCK=true
 export ANTHROPIC_AUTH_TOKEN="..."
 export ANTHROPIC_BEDROCK_BASE_URL="https://bedrock-runtime.us-east-1.amazonaws.com"
-omni-voice voice reflect transcript.jsonl
+omni-voice reflect transcript.jsonl
 ```
 
 ## Claude CLI Deep-dive
@@ -318,7 +318,7 @@ the model not to emit `function_calls` XML.
 When the nested session needs filesystem or shell access:
 
 ```bash
-omni-voice --ai-backend claude-cli --claude-cli-allow-tools voice reflect transcript.jsonl
+omni-voice --ai-backend claude-cli --claude-cli-allow-tools reflect transcript.jsonl
 # or persistently:
 export OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS=true
 ```
@@ -341,7 +341,7 @@ claude -p sandbox weakened: tool-access escape hatch is enabled ...
 When the nested session needs MCP servers from your `~/.claude/settings.json`:
 
 ```bash
-omni-voice --ai-backend claude-cli --claude-cli-allow-mcp voice reflect transcript.jsonl
+omni-voice --ai-backend claude-cli --claude-cli-allow-mcp reflect transcript.jsonl
 # or:
 export OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP=true
 ```
@@ -367,7 +367,7 @@ Pass a per-invocation cap in USD:
 
 ```bash
 omni-voice --ai-backend claude-cli --claude-cli-max-budget-usd 0.50 \
-  voice reflect transcript.jsonl
+  reflect transcript.jsonl
 # or:
 export OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD=0.50
 ```
@@ -411,7 +411,7 @@ token limits. The catalogue is assembled by merging several sources; point at a
 single override file with `--models-yaml` (or `OMNI_VOICE_MODELS_YAML`):
 
 ```bash
-omni-voice --models-yaml ./my-models.yaml voice reflect transcript.jsonl
+omni-voice --models-yaml ./my-models.yaml reflect transcript.jsonl
 ```
 
 **Catalogue precedence** — entries from later files override earlier ones:
@@ -466,5 +466,5 @@ errors. The most common cases:
 Enable verbose logging when reporting issues:
 
 ```bash
-RUST_LOG=omni_voice=debug omni-voice voice reflect transcript.jsonl
+RUST_LOG=omni_voice=debug omni-voice reflect transcript.jsonl
 ```

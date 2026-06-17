@@ -1,4 +1,4 @@
-//! `omni-voice voice review` — reconcile a session's `events.jsonl`
+//! `omni-voice review` — reconcile a session's `events.jsonl`
 //! into materialised markdown.
 //!
 //! Writes `todos.md` / `decisions.md` and (optionally) renders the

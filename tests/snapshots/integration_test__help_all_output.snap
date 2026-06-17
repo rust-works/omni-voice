@@ -9,9 +9,14 @@ A comprehensive development toolkit
 Usage: omni-voice [OPTIONS] <COMMAND>
 
 Commands:
-  voice     Voice capture and processing operations
-  help-all  Displays comprehensive help for all commands
-  help      Print this message or the help of the given subcommand(s)
+  capture        Captures audio from a microphone to a 16 kHz mono WAV file
+  transcribe     Transcribes a 16 kHz mono WAV file to JSONL or markdown
+  reflect        Reflects on a transcript and emits reflection events
+  review         Reconciles a session's events.jsonl into materialized markdown
+  install-model  Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-voice/voice/models/<variant>/`
+  enroll         Captures a microphone sample and persists a speaker embedding to `~/.omni-voice/voice/speakers/<name>.json`
+  help-all       Displays comprehensive help for all commands
+  help           Print this message or the help of the given subcommand(s)
 
 Options:
       --ai-backend <AI_BACKEND>
@@ -32,6 +37,21 @@ Options:
 
 ================================================================================
 
+omni-voice capture - Captures audio from a microphone to a 16 kHz mono WAV file
+
+Captures audio from a microphone to a 16 kHz mono WAV file
+
+Usage: capture [OPTIONS]
+
+Options:
+      --idle-after <IDLE_AFTER>  Stop after this many seconds of trailing silence. `0` disables auto-stop — capture runs until Ctrl-C [default: 5]
+      --output <OUTPUT>          Destination WAV path. Defaults to `~/.omni-voice/voice/captures/<UTC-timestamp>.wav`
+      --device <DEVICE>          Audio input device name. Defaults to the system default input. Matching is exact against the platform-reported device name; an unknown name errors with a list of detected devices
+  -h, --help                     Print help
+
+
+================================================================================
+
 omni-voice completions - Generates shell completion scripts
 
 Generates shell completion scripts
@@ -47,55 +67,7 @@ Options:
 
 ================================================================================
 
-omni-voice help-all - Displays comprehensive help for all commands
-
-Displays comprehensive help for all commands
-
-Usage: help-all
-
-Options:
-  -h, --help  Print help
-
-
-================================================================================
-
-omni-voice voice - Voice capture and processing operations
-
-Voice capture and processing operations
-
-Usage: voice <COMMAND>
-
-Commands:
-  capture        Captures audio from a microphone to a 16 kHz mono WAV file
-  transcribe     Transcribes a 16 kHz mono WAV file to JSONL or markdown
-  reflect        Reflects on a transcript and emits reflection events
-  review         Reconciles a session's events.jsonl into materialized markdown
-  install-model  Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-voice/voice/models/<variant>/`
-  enroll         Captures a microphone sample and persists a speaker embedding to `~/.omni-voice/voice/speakers/<name>.json`
-  help           Print this message or the help of the given subcommand(s)
-
-Options:
-  -h, --help  Print help
-
-
-================================================================================
-
-omni-voice voice capture - Captures audio from a microphone to a 16 kHz mono WAV file
-
-Captures audio from a microphone to a 16 kHz mono WAV file
-
-Usage: capture [OPTIONS]
-
-Options:
-      --idle-after <IDLE_AFTER>  Stop after this many seconds of trailing silence. `0` disables auto-stop — capture runs until Ctrl-C [default: 5]
-      --output <OUTPUT>          Destination WAV path. Defaults to `~/.omni-voice/voice/captures/<UTC-timestamp>.wav`
-      --device <DEVICE>          Audio input device name. Defaults to the system default input. Matching is exact against the platform-reported device name; an unknown name errors with a list of detected devices
-  -h, --help                     Print help
-
-
-================================================================================
-
-omni-voice voice enroll - Captures a microphone sample and persists a speaker embedding to `~/.omni-voice/voice/speakers/<name>.json`
+omni-voice enroll - Captures a microphone sample and persists a speaker embedding to `~/.omni-voice/voice/speakers/<name>.json`
 
 Captures a microphone sample and persists a speaker embedding to `~/.omni-voice/voice/speakers/<name>.json`
 
@@ -113,7 +85,19 @@ Options:
 
 ================================================================================
 
-omni-voice voice install-model - Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-voice/voice/models/<variant>/`
+omni-voice help-all - Displays comprehensive help for all commands
+
+Displays comprehensive help for all commands
+
+Usage: help-all
+
+Options:
+  -h, --help  Print help
+
+
+================================================================================
+
+omni-voice install-model - Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-voice/voice/models/<variant>/`
 
 Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-voice/voice/models/<variant>/`
 
@@ -128,7 +112,7 @@ Options:
 
 ================================================================================
 
-omni-voice voice reflect - Reflects on a transcript and emits reflection events
+omni-voice reflect - Reflects on a transcript and emits reflection events
 
 Reflects on a transcript and emits reflection events
 
@@ -144,7 +128,7 @@ Options:
 
 ================================================================================
 
-omni-voice voice review - Reconciles a session's events.jsonl into materialized markdown
+omni-voice review - Reconciles a session's events.jsonl into materialized markdown
 
 Reconciles a session's events.jsonl into materialized markdown
 
@@ -160,14 +144,14 @@ Options:
 
 ================================================================================
 
-omni-voice voice transcribe - Transcribes a 16 kHz mono WAV file to JSONL or markdown
+omni-voice transcribe - Transcribes a 16 kHz mono WAV file to JSONL or markdown
 
 Transcribes a 16 kHz mono WAV file to JSONL or markdown
 
 Usage: transcribe [OPTIONS] <WAV>
 
 Arguments:
-  <WAV>  Path to a 16 kHz mono 16-bit PCM WAV file. Use `voice capture` to produce one — `transcribe` does not resample
+  <WAV>  Path to a 16 kHz mono 16-bit PCM WAV file. Use `capture` to produce one — `transcribe` does not resample
 
 Options:
       --backend <BACKEND>              Transcriber backend (`mock`, `whisper-candle`, `whisper-candle-streaming`). Defaults to `mock`; see ADR-0033 for the `whisper-candle` runtime choice and ADR-0040 for the latency-tolerant streaming variant

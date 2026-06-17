@@ -1,11 +1,11 @@
 //! Reflection event schema (the `events.jsonl` contract from #799).
 //!
 //! These types form the wire format for the append-only reflection log
-//! produced by `voice reflect` (this issue) and consumed by `voice review`
+//! produced by `reflect` (this issue) and consumed by `review`
 //! (#804). The shape is the load-bearing contract — see the umbrella
 //! issue #799 for the full design rationale and reconciliation
 //! invariants. The [`project`] helper here implements the subset of those
-//! invariants that `voice reflect` itself needs (to render the
+//! invariants that `reflect` itself needs (to render the
 //! `<current_state>` block in its prompt). TTL eviction lives in `voice
 //! review` and is not implemented here.
 
@@ -29,8 +29,8 @@ pub type NoteId = ulid::Ulid;
 
 /// Identifies the reflection invocation that produced a batch of events.
 ///
-/// `Ulid(_)` for events emitted by `voice reflect`; `Review` for events
-/// written by reconciliation (`voice review`, #804) — currently just
+/// `Ulid(_)` for events emitted by `reflect`; `Review` for events
+/// written by reconciliation (`review`, #804) — currently just
 /// `item.expire { reason: ttl }`. Serialised on the wire as either a
 /// ULID string or the literal `"review"`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -117,7 +117,7 @@ pub enum Priority {
 pub enum ExpireReason {
     /// User explicitly retracted the item.
     Retracted,
-    /// `valid_until` elapsed (emitted by `voice review`, not `reflect`).
+    /// `valid_until` elapsed (emitted by `review`, not `reflect`).
     Ttl,
     /// Replaced by a more recent item — see `superseded_by`.
     Superseded,
@@ -324,8 +324,8 @@ pub struct ProjectedNote {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ProjectedState {
     /// Items keyed by id. Includes completed and expired items so callers
-    /// can filter as they see fit (`voice reflect` excludes them from
-    /// `<current_state>`; `voice review` may render them under a separate
+    /// can filter as they see fit (`reflect` excludes them from
+    /// `<current_state>`; `review` may render them under a separate
     /// heading).
     pub items: BTreeMap<ItemId, ProjectedItem>,
     /// Decisions in insertion order.
@@ -344,7 +344,7 @@ pub struct ProjectedState {
 ///   → drop the operation, log a warning.
 /// - `reflection.error` skipped entirely.
 ///
-/// **Not** implemented here (deferred to `voice review` / #804):
+/// **Not** implemented here (deferred to `review` / #804):
 /// - TTL eviction (synthesising `item.expire { reason: ttl }`).
 pub fn project<I: IntoIterator<Item = Event>>(events: I) -> ProjectedState {
     let mut sorted: Vec<Event> = events.into_iter().collect();

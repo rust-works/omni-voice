@@ -47,17 +47,17 @@ See the [README](../README.md) for Nix install options.
 
 ## 2. Install a model
 
-`voice transcribe` defaults to a built-in `mock` backend that needs no
+`transcribe` defaults to a built-in `mock` backend that needs no
 model, but for real transcription install the Whisper model. The default
 variant is `whisper-tiny.en`:
 
 ```bash
-omni-voice voice install-model
+omni-voice install-model
 ```
 
 The files land in `~/.omni-voice/voice/models/whisper-tiny.en/`. The command
 is idempotent — re-running it prints "model already installed" unless you
-pass `--force`. To install the speaker-embedding model used by `voice enroll`
+pass `--force`. To install the speaker-embedding model used by `enroll`
 instead, pass `--variant speaker-wespeaker-en`.
 
 ## 3. Capture audio
@@ -65,7 +65,7 @@ instead, pass `--variant speaker-wespeaker-en`.
 Record from your default input device:
 
 ```bash
-omni-voice voice capture
+omni-voice capture
 ```
 
 Capture auto-stops after 5 seconds of trailing silence (`--idle-after`,
@@ -76,27 +76,27 @@ path in the summary line. Pass `--output <PATH>` to choose a destination.
 ## 4. Transcribe
 
 Feed the WAV through a transcriber. The `<WAV>` must be 16 kHz mono (which
-`voice capture` always produces — `transcribe` does not resample):
+`capture` always produces — `transcribe` does not resample):
 
 ```bash
-omni-voice voice transcribe ~/.omni-voice/voice/captures/<timestamp>.wav
+omni-voice transcribe ~/.omni-voice/voice/captures/<timestamp>.wav
 ```
 
 The backend defaults to `mock`. For real transcription with the model you
 installed in step 2, select the Whisper backend:
 
 ```bash
-omni-voice voice transcribe <WAV> --backend whisper-candle
+omni-voice transcribe <WAV> --backend whisper-candle
 ```
 
 Output is markdown on a terminal and JSONL when piped. The later reflect and
 review steps operate on a **session** — a directory under
 `~/.omni-voice/voice/<id>/` whose `transcript.jsonl` is the event stream from
-`voice transcribe`. Pick a session id and write the JSONL transcript there:
+`transcribe`. Pick a session id and write the JSONL transcript there:
 
 ```bash
 mkdir -p ~/.omni-voice/voice/demo
-omni-voice voice transcribe <WAV> --backend whisper-candle --format jsonl \
+omni-voice transcribe <WAV> --backend whisper-candle --format jsonl \
   > ~/.omni-voice/voice/demo/transcript.jsonl
 ```
 
@@ -104,11 +104,11 @@ Here `demo` is the session id you'll use in the remaining steps.
 
 ## 5. (Optional) Reflect
 
-`voice reflect` runs the transcript through an AI model and emits reflection
+`reflect` runs the transcript through an AI model and emits reflection
 events. Reflect against the session you just populated:
 
 ```bash
-omni-voice voice reflect --session demo
+omni-voice reflect --session demo
 ```
 
 This appends events to `~/.omni-voice/voice/demo/events.jsonl`. Because it
@@ -123,7 +123,7 @@ review below simply has fewer events to reconcile.
 Reconcile the session's `events.jsonl` into materialised markdown:
 
 ```bash
-omni-voice voice review demo
+omni-voice review demo
 ```
 
 With the default `--what all`, this writes `todos.md` and `decisions.md`
@@ -132,7 +132,7 @@ To inspect the raw transcript instead of materialising files, render it to
 stdout:
 
 ```bash
-omni-voice voice review demo --what transcript
+omni-voice review demo --what transcript
 ```
 
 That completes the loop — capture, transcribe, reflect, review — with all
@@ -141,11 +141,11 @@ artefacts under `~/.omni-voice/voice/demo/`.
 ## Where to go next
 
 - **AI backends** — [ai-backends.md](ai-backends.md) for configuring the
-  model that `voice reflect` uses (Anthropic API, Claude CLI, OpenAI,
+  model that `reflect` uses (Anthropic API, Claude CLI, OpenAI,
   Ollama, Bedrock).
-- **Speaker enrolment** — `omni-voice voice enroll --name <NAME>` captures a
+- **Speaker enrolment** — `omni-voice enroll --name <NAME>` captures a
   sample and stores a speaker embedding under
-  `~/.omni-voice/voice/speakers/`, which `voice transcribe --speaker` can
+  `~/.omni-voice/voice/speakers/`, which `transcribe --speaker` can
   then filter on.
 - **Full command reference** — run `omni-voice help-all` for every command,
   flag, and default.

@@ -1,6 +1,6 @@
 //! Voice capture: microphone-to-WAV pipeline.
 //!
-//! The library half of `omni-voice voice capture`. The CLI entry point lives in
+//! The library half of `omni-voice capture`. The CLI entry point lives in
 //! [`crate::cli::voice`]. This module is intentionally CLI-free so the audio
 //! pipeline (source → mixdown → resample → idle-detect → trim → write) can be
 //! unit-tested against fixture WAVs without a real microphone.

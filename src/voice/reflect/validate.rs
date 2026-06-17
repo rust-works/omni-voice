@@ -115,7 +115,7 @@ fn check_event(
         EventKind::ItemExpire(e) => {
             require_known(known, e.item_id, "item.expire")?;
             if matches!(e.reason, ExpireReason::Ttl) {
-                return Err("reason: ttl is reserved for `voice review`; \
+                return Err("reason: ttl is reserved for `review`; \
                             reflect must use `retracted` or `superseded`"
                     .to_string());
             }

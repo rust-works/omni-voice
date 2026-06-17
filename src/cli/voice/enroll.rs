@@ -1,4 +1,4 @@
-//! `omni-voice voice enroll` — capture a microphone sample, compute the
+//! `omni-voice enroll` — capture a microphone sample, compute the
 //! speaker embedding, and persist to `~/.omni-voice/voice/speakers/<name>.json`.
 //!
 //! Stops on the first of: `--idle-after` seconds of trailing silence,

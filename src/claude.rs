@@ -1,4 +1,4 @@
-//! AI client infrastructure reused by `voice reflect`.
+//! AI client infrastructure reused by `reflect`.
 //!
 //! Only the backend-dispatch factory and the [`AiClient`] trait + its
 //! provider implementations remain here; the commit-analysis machinery
