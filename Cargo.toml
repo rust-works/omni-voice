@@ -55,8 +55,8 @@ byteorder = "1"
 tract-onnx = "0.23"
 rustfft = "6"
 ureq = "3"
-
-[target.'cfg(unix)'.dependencies]
+# Unconditional since omni-voice targets only Apple Silicon macOS (ADR-0041);
+# previously gated behind [target.'cfg(unix)'.dependencies].
 nix = { version = "0.31", default-features = false, features = ["signal"] }
 
 [dev-dependencies]
