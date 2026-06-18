@@ -743,12 +743,23 @@ async fn kill_and_reap(child: &mut tokio::process::Child) {
 /// our own `execve` of that same file until the child execs (or dies).
 /// Retry with bounded exponential backoff. See issue #642.
 async fn spawn_with_etxtbsy_retry(cmd: &mut Command) -> std::io::Result<tokio::process::Child> {
+    retry_on_etxtbsy(|| cmd.spawn()).await
+}
+
+/// The bounded-backoff retry loop behind [`spawn_with_etxtbsy_retry`], generic
+/// over the spawn operation so the retry path is unit-testable without relying
+/// on the kernel actually producing `ETXTBSY` (which not every platform does
+/// under the same conditions).
+async fn retry_on_etxtbsy<F>(mut spawn: F) -> std::io::Result<tokio::process::Child>
+where
+    F: FnMut() -> std::io::Result<tokio::process::Child>,
+{
     const ETXTBSY: i32 = 26;
     const MAX_ATTEMPTS: u32 = 6;
 
     let mut backoff = Duration::from_millis(5);
     for attempt in 1..=MAX_ATTEMPTS {
-        match cmd.spawn() {
+        match spawn() {
             Ok(child) => return Ok(child),
             Err(e) if e.raw_os_error() == Some(ETXTBSY) && attempt < MAX_ATTEMPTS => {
                 debug!(
@@ -1943,6 +1954,59 @@ mod tests {
             chain.contains("non-zero status"),
             "unexpected error: {chain}"
         );
+    }
+
+    /// Drives the `retry_on_etxtbsy` loop with an injected spawn op that
+    /// returns ETXTBSY twice then succeeds, so the retry arm (backoff +
+    /// re-spawn) is exercised deterministically without depending on the
+    /// kernel producing ETXTBSY — which macOS does not under these conditions.
+    #[tokio::test]
+    async fn retry_on_etxtbsy_retries_then_succeeds() {
+        let mut attempts = 0u32;
+        let mut child = retry_on_etxtbsy(|| {
+            attempts += 1;
+            if attempts < 3 {
+                Err(std::io::Error::from_raw_os_error(26))
+            } else {
+                tokio::process::Command::new("/usr/bin/true").spawn()
+            }
+        })
+        .await
+        .expect("spawn should succeed after ETXTBSY retries");
+        assert_eq!(attempts, 3, "retries twice, succeeds on the third attempt");
+        let _ = child.wait().await;
+    }
+
+    /// ETXTBSY on every attempt exhausts the retry budget and returns the
+    /// error rather than looping forever.
+    #[tokio::test]
+    async fn retry_on_etxtbsy_gives_up_after_max_attempts() {
+        let mut attempts = 0u32;
+        let err = retry_on_etxtbsy(|| {
+            attempts += 1;
+            Err::<tokio::process::Child, _>(std::io::Error::from_raw_os_error(26))
+        })
+        .await
+        .expect_err("should give up after the attempt budget");
+        assert_eq!(
+            attempts, 6,
+            "tries MAX_ATTEMPTS times then returns the error"
+        );
+        assert_eq!(err.raw_os_error(), Some(26));
+    }
+
+    /// A non-ETXTBSY spawn error propagates immediately without retrying.
+    #[tokio::test]
+    async fn retry_on_etxtbsy_propagates_other_errors() {
+        let mut attempts = 0u32;
+        let err = retry_on_etxtbsy(|| {
+            attempts += 1;
+            Err::<tokio::process::Child, _>(std::io::Error::from_raw_os_error(2))
+        })
+        .await
+        .expect_err("non-ETXTBSY error should propagate");
+        assert_eq!(attempts, 1, "no retry on a non-ETXTBSY error");
+        assert_eq!(err.raw_os_error(), Some(2));
     }
 
     // ── Process-group reaping on timeout (issue #633) ──────────────
