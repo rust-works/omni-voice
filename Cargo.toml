@@ -45,9 +45,10 @@ hound = "3.5"
 signal-hook = "0.4"
 ringbuf = "0.5"
 ulid = { version = "1", features = ["serde"] }
-candle-core = { version = "0.10", default-features = false }
-candle-nn = { version = "0.10", default-features = false }
-candle-transformers = { version = "0.10", default-features = false }
+# Metal acceleration on Apple Silicon with CPU fallback (ADR-0042).
+candle-core = { version = "0.10", default-features = false, features = ["metal"] }
+candle-nn = { version = "0.10", default-features = false, features = ["metal"] }
+candle-transformers = { version = "0.10", default-features = false, features = ["metal"] }
 earshot = "1.1"
 hf-hub = { version = "0.5", default-features = false, features = ["ureq", "rustls-tls"] }
 tokenizers = { version = "0.23", default-features = false, features = ["fancy-regex"] }

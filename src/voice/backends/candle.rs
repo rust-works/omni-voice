@@ -76,7 +76,10 @@ impl WhisperEngine {
         let tokenizer_path = model_dir.join(REQUIRED_FILES[1]);
         let weights_path = model_dir.join(REQUIRED_FILES[2]);
 
-        let device = Device::Cpu;
+        // Every Apple Silicon Mac (the only supported target, ADR-0041) has a
+        // Metal-capable GPU, so Metal is assumed present; surface a clear error
+        // if it is somehow unavailable rather than silently degrading to CPU.
+        let device = Device::new_metal(0).context("create Metal device")?;
         let config: Config = serde_json::from_str(
             &std::fs::read_to_string(&config_path)
                 .with_context(|| format!("read Whisper config from {}", config_path.display()))?,
