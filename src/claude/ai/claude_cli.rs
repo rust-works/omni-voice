@@ -709,40 +709,28 @@ where
 
 /// Kills the subprocess and reaps it.
 ///
-/// On Unix, sends SIGKILL to the entire process group so any helpers
-/// the child forked (e.g. Node workers spawned by `claude -p`) die
-/// alongside the direct child. Pairs with the `process_group(0)` call
-/// in `ClaudeCliAiClient::build_command_with_schema`. See issue #633.
-///
-/// On non-Unix, falls back to `tokio::process::Child::kill`, which
-/// already terminates the process tree on Windows via
-/// `TerminateProcess`.
+/// Sends SIGKILL to the entire process group so any helpers the child
+/// forked (e.g. Node workers spawned by `claude -p`) die alongside the
+/// direct child. Pairs with the `process_group(0)` call in
+/// `ClaudeCliAiClient::build_command_with_schema`. See issue #633.
 async fn kill_and_reap(child: &mut tokio::process::Child) {
-    #[cfg(unix)]
-    {
-        if let Some(pid) = child.id() {
-            // Cast through i32: tokio's PID is u32; nix's Pid wraps i32
-            // (matching the kernel's pid_t). PIDs always fit in i32 in
-            // practice — Linux caps at PID_MAX_LIMIT (~2^22) and macOS
-            // at 99999.
-            let group = nix::unistd::Pid::from_raw(pid as i32);
-            if let Err(e) = nix::sys::signal::killpg(group, nix::sys::signal::Signal::SIGKILL) {
-                // ESRCH is expected when the group has already drained
-                // (everyone exited between timeout and kill). Anything
-                // else is worth logging but not fatal — we still wait
-                // below to reap whatever remains of the direct child.
-                if e != nix::errno::Errno::ESRCH {
-                    debug!(error = %e, pid, "killpg failed; falling back to direct kill");
-                    let _ = child.start_kill();
-                }
+    if let Some(pid) = child.id() {
+        // Cast through i32: tokio's PID is u32; nix's Pid wraps i32
+        // (matching the kernel's pid_t). PIDs always fit in i32 in
+        // practice — macOS caps PIDs at 99999.
+        let group = nix::unistd::Pid::from_raw(pid as i32);
+        if let Err(e) = nix::sys::signal::killpg(group, nix::sys::signal::Signal::SIGKILL) {
+            // ESRCH is expected when the group has already drained
+            // (everyone exited between timeout and kill). Anything
+            // else is worth logging but not fatal — we still wait
+            // below to reap whatever remains of the direct child.
+            if e != nix::errno::Errno::ESRCH {
+                debug!(error = %e, pid, "killpg failed; falling back to direct kill");
+                let _ = child.start_kill();
             }
-        } else {
-            // Already reaped; nothing to signal.
         }
-    }
-    #[cfg(not(unix))]
-    {
-        let _ = child.kill().await;
+    } else {
+        // Already reaped; nothing to signal.
     }
     let _ = child.wait().await;
 }
@@ -755,12 +743,23 @@ async fn kill_and_reap(child: &mut tokio::process::Child) {
 /// our own `execve` of that same file until the child execs (or dies).
 /// Retry with bounded exponential backoff. See issue #642.
 async fn spawn_with_etxtbsy_retry(cmd: &mut Command) -> std::io::Result<tokio::process::Child> {
+    retry_on_etxtbsy(|| cmd.spawn()).await
+}
+
+/// The bounded-backoff retry loop behind [`spawn_with_etxtbsy_retry`], generic
+/// over the spawn operation so the retry path is unit-testable without relying
+/// on the kernel actually producing `ETXTBSY` (which not every platform does
+/// under the same conditions).
+async fn retry_on_etxtbsy<F>(mut spawn: F) -> std::io::Result<tokio::process::Child>
+where
+    F: FnMut() -> std::io::Result<tokio::process::Child>,
+{
     const ETXTBSY: i32 = 26;
     const MAX_ATTEMPTS: u32 = 6;
 
     let mut backoff = Duration::from_millis(5);
     for attempt in 1..=MAX_ATTEMPTS {
-        match cmd.spawn() {
+        match spawn() {
             Ok(child) => return Ok(child),
             Err(e) if e.raw_os_error() == Some(ETXTBSY) && attempt < MAX_ATTEMPTS => {
                 debug!(
@@ -1957,43 +1956,57 @@ mod tests {
         );
     }
 
-    /// Holds a writable FD on a shim long enough for `spawn_with_etxtbsy_retry`
-    /// to hit ETXTBSY, then drops it on a timer so a subsequent retry
-    /// succeeds. Exercises the retry branch on platforms where the kernel
-    /// enforces ETXTBSY (Linux). On platforms that don't, the first spawn
-    /// succeeds and the retry loop simply isn't exercised.
+    /// Drives the `retry_on_etxtbsy` loop with an injected spawn op that
+    /// returns ETXTBSY twice then succeeds, so the retry arm (backoff +
+    /// re-spawn) is exercised deterministically without depending on the
+    /// kernel producing ETXTBSY — which macOS does not under these conditions.
     #[tokio::test]
-    #[cfg(target_os = "linux")]
-    async fn spawn_retries_through_etxtbsy() {
-        let _guard = shim_lock();
-        use std::os::unix::fs::OpenOptionsExt;
+    async fn retry_on_etxtbsy_retries_then_succeeds() {
+        let mut attempts = 0u32;
+        let mut child = retry_on_etxtbsy(|| {
+            attempts += 1;
+            if attempts < 3 {
+                Err(std::io::Error::from_raw_os_error(26))
+            } else {
+                tokio::process::Command::new("/usr/bin/true").spawn()
+            }
+        })
+        .await
+        .expect("spawn should succeed after ETXTBSY retries");
+        assert_eq!(attempts, 3, "retries twice, succeeds on the third attempt");
+        let _ = child.wait().await;
+    }
 
-        let tmp = TempDir::new().unwrap();
-        let shim = tmp.path().join("busy-shim");
-        write_exec_script(
-            &shim,
-            "#!/bin/sh\ncat >/dev/null\nprintf '%s' '{\"is_error\":false,\"result\":\"late\"}'\nexit 0\n",
+    /// ETXTBSY on every attempt exhausts the retry budget and returns the
+    /// error rather than looping forever.
+    #[tokio::test]
+    async fn retry_on_etxtbsy_gives_up_after_max_attempts() {
+        let mut attempts = 0u32;
+        let err = retry_on_etxtbsy(|| {
+            attempts += 1;
+            Err::<tokio::process::Child, _>(std::io::Error::from_raw_os_error(26))
+        })
+        .await
+        .expect_err("should give up after the attempt budget");
+        assert_eq!(
+            attempts, 6,
+            "tries MAX_ATTEMPTS times then returns the error"
         );
+        assert_eq!(err.raw_os_error(), Some(26));
+    }
 
-        // Pin a writable FD to the inode. While this lives, `execve` on
-        // the shim returns ETXTBSY.
-        let blocker = std::fs::OpenOptions::new()
-            .write(true)
-            .mode(0o755)
-            .open(&shim)
-            .unwrap();
-
-        // Drop the blocker after a short delay — enough for at least one
-        // ETXTBSY retry to fire.
-        let drop_after = Duration::from_millis(20);
-        let release = tokio::spawn(async move {
-            tokio::time::sleep(drop_after).await;
-            drop(blocker);
-        });
-
-        let out = client_with_shim(shim).run("sys", "user").await.unwrap();
-        release.await.unwrap();
-        assert_eq!(out, "late");
+    /// A non-ETXTBSY spawn error propagates immediately without retrying.
+    #[tokio::test]
+    async fn retry_on_etxtbsy_propagates_other_errors() {
+        let mut attempts = 0u32;
+        let err = retry_on_etxtbsy(|| {
+            attempts += 1;
+            Err::<tokio::process::Child, _>(std::io::Error::from_raw_os_error(2))
+        })
+        .await
+        .expect_err("non-ETXTBSY error should propagate");
+        assert_eq!(attempts, 1, "no retry on a non-ETXTBSY error");
+        assert_eq!(err.raw_os_error(), Some(2));
     }
 
     // ── Process-group reaping on timeout (issue #633) ──────────────

@@ -25,6 +25,10 @@ reconcile the results into materialized notes.
 
 ## 🚀 Quick start
 
+> **Requirements:** Apple Silicon macOS (`aarch64-apple-darwin`) only. omni-voice
+> does not build or run on Intel macs, Linux, or Windows — the build fails fast on
+> any other target. See [ADR-0041](docs/adrs/adr-0041.md).
+
 ```bash
 # Install from crates.io
 cargo install omni-voice

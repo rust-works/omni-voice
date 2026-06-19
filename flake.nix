@@ -7,7 +7,8 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+    # omni-voice targets only Apple Silicon macOS (ADR-0041).
+    flake-utils.lib.eachSystem [ "aarch64-darwin" ] (system:
       let
         pkgs = import nixpkgs { inherit system; };
 
@@ -19,9 +20,6 @@
           openssl
           zlib
           libgit2
-        ] ++ lib.optionals stdenv.hostPlatform.isLinux [
-          alsa-lib
-        ] ++ lib.optionals stdenv.hostPlatform.isDarwin [
           libiconv
         ];
 

@@ -16,7 +16,7 @@ The release process follows semantic versioning with **automated CI/CD**:
 
 ### Automated Steps (CI Does)
 7. GitHub release creation
-8. Cross-platform binary builds (Linux, macOS, Windows)
+8. Apple Silicon binary build (macOS aarch64-apple-darwin)
 9. crates.io publication
 
 ## Prerequisites
@@ -147,10 +147,8 @@ Pushing a `v*` tag triggers the following automated workflows:
 
 ### Release Workflow (`.github/workflows/release.yml`)
 - **Creates GitHub Release**: Automatically from the tag
-- **Builds Cross-Platform Binaries** (`omni-voice` for each target):
-  - Linux (x86_64-unknown-linux-gnu)
-  - macOS (aarch64-apple-darwin)
-  - Windows (x86_64-pc-windows-msvc)
+- **Builds the Apple Silicon binary** (`omni-voice`):
+  - macOS (aarch64-apple-darwin) — the sole supported target ([ADR-0041](adrs/adr-0041.md))
 - **Uploads Release Assets**: Attaches compiled binaries to the GitHub release
 - **Publishes to crates.io**: Automatically using `CARGO_REGISTRY_TOKEN` secret
 

@@ -58,7 +58,9 @@ by Michael Nygard.
 | [ADR-0032](adr-0032.md)  | ✅ Accepted                              | 2026-05-13 | Separate AudioInput Trait at the Transcriber Boundary                                  |
 | [ADR-0033](adr-0033.md)  | ✅ Accepted                              | 2026-05-14 | `candle` as the Production ASR Runtime                                                 |
 | [ADR-0034](adr-0034.md)  | ✅ Accepted                              | 2026-05-14 | `tract-onnx` as the Speaker-Embedding Runtime                                          |
-| [ADR-0035](adr-0035.md)  | ✅ Accepted                              | 2026-05-25 | OS-Gated ASR Backends with Auto-Upgrading Defaults                                     |
+| [ADR-0035](adr-0035.md)  | 🔄 Superseded by [ADR-0041](adr-0041.md) | 2026-05-25 | OS-Gated ASR Backends with Auto-Upgrading Defaults                                     |
 | [ADR-0036](adr-0036.md)  | ❌ Deprecated                            | 2026-05-30 | Confused-Deputy Browser Bridge with Dual-Plane Default-Closed Authentication           |
-| [ADR-0037](adr-0037.md)  | ✅ Accepted                              | 2026-06-06 | Pure-C Native ASR Backends Behind a Rust FFI Boundary on Non-Windows Targets           |
-| [ADR-0040](adr-0040.md)  | ✅ Accepted                              | 2026-06-10 | candle + earshot VAD + LocalAgreement-2 as the Latency-Tolerant Streaming ASR Floor    |
+| [ADR-0037](adr-0037.md)  | 🔄 Superseded by [ADR-0041](adr-0041.md) | 2026-06-06 | Pure-C Native ASR Backends Behind a Rust FFI Boundary on Non-Windows Targets           |
+| [ADR-0040](adr-0040.md)  | 🔄 Superseded by [ADR-0041](adr-0041.md) | 2026-06-10 | candle + earshot VAD + LocalAgreement-2 as the Latency-Tolerant Streaming ASR Floor    |
+| [ADR-0041](adr-0041.md)  | ✅ Accepted                              | 2026-06-18 | Apple Silicon macOS as the Sole Supported Platform                                     |
+| [ADR-0042](adr-0042.md)  | ✅ Accepted                              | 2026-06-18 | Native Apple-Silicon ASR Backend Selection                                             |

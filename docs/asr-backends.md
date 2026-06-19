@@ -9,15 +9,17 @@ only.
 
 ## Backend overview
 
-| Backend                    | Selection string           | Kind      | Latency class                 | Platforms | Model              | ADR                            |
-|----------------------------|----------------------------|-----------|-------------------------------|-----------|--------------------|--------------------------------|
-| Mock                       | `mock` (default)           | canned    | —                             | all       | none               | —                              |
-| Whisper batch              | `whisper-candle`           | batch     | full-file (offline)           | all       | `whisper-tiny.en`  | [ADR-0033](adrs/adr-0033.md)   |
-| Whisper streaming (LCD)    | `whisper-candle-streaming` | streaming | **bounded ~1.5–3 s lag**      | all       | `whisper-tiny.en`  | [ADR-0040](adrs/adr-0040.md)   |
+| Backend                    | Selection string           | Kind      | Latency class                 | Model              | ADR                            |
+|----------------------------|----------------------------|-----------|-------------------------------|--------------------|--------------------------------|
+| Mock                       | `mock` (default)           | canned    | —                             | none               | —                              |
+| Whisper batch              | `whisper-candle`           | batch     | full-file (offline)           | `whisper-tiny.en`  | [ADR-0033](adrs/adr-0033.md)   |
+| Whisper streaming          | `whisper-candle-streaming` | streaming | **bounded ~1.5–3 s lag**      | `whisper-tiny.en`  | [ADR-0040](adrs/adr-0040.md)   |
 
-All backends are pure Rust with no native-toolchain requirement (no
-C++/CMake), which is what makes them the cross-platform floor — including
-Windows.
+omni-voice targets **Apple Silicon macOS only** ([ADR-0041](adrs/adr-0041.md)).
+The candle backends are pure Rust and run on the Metal GPU
+([ADR-0042](adrs/adr-0042.md)). A streaming-native, sub-second **MLX** backend
+is the planned low-latency headline tier ([ADR-0042](adrs/adr-0042.md)); until it
+lands, `whisper-candle-streaming` is the pure-Rust streaming baseline.
 
 ## Selecting a backend
 
@@ -49,9 +51,9 @@ segment plus a terminal `Endpoint`. Right choice when the audio already
 exists as a file and latency is irrelevant. See
 [ADR-0033](adrs/adr-0033.md).
 
-## `whisper-candle-streaming` (cross-platform streaming LCD)
+## `whisper-candle-streaming` (pure-Rust streaming baseline)
 
-The **latency-tolerant, lowest-common-denominator streaming tier**
+The **latency-tolerant, pure-Rust streaming baseline**
 ([#974](https://github.com/rust-works/omni-voice/issues/974), validated by the
 [#969](https://github.com/rust-works/omni-voice/issues/969) spike): VAD-gated
 chunking + cadence re-decode + LocalAgreement-2 commit over the same candle
@@ -67,17 +69,14 @@ inference (fixed-size encoder, no streaming KV-cache), so sub-second
 interactive latency is a **non-goal** for this backend
 ([ADR-0040](adrs/adr-0040.md) records the root cause and the rejected
 work-arounds). The lag is **bounded and non-drifting** as long as the host
-keeps during-speech RTF < 1 — measured ~0.44 on Apple-Silicon, i.e. roughly
-2.3× slower-CPU headroom. On significantly weaker hardware the bound erodes
-and lag grows; the `voice-streaming-keepup` CI workflow exists to check
-keep-up on Linux and Windows runners.
+keeps during-speech RTF < 1 — measured ~0.44 on Apple-Silicon CPU, i.e. roughly
+2.3× headroom; Metal acceleration ([ADR-0042](adrs/adr-0042.md)) widens it
+further.
 
-Low-latency interactive streaming belongs to the Voxtral tier:
-[ADR-0037](adrs/adr-0037.md) /
-[#933](https://github.com/rust-works/omni-voice/issues/933) on non-Windows, and
-[#936](https://github.com/rust-works/omni-voice/issues/936) (pure-Rust,
-streaming-native) as the future cross-platform successor. On Windows,
-interactive use rides this LCD tier until #936 lands.
+Low-latency interactive streaming belongs to the planned streaming-native
+**MLX** tier ([ADR-0042](adrs/adr-0042.md)) — a sub-second Apple-Silicon model
+(Voxtral Realtime / moonshine-v2 / parakeet-mlx) run as a supervised subprocess.
+Until it lands, this baseline is the streaming backend.
 
 ### Tuning knobs
 
@@ -124,20 +123,12 @@ cargo test --release --test voice_streaming_candle_test -- --ignored --nocapture
 
 Gates: WER ≤ 15 %, unpaced RTF ≤ 0.5, byte-identical determinism across runs,
 time-to-final ≤ 2.5 s (mean & max) under a deadline-paced 1× driver, display
-lag bounded and non-drifting. Partial latency is reported, not gated (the LCD
-tier explicitly does not meet the interactive ≤ 1 s bar). Peak RSS is
-reported on Linux and gated at ≤ 500 MB when `OMNI_VOICE_STREAMING_RSS_GATE=1`
-(set by the CI keep-up workflow, which runs the test in isolation).
+lag bounded and non-drifting. Partial latency is reported, not gated (the
+streaming baseline explicitly does not meet the interactive ≤ 1 s bar). Peak RSS
+is gated at ≤ 500 MB when `OMNI_VOICE_STREAMING_RSS_GATE=1`.
 
 The RTF and time-to-final gates accept env overrides
-(`OMNI_VOICE_STREAMING_RTF_GATE`, `OMNI_VOICE_STREAMING_TTF_GATE`): the
-`voice-streaming-keepup` CI lane sets them to `1.0` / `5.0` because it
-checks the *keep-up* criterion (during-speech RTF < 1, bounded lag) on
-hosted runners slower than target hardware, not the Apple-Silicon-calibrated
-envelope. Measured: ubuntu-latest RTF 0.70 with bounded non-drifting lag
-(keeps up consistently); windows-latest straddles the boundary across
-runner hardware — RTF 0.84 with bounded lag (kept up) and RTF 1.20 with
-unbounded lag (did not) on consecutive runs. Hosted Windows VMs are
-slower than representative end-user hardware, so real Windows desktops
-should sit comfortably under RTF 1, but per-deployment validation of the
-during-speech RTF < 1 floor remains advised.
+(`OMNI_VOICE_STREAMING_RTF_GATE`, `OMNI_VOICE_STREAMING_TTF_GATE`) for running
+the envelope on hardware slower than the Apple-Silicon baseline. The bounded-lag
+guarantee holds while during-speech RTF < 1 on the host; Metal acceleration
+([ADR-0042](adrs/adr-0042.md)) widens that headroom.

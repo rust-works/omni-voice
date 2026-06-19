@@ -13,7 +13,7 @@ env:
 jobs:
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     strategy:
       matrix:
         rust:
@@ -29,8 +29,6 @@ jobs:
         toolchain: ${{ matrix.rust }}
         components: rustfmt
     - uses: Swatinem/rust-cache@v2
-    - name: Install ALSA headers for cpal
-      run: sudo apt-get update && sudo apt-get install -y libasound2-dev
     - name: Run tests
       run: |
         if [ -z "${{ matrix.features }}" ]; then
@@ -41,7 +39,7 @@ jobs:
 
   fmt:
     name: Rustfmt
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@stable
@@ -52,7 +50,7 @@ jobs:
 
   clippy:
     name: Clippy
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     strategy:
       matrix:
         features:
@@ -63,8 +61,6 @@ jobs:
       with:
         components: clippy
     - uses: Swatinem/rust-cache@v2
-    - name: Install ALSA headers for cpal
-      run: sudo apt-get update && sudo apt-get install -y libasound2-dev
     - name: Run clippy
       run: |
         if [ -z "${{ matrix.features }}" ]; then
@@ -75,19 +71,17 @@ jobs:
 
   docs:
     name: Docs
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
-    - name: Install ALSA headers for cpal
-      run: sudo apt-get update && sudo apt-get install -y libasound2-dev
     - name: Build docs
       run: cargo doc --no-deps --document-private-items
 
   coverage:
     name: Coverage
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     permissions:
       contents: read
       pull-requests: write        # required to post the coverage comment
@@ -99,8 +93,6 @@ jobs:
       with:
         components: llvm-tools-preview
     - uses: Swatinem/rust-cache@v2
-    - name: Install ALSA headers for cpal
-      run: sudo apt-get update && sudo apt-get install -y libasound2-dev
     - name: Install cargo-llvm-cov
       uses: taiki-e/install-action@cargo-llvm-cov
     # Every cargo step below sources cargo-llvm-cov's instrumentation env (rustc
@@ -123,7 +115,7 @@ jobs:
     - name: Run tests with coverage
       run: |
         # shellcheck disable=SC1090
-        source <(cargo llvm-cov show-env --sh)
+        eval "$(cargo llvm-cov show-env --sh)"
         cargo llvm-cov clean --workspace
         cargo test --all-features --workspace
     - name: Install Whisper tiny.en model
@@ -134,21 +126,23 @@ jobs:
       # path's coverage depend on cache state and runs non-comparable.
       run: |
         # shellcheck disable=SC1090
-        source <(cargo llvm-cov show-env --sh)
+        eval "$(cargo llvm-cov show-env --sh)"
         export LLVM_PROFILE_FILE=/dev/null
         cargo run --all-features --bin omni-voice -- install-model
     - name: Run model-gated voice tests with coverage
       # Covers the candle Whisper inference path (WhisperEngine and the
       # streaming backend's real-decode seam), which the default suite
       # cannot reach without a model on disk. Only the fast gated tests run
-      # here — the 5-minute streaming envelope tests stay on the manual
-      # voice-streaming-keepup workflow. The candle inference crates are
+      # here — the 5-minute streaming envelope tests are run manually/locally
+      # (the cross-platform keep-up workflow was retired under ADR-0041, since
+      # the Apple-Silicon host is now the only supported target). The candle
+      # inference crates are
       # compiled at opt-level 2 even in dev (see the scoped
       # [profile.dev.package.*] overrides in Cargo.toml), which keeps
       # these inference-heavy tests to seconds, not minutes.
       run: |
         # shellcheck disable=SC1090
-        source <(cargo llvm-cov show-env --sh)
+        eval "$(cargo llvm-cov show-env --sh)"
         cargo test --all-features --test voice_transcribe_candle_test -- --ignored
         cargo test --all-features --test voice_streaming_candle_test streaming_smoke -- --ignored
         cargo test --all-features --lib voice::backends::candle:: -- --ignored
@@ -156,7 +150,7 @@ jobs:
       # Kept ready so the disabled upload below works as soon as it is re-enabled.
       run: |
         # shellcheck disable=SC1090
-        source <(cargo llvm-cov show-env --sh)
+        eval "$(cargo llvm-cov show-env --sh)"
         cargo llvm-cov report --codecov --output-path codecov.json
     - name: Generate head coverage report (lcov)
       # Per-line lcov for the head commit. This is the input to
@@ -166,7 +160,7 @@ jobs:
       # indirect-change detection. Published as the baseline on `main` for PRs.
       run: |
         # shellcheck disable=SC1090
-        source <(cargo llvm-cov show-env --sh)
+        eval "$(cargo llvm-cov show-env --sh)"
         cargo llvm-cov report --lcov --output-path coverage-head.lcov
     - name: Build coverage summary
       # Full per-file summary: appended to the run's Summary tab and published as
@@ -174,7 +168,7 @@ jobs:
       # NOT inlined into the PR comment, which shows changed files and patch lines.
       run: |
         # shellcheck disable=SC1090
-        source <(cargo llvm-cov show-env --sh)
+        eval "$(cargo llvm-cov show-env --sh)"
         cargo llvm-cov report --summary-only | tee coverage-summary.txt
         {
           echo '## Coverage'
@@ -303,12 +297,12 @@ jobs:
       # Runs last so the summary and PR comment are posted even when the gate fails.
       run: |
         # shellcheck disable=SC1090
-        source <(cargo llvm-cov show-env --sh)
+        eval "$(cargo llvm-cov show-env --sh)"
         cargo llvm-cov report --summary-only --fail-under-lines 30
 
   audit:
     name: Security Audit
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v6
     - name: Install cargo-audit
@@ -318,6 +312,9 @@ jobs:
 
   deny:
     name: Dependency Policy
+    # Stays on Linux: cargo-deny-action is a Docker container action (Docker is
+    # unavailable on macOS runners), and dependency-policy checks read Cargo.lock
+    # rather than compiling the crate, so the Apple-Silicon build guard is moot.
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
@@ -327,6 +324,8 @@ jobs:
 
   secrets:
     name: Secret Scanning
+    # Stays on Linux: the trufflehog action shells out to Docker, which is
+    # unavailable on macOS runners. Secret scanning does not compile the crate.
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
