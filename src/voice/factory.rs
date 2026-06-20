@@ -23,7 +23,8 @@ use anyhow::{bail, Result};
 use crate::voice::backends::candle::CandleTranscriber;
 use crate::voice::backends::candle_streaming::CandleStreamingTranscriber;
 use crate::voice::backends::mock::MockTranscriber;
-use crate::voice::models::resolve_whisper_model_dir;
+use crate::voice::backends::parakeet::CandleParakeetTranscriber;
+use crate::voice::models::{resolve_parakeet_model_dir, resolve_whisper_model_dir};
 use crate::voice::transcriber::Transcriber;
 
 /// Backend-selection options carried from the CLI (or constructed
@@ -67,9 +68,13 @@ pub fn create_default_transcriber(opts: &VoiceOpts) -> Result<Box<dyn Transcribe
             let dir = resolve_whisper_model_dir(opts)?;
             Ok(Box::new(CandleStreamingTranscriber::new(&dir)?))
         }
+        "parakeet-tdt" => {
+            let dir = resolve_parakeet_model_dir(opts)?;
+            Ok(Box::new(CandleParakeetTranscriber::new(&dir)?))
+        }
         other => {
             bail!(
-                "unknown voice backend: {other:?} (supported: \"mock\", \"whisper-candle\", \"whisper-candle-streaming\")"
+                "unknown voice backend: {other:?} (supported: \"mock\", \"whisper-candle\", \"whisper-candle-streaming\", \"parakeet-tdt\")"
             )
         }
     }
@@ -191,6 +196,26 @@ mod tests {
         };
         let msg = format!("{err:#}");
         assert!(msg.contains("no Whisper model found"), "got: {msg}");
+        assert!(msg.contains("install-model"), "got: {msg}");
+    }
+
+    #[test]
+    fn parakeet_tdt_arm_propagates_missing_model_error() {
+        // The factory routes "parakeet-tdt" through CandleParakeetTranscriber::new,
+        // which checks REQUIRED_FILES. Point --model at an empty dir and verify
+        // the install hint reaches the caller without partial initialisation.
+        let _g = env_guard();
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+        let tmp = tempfile::TempDir::new().unwrap();
+        let opts = VoiceOpts {
+            backend: Some("parakeet-tdt".to_string()),
+            model: Some(tmp.path().to_path_buf()),
+        };
+        let Err(err) = create_default_transcriber(&opts) else {
+            panic!("expected parakeet-tdt with empty model dir to error");
+        };
+        let msg = format!("{err:#}");
+        assert!(msg.contains("no Parakeet model found"), "got: {msg}");
         assert!(msg.contains("install-model"), "got: {msg}");
     }
 }

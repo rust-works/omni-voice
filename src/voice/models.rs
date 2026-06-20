@@ -205,6 +205,34 @@ pub const SPEAKER_WESPEAKER_EN: ModelSpec = ModelSpec {
     },
 };
 
+/// Parakeet-TDT-0.6B-v2 — pure-Rust streaming-native ASR backend.
+///
+/// FastConformer + TDT, migrated from the #898 candle port. The
+/// `required_files` are what the *backend* loads after `install-model`
+/// has downloaded the upstream MLX weights, run the converter
+/// (`scripts/convert_parakeet_weights.py`) to produce
+/// `candle_weights.safetensors`, synthesised `tokenizer.json` from
+/// `config.json` (`joint.vocabulary`), and written the CC-BY-4.0
+/// `ATTRIBUTION.txt`.
+pub const PARAKEET_TDT_0_6B_V2: ModelSpec = ModelSpec {
+    variant: "parakeet-tdt-0.6b-v2",
+    kind_label: "Parakeet",
+    default_subdir: "parakeet-tdt-0.6b-v2",
+    required_files: &[
+        "config.json",
+        "tokenizer.json",
+        "candle_weights.safetensors",
+        "ATTRIBUTION.txt",
+    ],
+    env_var: "OMNI_VOICE_VOICE_PARAKEET_MODEL",
+    install_command: "omni-voice install-model --variant parakeet-tdt-0.6b-v2",
+    model_flag: "--model",
+    source: ModelSource::HfHub {
+        repo_id: "mlx-community/parakeet-tdt-0.6b-v2",
+        revision: "main",
+    },
+};
+
 // ── Backwards-compatible Whisper helpers (thin shims) ────────────────────
 
 /// Returns the absolute path of each required model file inside `dir`.
@@ -227,6 +255,13 @@ pub fn default_whisper_model_dir() -> Option<PathBuf> {
 /// to fail-fast on missing files should pair this with [`ensure_model_present`].
 pub fn resolve_whisper_model_dir(opts: &VoiceOpts) -> Result<PathBuf> {
     WHISPER_TINY_EN.resolve_dir(opts.model.as_deref())
+}
+
+/// Resolves the Parakeet model directory for the current invocation.
+///
+/// Priority: `opts.model` → `OMNI_VOICE_VOICE_PARAKEET_MODEL` → default.
+pub fn resolve_parakeet_model_dir(opts: &VoiceOpts) -> Result<PathBuf> {
+    PARAKEET_TDT_0_6B_V2.resolve_dir(opts.model.as_deref())
 }
 
 /// Verifies that `dir` contains every file in [`REQUIRED_FILES`].
@@ -418,6 +453,57 @@ mod tests {
             }
             ModelSource::HfHub { .. } => {
                 panic!("SPEAKER_WESPEAKER_EN should be HttpReleaseAsset-sourced");
+            }
+        }
+    }
+
+    // ── Parakeet spec + resolver ────────────────────────────────────────
+
+    #[test]
+    fn parakeet_resolve_dir_override_takes_priority() {
+        let _g = env_guard();
+        std::env::set_var("OMNI_VOICE_VOICE_PARAKEET_MODEL", "/should/not/be/read");
+        let opts = VoiceOpts {
+            backend: None,
+            model: Some(PathBuf::from("/explicit/parakeet")),
+        };
+        let resolved = resolve_parakeet_model_dir(&opts).unwrap();
+        assert_eq!(resolved, PathBuf::from("/explicit/parakeet"));
+        std::env::remove_var("OMNI_VOICE_VOICE_PARAKEET_MODEL");
+    }
+
+    #[test]
+    fn parakeet_resolve_dir_env_var_used_when_opts_absent() {
+        let _g = env_guard();
+        std::env::set_var("OMNI_VOICE_VOICE_PARAKEET_MODEL", "/from/env/parakeet");
+        let resolved = resolve_parakeet_model_dir(&VoiceOpts::default()).unwrap();
+        assert_eq!(resolved, PathBuf::from("/from/env/parakeet"));
+        std::env::remove_var("OMNI_VOICE_VOICE_PARAKEET_MODEL");
+    }
+
+    #[test]
+    fn parakeet_spec_default_dir_ends_with_subdir() {
+        let dir = PARAKEET_TDT_0_6B_V2.default_dir().unwrap();
+        assert!(dir.ends_with(".omni-voice/voice/models/parakeet-tdt-0.6b-v2"));
+    }
+
+    #[test]
+    fn parakeet_spec_ensure_present_errors_with_install_hint() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let err = PARAKEET_TDT_0_6B_V2.ensure_present(tmp.path()).unwrap_err();
+        let msg = format!("{err:#}");
+        assert!(msg.contains("no Parakeet model found"), "got: {msg}");
+        assert!(msg.contains("--variant parakeet-tdt-0.6b-v2"), "got: {msg}");
+    }
+
+    #[test]
+    fn parakeet_spec_source_carries_pinned_hf_metadata() {
+        match PARAKEET_TDT_0_6B_V2.source {
+            ModelSource::HfHub { repo_id, .. } => {
+                assert_eq!(repo_id, "mlx-community/parakeet-tdt-0.6b-v2");
+            }
+            ModelSource::HttpReleaseAsset { .. } => {
+                panic!("PARAKEET_TDT_0_6B_V2 should be HfHub-sourced");
             }
         }
     }
