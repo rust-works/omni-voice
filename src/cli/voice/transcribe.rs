@@ -50,9 +50,10 @@ pub struct TranscribeCommand {
     pub wav: PathBuf,
 
     /// Transcriber backend (`mock`, `whisper-candle`,
-    /// `whisper-candle-streaming`). Defaults to `mock`; see ADR-0033 for
-    /// the `whisper-candle` runtime choice and ADR-0040 for the
-    /// latency-tolerant streaming variant.
+    /// `whisper-candle-streaming`, `parakeet-tdt`). Defaults to `mock`; see
+    /// ADR-0033 for the `whisper-candle` runtime choice, ADR-0040 for the
+    /// latency-tolerant streaming variant, and ADR-0042 / #23 for the
+    /// pure-Rust Parakeet-TDT backend.
     #[arg(long)]
     pub backend: Option<String>,
 
