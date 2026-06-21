@@ -810,6 +810,10 @@ mod tests {
             Variant::SpeakerWespeakerEn.spec().variant,
             SPEAKER_WESPEAKER_EN.variant
         );
+        assert_eq!(
+            Variant::ParakeetTdt06bV2.spec().variant,
+            PARAKEET_TDT_0_6B_V2.variant
+        );
     }
 
     // ── Download paths (hermetic, via wiremock) ──────────────────────────
@@ -1140,5 +1144,193 @@ mod tests {
         };
         let msg = format!("{err:#}");
         assert!(msg.contains("missing joint.vocabulary"), "got: {msg}");
+    }
+
+    // ── Parakeet install pipeline ────────────────────────────────────────
+    //
+    // `install_parakeet` downloads from HF, shells out to the Python
+    // converter, then synthesises the tokenizer + attribution. These tests
+    // mock the hub (via `with_hf_env` + wiremock) and stub the converter
+    // through `PYTHON` + `OMNI_VOICE_PARAKEET_CONVERTER` — a tiny `/bin/sh`
+    // script stands in for `python3 convert_parakeet_weights.py`, so no
+    // network, python, numpy, or the 2.47 GB model is required.
+
+    #[test]
+    fn python_binary_honours_env_and_defaults() {
+        let _g = env_guard();
+        let prev = std::env::var_os("PYTHON");
+        std::env::remove_var("PYTHON");
+        assert_eq!(python_binary(), std::ffi::OsString::from("python3"));
+        std::env::set_var("PYTHON", "/usr/bin/python3.12");
+        assert_eq!(
+            python_binary(),
+            std::ffi::OsString::from("/usr/bin/python3.12")
+        );
+        match prev {
+            Some(v) => std::env::set_var("PYTHON", v),
+            None => std::env::remove_var("PYTHON"),
+        }
+    }
+
+    #[test]
+    fn locate_parakeet_converter_env_override_must_be_a_file() {
+        let _g = env_guard();
+        let prev = std::env::var_os("OMNI_VOICE_PARAKEET_CONVERTER");
+        std::env::set_var("OMNI_VOICE_PARAKEET_CONVERTER", "/nope/not/a/file.py");
+        let Err(err) = locate_parakeet_converter() else {
+            panic!("non-file override should error");
+        };
+        assert!(msg_is_not_a_file(&err), "got: {err:#}");
+        match prev {
+            Some(v) => std::env::set_var("OMNI_VOICE_PARAKEET_CONVERTER", v),
+            None => std::env::remove_var("OMNI_VOICE_PARAKEET_CONVERTER"),
+        }
+    }
+
+    fn msg_is_not_a_file(err: &anyhow::Error) -> bool {
+        format!("{err:#}").contains("which is not a file")
+    }
+
+    #[test]
+    fn locate_parakeet_converter_falls_back_to_repo_script() {
+        // With no override, the default search finds the script shipped at
+        // the repo root (`cargo test` runs with CWD = crate root).
+        let _g = env_guard();
+        let prev = std::env::var_os("OMNI_VOICE_PARAKEET_CONVERTER");
+        std::env::remove_var("OMNI_VOICE_PARAKEET_CONVERTER");
+        let found = locate_parakeet_converter().unwrap();
+        assert!(
+            found.ends_with("convert_parakeet_weights.py"),
+            "got: {}",
+            found.display()
+        );
+        if let Some(v) = prev {
+            std::env::set_var("OMNI_VOICE_PARAKEET_CONVERTER", v);
+        }
+    }
+
+    /// Writes a `/bin/sh` stand-in for the Python converter. `body` is the
+    /// script's logic (it receives `--src <p> --out <p>` as `$@`).
+    fn write_fake_converter(dir: &Path, body: &str) -> PathBuf {
+        let p = dir.join("fake_convert.sh");
+        std::fs::write(&p, body).unwrap();
+        p
+    }
+
+    /// Runs `f` with `PYTHON=/bin/sh` and `OMNI_VOICE_PARAKEET_CONVERTER`
+    /// pointed at `converter`, restoring both afterwards. Must be called
+    /// from inside `with_hf_env`'s closure (which already holds `ENV_GUARD`)
+    /// — it does not take the guard itself, to avoid a re-entrant deadlock.
+    fn with_fake_converter<T>(converter: &Path, f: impl FnOnce() -> T) -> T {
+        let prev_python = std::env::var_os("PYTHON");
+        let prev_conv = std::env::var_os("OMNI_VOICE_PARAKEET_CONVERTER");
+        std::env::set_var("PYTHON", "/bin/sh");
+        std::env::set_var("OMNI_VOICE_PARAKEET_CONVERTER", converter);
+        let result = f();
+        match prev_python {
+            Some(v) => std::env::set_var("PYTHON", v),
+            None => std::env::remove_var("PYTHON"),
+        }
+        match prev_conv {
+            Some(v) => std::env::set_var("OMNI_VOICE_PARAKEET_CONVERTER", v),
+            None => std::env::remove_var("OMNI_VOICE_PARAKEET_CONVERTER"),
+        }
+        result
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn run_installs_parakeet_via_mock_hub_and_fake_converter() {
+        let server = MockServer::start().await;
+        // Not a byte-string literal: the ▁ (U+2581) marker is non-ASCII.
+        let config = r#"{"joint": {"vocabulary": ["<unk>", "▁the", "▁cat", "s"]}}"#.as_bytes();
+        mount_hub_file(&server, "config.json", config).await;
+        mount_hub_file(&server, "model.safetensors", b"raw-mlx-weights").await;
+
+        let endpoint = server.uri();
+        let (out, dest) = tokio::task::spawn_blocking(move || {
+            let hf_home = tempfile::TempDir::new().unwrap();
+            let dest = tempfile::TempDir::new().unwrap();
+            let conv_dir = tempfile::TempDir::new().unwrap();
+            // Stub converter: parse `--out <path>` and write a dummy file there.
+            let converter = write_fake_converter(
+                conv_dir.path(),
+                "while [ $# -gt 0 ]; do case \"$1\" in --out) shift; printf weights > \"$1\";; esac; shift; done\n",
+            );
+            let mut out: Vec<u8> = Vec::new();
+            with_hf_env(&endpoint, hf_home.path(), || {
+                with_fake_converter(&converter, || {
+                    let cmd = InstallModelCommand {
+                        dest: Some(dest.path().to_path_buf()),
+                        force: false,
+                        variant: Variant::ParakeetTdt06bV2,
+                    };
+                    cmd.run(&mut out).unwrap();
+                });
+            });
+            (out, dest)
+        })
+        .await
+        .unwrap();
+
+        let d = dest.path();
+        assert!(d.join("config.json").is_file(), "config.json downloaded");
+        assert!(
+            d.join("candle_weights.safetensors").is_file(),
+            "converter output present"
+        );
+        assert!(
+            !d.join("model.safetensors").exists(),
+            "raw MLX safetensors should be deleted after conversion"
+        );
+        assert!(
+            d.join("ATTRIBUTION.txt").is_file(),
+            "CC-BY-4.0 attribution written"
+        );
+        let attribution = std::fs::read_to_string(d.join("ATTRIBUTION.txt")).unwrap();
+        assert!(attribution.contains("CC-BY-4.0"), "got: {attribution}");
+        // The synthesised tokenizer must load through the backend's loader.
+        let tok = tokenizers::Tokenizer::from_file(d.join("tokenizer.json")).unwrap();
+        assert_eq!(tok.get_vocab_size(false), 4);
+        let msg = String::from_utf8(out).unwrap();
+        assert!(msg.contains("Parakeet model installed at"), "got: {msg}");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn install_parakeet_reports_converter_failure() {
+        let server = MockServer::start().await;
+        mount_hub_file(
+            &server,
+            "config.json",
+            br#"{"joint": {"vocabulary": ["a"]}}"#,
+        )
+        .await;
+        mount_hub_file(&server, "model.safetensors", b"raw").await;
+
+        let endpoint = server.uri();
+        let err = tokio::task::spawn_blocking(move || {
+            let hf_home = tempfile::TempDir::new().unwrap();
+            let dest = tempfile::TempDir::new().unwrap();
+            let conv_dir = tempfile::TempDir::new().unwrap();
+            // Converter that fails — exercises the non-zero-exit bail.
+            let converter = write_fake_converter(conv_dir.path(), "exit 1\n");
+            let mut out: Vec<u8> = Vec::new();
+            with_hf_env(&endpoint, hf_home.path(), || {
+                with_fake_converter(&converter, || {
+                    let cmd = InstallModelCommand {
+                        dest: Some(dest.path().to_path_buf()),
+                        force: false,
+                        variant: Variant::ParakeetTdt06bV2,
+                    };
+                    cmd.run(&mut out).unwrap_err()
+                })
+            })
+        })
+        .await
+        .unwrap();
+
+        assert!(
+            format!("{err:#}").contains("converter failed"),
+            "got: {err:#}"
+        );
     }
 }
