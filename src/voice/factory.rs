@@ -72,6 +72,22 @@ pub fn create_default_transcriber(opts: &VoiceOpts) -> Result<Box<dyn Transcribe
             let dir = resolve_parakeet_model_dir(opts)?;
             Ok(Box::new(CandleParakeetTranscriber::new(&dir)?))
         }
+        #[cfg(feature = "voxtral-mlx")]
+        "voxtral-mlx" => {
+            use crate::voice::backends::voxtral_mlx::{
+                VoxtralMlxBackend, DEFAULT_VOXTRAL_MLX_DELAY_MS,
+            };
+            use crate::voice::models::resolve_voxtral_mlx_model_dir;
+            let dir = resolve_voxtral_mlx_model_dir(opts)?;
+            Ok(Box::new(VoxtralMlxBackend::new(
+                &dir,
+                DEFAULT_VOXTRAL_MLX_DELAY_MS,
+            )?))
+        }
+        #[cfg(not(feature = "voxtral-mlx"))]
+        "voxtral-mlx" => {
+            bail!("the `voxtral-mlx` backend requires building with `--features voxtral-mlx`")
+        }
         other => {
             bail!(
                 "unknown voice backend: {other:?} (supported: \"mock\", \"whisper-candle\", \"whisper-candle-streaming\", \"parakeet-tdt\")"

@@ -64,6 +64,18 @@ ureq = "3"
 # Unconditional since omni-voice targets only Apple Silicon macOS (ADR-0041);
 # previously gated behind [target.'cfg(unix)'.dependencies].
 nix = { version = "0.31", default-features = false, features = ["signal"] }
+# Apple MLX (`mlx-rs`) for the real-time INT4 Voxtral backend (ADR-0039),
+# behind the off-by-default `voxtral-mlx` feature. `mlx-rs` builds the MLX C++
+# core from source via CMake; the crate is already Apple-Silicon-only (ADR-0041
+# build guard), so no extra target gating is needed.
+mlx-rs = { version = "0.21", optional = true }
+# Tekken tokenizer vocab is base64-encoded UTF-8 bytes (voxtral-mlx only).
+base64 = { version = "0.22", optional = true }
+
+[features]
+# Off-by-default real-time INT4 Voxtral Realtime backend via Apple MLX (#27,
+# ADR-0039). Migrated from omni-dev issue-933-voxtral-c-ffi.
+voxtral-mlx = ["dep:mlx-rs", "dep:base64"]
 
 [dev-dependencies]
 tempfile = "3.27"

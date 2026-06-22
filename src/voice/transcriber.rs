@@ -177,6 +177,10 @@ pub trait Transcriber: Send + Sync {
     fn transcribe(&self, audio: Box<dyn AudioInput>) -> Result<Box<dyn EventStream>>;
 }
 
+/// The stream of transcription events returned by
+/// [`StreamingTranscriber::transcribe_stream`].
+pub type TranscriptEventStream = Pin<Box<dyn Stream<Item = Result<TranscriptEvent>> + Send>>;
+
 /// Streaming counterpart of [`Transcriber`] (per #806). Drives a backend
 /// that emits `Partial`/`Final`/`Endpoint` events as audio arrives, rather
 /// than buffering the whole input before decoding.
@@ -278,40 +282,52 @@ impl AudioInput for VecAudioInput {
     }
 }
 
+/// Streaming chunk size: 100 ms at 16 kHz (#806 convention) — the default
+/// granularity for replaying a fixture through [`FileAsyncAudioInput`].
+pub const STREAM_CHUNK_SAMPLES: usize = 1600;
+
 /// Async [`AsyncAudioInput`] adapter — the streaming counterpart of
 /// [`VecAudioInput`].
 ///
 /// Yields fixed-size chunks of a 16 kHz mono i16 WAV (or in-memory
-/// `Vec<i16>`) without realtime pacing — every `await` returns
-/// immediately. Used as the WAV-as-live test harness for
-/// [`StreamingTranscriber`] backends per #806.
-///
-/// Realtime pacing (sleep `chunk_samples / 16000` between yields) is out
-/// of scope for v1; live capture flows construct a different
-/// [`AsyncAudioInput`] from a `cpal` channel.
+/// `Vec<i16>`). With `realtime = false` every `await` returns immediately;
+/// with `realtime = true` each chunk is withheld for its own audio
+/// duration (`chunk_samples / 16000` s) so a fixture drives a
+/// [`StreamingTranscriber`] on the same timeline a live mic would — which
+/// is what makes a first-`Partial` latency measurement meaningful. Used as
+/// the WAV-as-live test harness per #806; live capture flows construct a
+/// different [`AsyncAudioInput`] from a `cpal` channel.
 #[derive(Debug)]
 pub struct FileAsyncAudioInput {
     samples: Vec<i16>,
     cursor: usize,
     chunk_samples: usize,
+    realtime: bool,
 }
 
 impl FileAsyncAudioInput {
     /// Loads a 16 kHz mono i16 PCM WAV from `path` and chunks it into
     /// pieces of `chunk_samples` samples each (last chunk may be shorter).
-    /// `chunk_samples` is clamped to at least 1.
-    pub fn from_wav_path(path: impl AsRef<Path>, chunk_samples: usize) -> Result<Self> {
+    /// `chunk_samples` is clamped to at least 1. With `realtime`, replay is
+    /// paced to the audio's own clock (see the type-level docs).
+    pub fn from_wav_path(
+        path: impl AsRef<Path>,
+        chunk_samples: usize,
+        realtime: bool,
+    ) -> Result<Self> {
         let samples = load_16k_mono_i16_wav(path.as_ref())?;
-        Ok(Self::from_samples(samples, chunk_samples))
+        Ok(Self::from_samples(samples, chunk_samples, realtime))
     }
 
     /// Builds an input from an in-memory `Vec<i16>` (already 16 kHz mono).
-    /// Useful for synthesised test signals.
-    pub fn from_samples(samples: Vec<i16>, chunk_samples: usize) -> Self {
+    /// Useful for synthesised test signals. See [`Self::from_wav_path`] for
+    /// the `realtime` pacing semantics.
+    pub fn from_samples(samples: Vec<i16>, chunk_samples: usize, realtime: bool) -> Self {
         Self {
             samples,
             cursor: 0,
             chunk_samples: chunk_samples.max(1),
+            realtime,
         }
     }
 }
@@ -325,6 +341,10 @@ impl AsyncAudioInput for FileAsyncAudioInput {
         let end = (self.cursor + self.chunk_samples).min(self.samples.len());
         let chunk = self.samples[self.cursor..end].to_vec();
         self.cursor = end;
+        if self.realtime {
+            let secs = chunk.len() as f64 / 16_000.0;
+            tokio::time::sleep(Duration::from_secs_f64(secs)).await;
+        }
         Some(chunk)
     }
 }
@@ -505,7 +525,7 @@ mod tests {
 
     #[tokio::test]
     async fn file_async_audio_input_chunks_in_order() {
-        let mut input = FileAsyncAudioInput::from_samples(vec![1, 2, 3, 4, 5], 2);
+        let mut input = FileAsyncAudioInput::from_samples(vec![1, 2, 3, 4, 5], 2, false);
         assert_eq!(input.next_chunk().await, Some(vec![1, 2]));
         assert_eq!(input.next_chunk().await, Some(vec![3, 4]));
         assert_eq!(input.next_chunk().await, Some(vec![5]));
@@ -516,7 +536,7 @@ mod tests {
     async fn file_async_audio_input_reads_16k_mono_i16_wav() {
         let tmp = TempDir::new().unwrap();
         let path = write_fixture_wav(&tmp, "ok.wav", 16_000, 1, 16, &[10, 20, 30, 40]);
-        let mut input = FileAsyncAudioInput::from_wav_path(&path, 2).unwrap();
+        let mut input = FileAsyncAudioInput::from_wav_path(&path, 2, false).unwrap();
         assert_eq!(input.next_chunk().await, Some(vec![10, 20]));
         assert_eq!(input.next_chunk().await, Some(vec![30, 40]));
         assert!(input.next_chunk().await.is_none());
@@ -526,7 +546,7 @@ mod tests {
     async fn file_async_audio_input_rejects_wrong_rate() {
         let tmp = TempDir::new().unwrap();
         let path = write_fixture_wav(&tmp, "44k.wav", 44_100, 1, 16, &[0, 0]);
-        let err = FileAsyncAudioInput::from_wav_path(&path, 16).unwrap_err();
+        let err = FileAsyncAudioInput::from_wav_path(&path, 16, false).unwrap_err();
         assert!(err.to_string().contains("16000 Hz"), "got: {err}");
     }
 
@@ -550,6 +570,7 @@ mod tests {
         let mut stream = t.transcribe_stream(Box::new(FileAsyncAudioInput::from_samples(
             vec![0_i16; 16],
             8,
+            false,
         )));
         assert!(stream.next().await.is_none(), "Noop yields an empty stream");
     }
@@ -590,6 +611,7 @@ mod tests {
         let input = Box::new(FileAsyncAudioInput::from_samples(
             vec![0_i16; 32_000],
             8_000,
+            false,
         ));
         let mut stream = backend.transcribe_stream(input);
         let event = stream.next().await.expect("at least one event").unwrap();

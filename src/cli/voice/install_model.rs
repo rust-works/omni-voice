@@ -21,7 +21,8 @@ use hf_hub::{api::sync::ApiBuilder, Repo, RepoType};
 use sha2::{Digest, Sha256};
 
 use crate::voice::models::{
-    ModelSource, ModelSpec, PARAKEET_TDT_0_6B_V2, SPEAKER_WESPEAKER_EN, WHISPER_TINY_EN,
+    ModelSource, ModelSpec, PARAKEET_TDT_0_6B_V2, SPEAKER_WESPEAKER_EN, VOXTRAL_MLX_INT4,
+    WHISPER_TINY_EN,
 };
 
 /// Which model variant to install.
@@ -41,6 +42,10 @@ pub enum Variant {
     /// candle-friendly weights the backend loads.
     #[value(name = "parakeet-tdt-0.6b-v2")]
     ParakeetTdt06bV2,
+    /// Voxtral-Mini-4B-Realtime INT4 (MLX) for the in-process `voxtral-mlx`
+    /// backend (ADR-0039 / #27). A plain HuggingFace download (no converter).
+    #[value(name = "voxtral-mlx-int4")]
+    VoxtralMlxInt4,
     /// Wespeaker `resnet34_LM` English-only speaker embedding (ADR-0034).
     #[value(name = "speaker-wespeaker-en")]
     SpeakerWespeakerEn,
@@ -52,6 +57,7 @@ impl Variant {
         match self {
             Self::WhisperTinyEn => &WHISPER_TINY_EN,
             Self::ParakeetTdt06bV2 => &PARAKEET_TDT_0_6B_V2,
+            Self::VoxtralMlxInt4 => &VOXTRAL_MLX_INT4,
             Self::SpeakerWespeakerEn => &SPEAKER_WESPEAKER_EN,
         }
     }
