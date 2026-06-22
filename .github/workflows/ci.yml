@@ -118,6 +118,10 @@ jobs:
     #     manually/locally (ADR-0041).
     - uses: action-works/omni-dev-coverage-check@v1
       with:
+        # Pin the omni-dev version (the coverage-diff renderer) rather than
+        # letting the action resolve "latest" via an unauthenticated GitHub API
+        # call, which is rate-limited (60/hr per runner IP) and fails the run.
+        version: 0.30.0
         fail-under-lines: 30
         setup-commands: cargo run --all-features --bin omni-voice -- install-model
         extra-test-commands: |
