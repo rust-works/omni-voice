@@ -23,7 +23,7 @@ jobs:
         features:
           - ""
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ matrix.rust }}
@@ -41,7 +41,7 @@ jobs:
     name: Rustfmt
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - uses: dtolnay/rust-toolchain@stable
       with:
         components: rustfmt
@@ -56,7 +56,7 @@ jobs:
         features:
           - ""
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy
@@ -73,7 +73,7 @@ jobs:
     name: Docs
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
     - name: Build docs
@@ -86,7 +86,7 @@ jobs:
       contents: read
       pull-requests: write        # required to post the coverage comment
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0          # full history so `git merge-base` can resolve the PR's fork point
     - name: Cache Whisper tiny.en model
@@ -133,7 +133,7 @@ jobs:
     name: Security Audit
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Install cargo-audit
       run: cargo install cargo-audit --locked
     - name: Run cargo-audit
@@ -146,7 +146,7 @@ jobs:
     # rather than compiling the crate, so the Apple-Silicon build guard is moot.
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - uses: EmbarkStudios/cargo-deny-action@v2.0.20
       with:
         command: check all
@@ -157,7 +157,7 @@ jobs:
     # unavailable on macOS runners. Secret scanning does not compile the crate.
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - name: TruffleHog scan
