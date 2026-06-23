@@ -24,6 +24,7 @@ pub mod reconcile;
 pub mod reflect;
 pub mod render;
 pub mod review;
+pub mod segment;
 pub mod session;
 pub mod speaker;
 pub mod transcriber;
@@ -43,5 +44,5 @@ pub use speaker::{cosine, l2_normalise, EnrolledSpeaker, WespeakerEmbedder, MIN_
 pub use transcriber::{
     AsyncAudioInput, AudioChunk, AudioInput, EndpointKind, EventId, EventStream,
     FileAsyncAudioInput, SpeakerId, StreamingTranscriber, Transcriber, TranscriptEvent,
-    VecAudioInput, Word,
+    VecAudioInput, Word, STREAM_CHUNK_SAMPLES,
 };

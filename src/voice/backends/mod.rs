@@ -22,3 +22,9 @@ pub mod candle;
 pub mod candle_streaming;
 pub mod mock;
 pub mod parakeet;
+/// In-process Voxtral Realtime backend via Apple MLX (`mlx-rs`).
+///
+/// Off-by-default `voxtral-mlx` feature (ADR-0039 / #27). Migrated from
+/// omni-dev #933.
+#[cfg(feature = "voxtral-mlx")]
+pub mod voxtral_mlx;

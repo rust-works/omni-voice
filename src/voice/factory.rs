@@ -72,6 +72,22 @@ pub fn create_default_transcriber(opts: &VoiceOpts) -> Result<Box<dyn Transcribe
             let dir = resolve_parakeet_model_dir(opts)?;
             Ok(Box::new(CandleParakeetTranscriber::new(&dir)?))
         }
+        #[cfg(feature = "voxtral-mlx")]
+        "voxtral-mlx" => {
+            use crate::voice::backends::voxtral_mlx::{
+                VoxtralMlxBackend, DEFAULT_VOXTRAL_MLX_DELAY_MS,
+            };
+            use crate::voice::models::resolve_voxtral_mlx_model_dir;
+            let dir = resolve_voxtral_mlx_model_dir(opts)?;
+            Ok(Box::new(VoxtralMlxBackend::new(
+                &dir,
+                DEFAULT_VOXTRAL_MLX_DELAY_MS,
+            )?))
+        }
+        #[cfg(not(feature = "voxtral-mlx"))]
+        "voxtral-mlx" => {
+            bail!("the `voxtral-mlx` backend requires building with `--features voxtral-mlx`")
+        }
         other => {
             bail!(
                 "unknown voice backend: {other:?} (supported: \"mock\", \"whisper-candle\", \"whisper-candle-streaming\", \"parakeet-tdt\")"
@@ -216,6 +232,30 @@ mod tests {
         };
         let msg = format!("{err:#}");
         assert!(msg.contains("no Parakeet model found"), "got: {msg}");
+        assert!(msg.contains("install-model"), "got: {msg}");
+    }
+
+    #[cfg(feature = "voxtral-mlx")]
+    #[test]
+    fn voxtral_mlx_arm_propagates_missing_model_error() {
+        // The "voxtral-mlx" arm routes through VoxtralMlxBackend::new, which
+        // checks for the model files up front. Point --model at an empty dir and
+        // verify the install hint reaches the caller (no MLX load happens).
+        let _g = env_guard();
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+        let tmp = tempfile::TempDir::new().unwrap();
+        let opts = VoiceOpts {
+            backend: Some("voxtral-mlx".to_string()),
+            model: Some(tmp.path().to_path_buf()),
+        };
+        let Err(err) = create_default_transcriber(&opts) else {
+            panic!("expected voxtral-mlx with empty model dir to error");
+        };
+        let msg = format!("{err:#}");
+        assert!(
+            msg.contains("no Voxtral MLX INT4 model found"),
+            "got: {msg}"
+        );
         assert!(msg.contains("install-model"), "got: {msg}");
     }
 }
