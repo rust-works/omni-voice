@@ -820,6 +820,10 @@ mod tests {
             Variant::ParakeetTdt06bV2.spec().variant,
             PARAKEET_TDT_0_6B_V2.variant
         );
+        assert_eq!(
+            Variant::VoxtralMlxInt4.spec().variant,
+            VOXTRAL_MLX_INT4.variant
+        );
     }
 
     // ── Download paths (hermetic, via wiremock) ──────────────────────────

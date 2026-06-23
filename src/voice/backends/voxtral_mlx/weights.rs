@@ -43,6 +43,39 @@ mod tests {
             .map(std::path::PathBuf::from)
     }
 
+    /// Round-trips a small dictionary through `mlx-rs`'s safetensors save/load on
+    /// Metal: `load_safetensors` returns the same tensors and `get_tensor`
+    /// resolves present keys and errors on absent ones — covering the loader
+    /// without the real model.
+    #[test]
+    fn save_then_load_roundtrips_via_mlx() {
+        let _mlx = super::super::test_support::mlx_guard();
+        let tmp = tempfile::TempDir::new().unwrap();
+        let path = tmp.path().join("model.safetensors");
+
+        let mut map: HashMap<String, Array> = HashMap::new();
+        map.insert(
+            "a.weight".to_string(),
+            Array::from_slice(&[1.0_f32, 2.0, 3.0, 4.0], &[2, 2]),
+        );
+        map.insert("b".to_string(), Array::from_slice(&[5.0_f32; 6], &[3, 2]));
+        Array::save_safetensors(&map, None, &path).expect("save");
+
+        let loaded = load_safetensors(&path).expect("load");
+        assert_eq!(loaded.len(), 2);
+        assert_eq!(get_tensor(&loaded, "a.weight").unwrap().shape(), &[2, 2]);
+        assert_eq!(get_tensor(&loaded, "b").unwrap().shape(), &[3, 2]);
+        assert!(get_tensor(&loaded, "missing").is_err());
+    }
+
+    /// A non-existent file path produces the contextual load error, not a panic.
+    #[test]
+    fn load_safetensors_missing_file_errors() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let err = load_safetensors(&tmp.path().join("nope.safetensors")).unwrap_err();
+        assert!(err.to_string().contains("load safetensors"), "got: {err}");
+    }
+
     #[test]
     #[ignore = "requires the INT4 Voxtral model; set OMNI_DEV_VOICE_VOXTRAL_MLX_MODEL=<dir> (#933 M1)"]
     fn loads_int4_weights_via_mlx_on_metal() {

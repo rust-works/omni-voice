@@ -159,6 +159,7 @@ pub fn chunk_window_mask(chunk_len: usize, prev_len: usize, window: usize) -> Re
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use super::super::test_support::{all_finite, mlx_guard, tiny_config, tiny_weights};
     use super::*;
 
     /// Reads an `[r, c]` F16 additive mask back as a boolean "attends" grid
@@ -174,6 +175,7 @@ mod tests {
 
     #[test]
     fn chunk_mask_first_chunk_is_plain_causal() {
+        let _mlx = mlx_guard();
         // prev_len = 0 → query i attends keys j ≤ i (chunk_len ≤ window).
         let g = attends(&chunk_window_mask(4, 0, 750).unwrap(), 4, 4);
         for (i, row) in g.iter().enumerate() {
@@ -185,6 +187,7 @@ mod tests {
 
     #[test]
     fn chunk_mask_windows_across_the_boundary() {
+        let _mlx = mlx_guard();
         // window = 3, prev_len = 3 (combined cols = 3 + chunk_len). Query i
         // (abs i) attends combined key j (abs j-3) iff i-3 < j-3 ≤ i, i.e.
         // i < j ≤ i+3.
@@ -200,5 +203,68 @@ mod tests {
                 assert_eq!(ok, want, "({i},{j})");
             }
         }
+    }
+
+    /// Exercises the four `Weights` primitives on the synthetic INT4 map: get/has
+    /// lookup, quantized linear (with and without affine bias), full-precision
+    /// linear, and RMS norm — proving the shapes and that the ops run finite on
+    /// Metal without the real model.
+    #[test]
+    fn weights_primitives_run_on_metal() {
+        let _mlx = mlx_guard();
+        let cfg = tiny_config();
+        let map = tiny_weights();
+        let weights = Weights::new(&map, cfg.quant.group_size, cfg.quant.bits);
+
+        assert!(weights.has("decoder.norm.weight"));
+        assert!(!weights.has("does.not.exist"));
+        assert!(weights.get("decoder.norm.weight").is_ok());
+        assert!(weights.get("does.not.exist").is_err());
+
+        let input = Array::from_slice(&[0.1_f32; 3 * 64], &[3, 64])
+            .as_dtype(COMPUTE_DTYPE)
+            .unwrap();
+
+        // Quantized linear with the affine bias (encoder wq) and without (wk).
+        let q_bias = weights
+            .qlinear(&input, "encoder.transformer_layers.0.attention.wq", true)
+            .unwrap();
+        assert_eq!(q_bias.shape(), &[3, 64]);
+        assert!(all_finite(&q_bias));
+        let q_nobias = weights
+            .qlinear(&input, "encoder.transformer_layers.0.attention.wk", false)
+            .unwrap();
+        assert_eq!(q_nobias.shape(), &[3, 64]);
+        assert!(all_finite(&q_nobias));
+
+        // Full-precision linear (adapter projection, [64, 64]).
+        let lin = weights
+            .linear(&input, "encoder.audio_language_projection_2", false)
+            .unwrap();
+        assert_eq!(lin.shape(), &[3, 64]);
+        assert!(all_finite(&lin));
+
+        // RMS norm over the last axis.
+        let normed = weights
+            .rms_norm(&input, "decoder.norm", cfg.decoder.norm_eps)
+            .unwrap();
+        assert_eq!(normed.shape(), &[3, 64]);
+        assert!(all_finite(&normed));
+    }
+
+    /// A missing affine bias surfaces as an error rather than a panic.
+    #[test]
+    fn qlinear_missing_bias_errors() {
+        let _mlx = mlx_guard();
+        let cfg = tiny_config();
+        let map = tiny_weights();
+        let w = Weights::new(&map, cfg.quant.group_size, cfg.quant.bits);
+        let x = Array::from_slice(&[0.1_f32; 64], &[1, 64])
+            .as_dtype(COMPUTE_DTYPE)
+            .unwrap();
+        // wk has no `.bias` tensor; requesting one must error.
+        assert!(w
+            .qlinear(&x, "encoder.transformer_layers.0.attention.wk", true)
+            .is_err());
     }
 }

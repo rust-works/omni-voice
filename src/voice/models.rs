@@ -388,6 +388,31 @@ mod tests {
     }
 
     #[test]
+    fn voxtral_mlx_resolve_prefers_explicit_model_path() {
+        // `opts.model` is priority 1, so this resolves without touching the env.
+        let opts = VoiceOpts {
+            backend: None,
+            model: Some(PathBuf::from("/explicit/voxtral")),
+        };
+        assert_eq!(
+            resolve_voxtral_mlx_model_dir(&opts).unwrap(),
+            PathBuf::from("/explicit/voxtral")
+        );
+    }
+
+    #[test]
+    fn ensure_voxtral_mlx_model_present_errors_with_hint() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let err = ensure_voxtral_mlx_model_present(tmp.path()).unwrap_err();
+        let msg = format!("{err:#}");
+        assert!(
+            msg.contains("no Voxtral MLX INT4 model found"),
+            "got: {msg}"
+        );
+        assert!(msg.contains("voxtral-mlx-int4"), "got: {msg}");
+    }
+
+    #[test]
     fn required_files_in_returns_three_paths() {
         let paths = required_files_in(Path::new("/x"));
         assert_eq!(paths.len(), 3);

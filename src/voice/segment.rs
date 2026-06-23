@@ -337,4 +337,42 @@ mod tests {
             other => panic!("expected Final, got {other:?}"),
         }
     }
+
+    /// `commit_end` appends any post-finish tokens to the utterance before the
+    /// final `Final` (the end-of-stream counterpart to the silence-gap flush).
+    #[test]
+    fn commit_end_appends_post_finish_tokens() {
+        let mut seg = seg(7);
+        seg.push_tokens(&s("hello "), Duration::from_millis(500));
+        let events = seg.commit_end(&s("world"), Duration::from_secs(1), 1.0);
+        match &events[0] {
+            TranscriptEvent::Final { text, .. } => assert_eq!(text, "hello world"),
+            other => panic!("expected Final, got {other:?}"),
+        }
+    }
+
+    /// A whitespace-only utterance trims to empty and emits no `Partial`.
+    #[test]
+    fn push_tokens_blank_whitespace_yields_no_partial() {
+        let mut seg = seg(7);
+        assert!(seg
+            .push_tokens(&s("   "), Duration::from_millis(100))
+            .is_none());
+    }
+
+    /// The production [`StreamSegmenter::new`] constructor (real-entropy ULID
+    /// source) drives a full commit and stamps the `Final` with a ULID.
+    #[test]
+    fn new_uses_real_ulid_source() {
+        let mut seg = StreamSegmenter::new(2);
+        seg.push_tokens(&s("hi there"), Duration::from_millis(100));
+        let events = seg.commit_end(&[], Duration::from_secs(1), 1.0);
+        match &events[0] {
+            TranscriptEvent::Final { event_id, text, .. } => {
+                assert_eq!(text, "hi there");
+                assert!(!event_id.to_string().is_empty());
+            }
+            other => panic!("expected Final, got {other:?}"),
+        }
+    }
 }

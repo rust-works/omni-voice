@@ -41,6 +41,8 @@ mod mel;
 mod model;
 mod nn;
 mod stream;
+#[cfg(test)]
+mod test_support;
 mod tokenizer;
 mod weights;
 

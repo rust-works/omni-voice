@@ -488,8 +488,9 @@ impl StreamEncState {
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::super::config::VoxtralMlxConfig;
+    use super::super::test_support::{all_finite, mlx_guard, tiny_config, tiny_weights};
     use super::super::{load_safetensors, Weights};
-    use super::AudioEncoder;
+    use super::{AudioEncoder, ConvStemState, StreamEncState};
     use mlx_rs::{Array, Dtype};
 
     fn model_dir() -> Option<std::path::PathBuf> {
@@ -497,6 +498,137 @@ mod tests {
             .ok()
             .filter(|s| !s.is_empty())
             .map(std::path::PathBuf::from)
+    }
+
+    /// A deterministic `[rows, cols]` F32 array in `[-0.5, 0.5)`.
+    fn synth(rows: i32, cols: i32) -> Array {
+        let n = (rows * cols) as usize;
+        let data: Vec<f32> = (0..n).map(|i| (i % 17) as f32 / 17.0 - 0.5).collect();
+        Array::from_slice(&data, &[rows, cols])
+    }
+
+    fn tiny_encoder(map: &std::collections::HashMap<String, Array>) -> AudioEncoder<'_> {
+        let cfg = tiny_config();
+        AudioEncoder::new(
+            Weights::new(map, cfg.quant.group_size, cfg.quant.bits),
+            cfg.encoder,
+        )
+    }
+
+    /// `conv_stem` truncates the conv output to a multiple of the downsample
+    /// factor: 12 mel frames → 6 conv frames (stride-2) → trunc to 4 (÷4).
+    #[test]
+    fn conv_stem_truncates_to_downsample_multiple() {
+        let _mlx = mlx_guard();
+        let map = tiny_weights();
+        let enc = tiny_encoder(&map);
+        let conv = enc.conv_stem(&synth(128, 12)).unwrap();
+        assert_eq!(conv.shape(), &[4, 64]);
+        assert!(all_finite(&conv));
+    }
+
+    /// The single-pass and chunked encoders produce the same-shaped, finite
+    /// adapter output, and agree numerically (both realize sliding-window causal
+    /// attention) — the M1.2 / M3 paths on synthetic INT4 weights.
+    #[test]
+    fn encode_full_and_chunked_agree_on_synthetic_weights() {
+        let _mlx = mlx_guard();
+        let cfg = tiny_config();
+        let map = tiny_weights();
+        let enc = tiny_encoder(&map);
+
+        // 128 mel frames → 64 conv frames (> sliding_window 16 → multi-chunk).
+        let mel = synth(128, 128);
+        let conv = enc.conv_stem(&mel).unwrap();
+        assert_eq!(conv.shape(), &[64, 64]);
+        assert!(conv.shape()[0] > cfg.encoder.sliding_window as i32);
+
+        let full = enc.encode_full(&conv).unwrap();
+        assert_eq!(full.shape(), &[16, 64]); // 64 / downsample 4
+        assert!(all_finite(&full));
+
+        let chunked = enc.encode_chunked(&conv).unwrap();
+        assert_eq!(chunked.shape(), full.shape());
+        assert!(all_finite(&chunked));
+
+        let max_abs = full
+            .subtract(&chunked)
+            .unwrap()
+            .abs()
+            .unwrap()
+            .max(None, None)
+            .unwrap();
+        max_abs.eval().unwrap();
+        assert!(
+            max_abs.item::<f32>() < 0.1,
+            "full vs chunked diff {}",
+            max_abs.item::<f32>()
+        );
+
+        // `encode_conv` dispatches to the single-pass path under the cap, and
+        // `encode` is the conv-stem + encode_conv convenience wrapper.
+        assert_eq!(enc.encode_conv(&conv).unwrap().shape(), full.shape());
+        assert_eq!(enc.encode(&mel).unwrap().shape(), full.shape());
+    }
+
+    /// `encode_full` refuses inputs past the single-pass memory cap (long audio
+    /// must route through the chunked path).
+    #[test]
+    fn encode_full_rejects_input_past_cap() {
+        let _mlx = mlx_guard();
+        let map = tiny_weights();
+        let enc = tiny_encoder(&map);
+        let over =
+            mlx_rs::ops::zeros::<f32>(&[AudioEncoder::MAX_FULL_FRAMES as i32 + 1, 64]).unwrap();
+        let err = enc.encode_full(&over).unwrap_err();
+        assert!(err.to_string().contains("single-pass cap"), "got: {err}");
+    }
+
+    /// `project_downsampled` yields one adapter token per complete
+    /// downsample-factor group and a `[0, decoder_dim]` tensor for a sub-group
+    /// remainder.
+    #[test]
+    fn project_downsampled_handles_full_and_empty_groups() {
+        let _mlx = mlx_guard();
+        let map = tiny_weights();
+        let enc = tiny_encoder(&map);
+
+        // 2 < downsample_factor → no complete group → zero tokens, decoder-wide.
+        let empty = enc.project_downsampled(&synth(2, 64)).unwrap();
+        assert_eq!(empty.shape(), &[0, 64]);
+
+        // 8 frames → 2 complete groups → 2 adapter tokens.
+        let out = enc.project_downsampled(&synth(8, 64)).unwrap();
+        assert_eq!(out.shape(), &[2, 64]);
+        assert!(all_finite(&out));
+    }
+
+    /// Drives the streaming conv stem + rotating-KV encoder over two mel chunks,
+    /// covering `stream_conv_stem` / `stream_encode` (and their carried state)
+    /// without the real model.
+    #[test]
+    fn streaming_conv_stem_and_encode_run_on_synthetic_weights() {
+        let _mlx = mlx_guard();
+        let cfg = tiny_config();
+        let map = tiny_weights();
+        let enc = tiny_encoder(&map);
+
+        let mut conv_state = ConvStemState::default();
+        let mut enc_state = StreamEncState::new(cfg.encoder.n_layers);
+        let mut produced = 0;
+        for _ in 0..2 {
+            // Frame-major mel chunk: [n_frames, num_mel_bins].
+            let conv = enc
+                .stream_conv_stem(&mut conv_state, &synth(40, 128))
+                .unwrap();
+            if conv.shape()[0] > 0 {
+                let normed = enc.stream_encode(&mut enc_state, &conv).unwrap();
+                assert_eq!(normed.shape()[1], 64);
+                assert!(all_finite(&normed));
+                produced += normed.shape()[0];
+            }
+        }
+        assert!(produced > 0, "streaming encoder produced no frames");
     }
 
     /// Runs the full encoder forward on a synthetic in-window mel and asserts the

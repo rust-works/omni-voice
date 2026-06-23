@@ -119,3 +119,18 @@ impl Default for VoxtralMlxConfig {
         Self::voxtral_realtime_mini_4b()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_is_the_shipped_voxtral_realtime_mini_4b() {
+        let d = VoxtralMlxConfig::default();
+        assert_eq!(d.decoder.vocab_size, 131_072);
+        assert_eq!(d.decoder.n_layers, 26);
+        assert_eq!(d.encoder.n_layers, 32);
+        assert_eq!(d.quant.bits, 4);
+        assert_eq!(d.default_delay_ms, 480);
+    }
+}

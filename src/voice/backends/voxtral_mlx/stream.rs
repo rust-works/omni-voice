@@ -301,6 +301,7 @@ impl<'a> StreamSession<'a> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
+    use super::super::test_support::{mlx_guard, tiny_config, tiny_tokenizer, tiny_weights};
     use super::*;
 
     #[test]
@@ -311,6 +312,56 @@ mod tests {
         assert_eq!(u.push(&[0xA9]).as_deref(), Some("é"));
         assert_eq!(u.push(b"hi").as_deref(), Some("hi"));
         assert_eq!(u.flush(), None);
+    }
+
+    #[test]
+    fn incremental_utf8_ignores_empty_and_flushes_partial() {
+        let mut u = IncrementalUtf8::default();
+        assert_eq!(u.push(&[]), None); // empty input changes nothing
+                                       // First byte of a 3-byte char: held, not yet emitted.
+        assert_eq!(u.push(&[0xE2]), None);
+        // Flush emits the held (incomplete) bytes lossily, then drains.
+        assert!(u.flush().is_some());
+        assert_eq!(u.flush(), None);
+    }
+
+    #[test]
+    fn argmax_token_picks_the_max_logit() {
+        let _mlx = mlx_guard();
+        let logits = Array::from_slice(&[0.1_f32, 0.2, 5.0, 0.3], &[1, 4]);
+        assert_eq!(argmax_token(&logits).unwrap(), 2);
+    }
+
+    /// Drives a full streaming session on the synthetic INT4 model: feeds ~3 s of
+    /// audio in 100 ms chunks (enough to prefill and greedily decode), then
+    /// finishes. Exercises the mel front-end, streaming conv stem, rotating-KV
+    /// encoder, adapter downsample, decoder prefill, and incremental decode —
+    /// without the real weights. `finish` is idempotent and the synthetic
+    /// tokenizer maps every emitted id to `'a'`.
+    #[test]
+    fn stream_session_feeds_and_finishes_on_synthetic_weights() {
+        let _mlx = mlx_guard();
+        let map = tiny_weights();
+        let tok = tiny_tokenizer();
+        let cfg = tiny_config();
+        let mut session = StreamSession::new(&map, cfg, &tok, cfg.default_delay_ms as u32);
+
+        let mut out = String::new();
+        let chunk = vec![0.05_f32; 1600];
+        for _ in 0..30 {
+            for s in session.feed(&chunk).unwrap() {
+                out.push_str(&s);
+            }
+        }
+        for s in session.finish().unwrap() {
+            out.push_str(&s);
+        }
+        // `finish` is guarded against running twice.
+        assert!(session.finish().unwrap().is_empty());
+        assert!(
+            out.chars().all(|c| c == 'a'),
+            "synthetic stream output should be only 'a': {out:?}"
+        );
     }
 
     fn model_dir() -> Option<std::path::PathBuf> {

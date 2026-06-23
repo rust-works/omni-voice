@@ -234,4 +234,28 @@ mod tests {
         assert!(msg.contains("no Parakeet model found"), "got: {msg}");
         assert!(msg.contains("install-model"), "got: {msg}");
     }
+
+    #[cfg(feature = "voxtral-mlx")]
+    #[test]
+    fn voxtral_mlx_arm_propagates_missing_model_error() {
+        // The "voxtral-mlx" arm routes through VoxtralMlxBackend::new, which
+        // checks for the model files up front. Point --model at an empty dir and
+        // verify the install hint reaches the caller (no MLX load happens).
+        let _g = env_guard();
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+        let tmp = tempfile::TempDir::new().unwrap();
+        let opts = VoiceOpts {
+            backend: Some("voxtral-mlx".to_string()),
+            model: Some(tmp.path().to_path_buf()),
+        };
+        let Err(err) = create_default_transcriber(&opts) else {
+            panic!("expected voxtral-mlx with empty model dir to error");
+        };
+        let msg = format!("{err:#}");
+        assert!(
+            msg.contains("no Voxtral MLX INT4 model found"),
+            "got: {msg}"
+        );
+        assert!(msg.contains("install-model"), "got: {msg}");
+    }
 }

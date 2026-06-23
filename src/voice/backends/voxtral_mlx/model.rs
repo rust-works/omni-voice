@@ -202,8 +202,30 @@ pub fn load_wav_16k_mono(path: &Path) -> Result<Vec<f32>> {
 }
 
 #[cfg(test)]
+impl VoxtralMlxModel {
+    /// Test-only constructor from in-memory parts. `from_model_dir` loads from
+    /// disk and pins the *real* (large) config, so the synthetic tiny model
+    /// ([`super::test_support`]) drives `transcribe` / `stream_session` through
+    /// this seam instead.
+    pub(crate) fn from_parts(
+        weights: HashMap<String, Array>,
+        tokenizer: TekkenTokenizer,
+        cfg: VoxtralMlxConfig,
+        delay_ms: u32,
+    ) -> Self {
+        Self {
+            weights,
+            tokenizer,
+            cfg,
+            delay_ms,
+        }
+    }
+}
+
+#[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
+    use super::super::test_support::{mlx_guard, tiny_config, tiny_tokenizer, tiny_weights};
     use super::*;
 
     #[test]
@@ -211,6 +233,92 @@ mod tests {
         assert_eq!(num_delay_tokens(480), 6);
         assert_eq!(num_audio_tokens(7680), 6);
         assert_eq!(num_audio_tokens(1280), 1);
+        // Non-multiple-of-hop path (audio_len % 160 != 0).
+        assert_eq!(num_audio_tokens(1000), 1);
+    }
+
+    /// Writes a tiny 16 kHz mono WAV and reads it back as normalized f32 samples.
+    #[test]
+    fn load_wav_16k_mono_reads_normalized_samples() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let path = tmp.path().join("a.wav");
+        let spec = hound::WavSpec {
+            channels: 1,
+            sample_rate: 16_000,
+            bits_per_sample: 16,
+            sample_format: hound::SampleFormat::Int,
+        };
+        let mut w = hound::WavWriter::create(&path, spec).unwrap();
+        for i in 0..100_i16 {
+            w.write_sample(i * 100).unwrap();
+        }
+        w.finalize().unwrap();
+
+        let samples = load_wav_16k_mono(&path).unwrap();
+        assert_eq!(samples.len(), 100);
+        assert!((samples[1] - 100.0 / 32768.0).abs() < 1e-6);
+    }
+
+    /// A non-16 kHz / non-mono WAV is rejected with the format hint.
+    #[test]
+    fn load_wav_rejects_wrong_format() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let path = tmp.path().join("b.wav");
+        let spec = hound::WavSpec {
+            channels: 2,
+            sample_rate: 44_100,
+            bits_per_sample: 16,
+            sample_format: hound::SampleFormat::Int,
+        };
+        let mut w = hound::WavWriter::create(&path, spec).unwrap();
+        w.write_sample(0_i16).unwrap();
+        w.write_sample(0_i16).unwrap();
+        w.finalize().unwrap();
+
+        let err = load_wav_16k_mono(&path).unwrap_err();
+        assert!(
+            err.to_string().contains("expected 16 kHz mono"),
+            "got: {err}"
+        );
+    }
+
+    /// The offline `transcribe` driver runs end-to-end on the synthetic INT4
+    /// model: mel front-end → encoder/adapter → decoder prefill → greedy decode →
+    /// Tekken decode. The synthetic tokenizer maps every emitted id to `'a'`.
+    #[test]
+    fn transcribe_runs_end_to_end_on_synthetic_weights() {
+        let _mlx = mlx_guard();
+        let cfg = tiny_config();
+        let model = VoxtralMlxModel::from_parts(
+            tiny_weights(),
+            tiny_tokenizer(),
+            cfg,
+            cfg.default_delay_ms as u32,
+        );
+        // ~1.5 s of audio is enough to exceed the 39-token prompt length.
+        let text = model.transcribe(&vec![0.05_f32; 24_000]).unwrap();
+        assert!(
+            text.chars().all(|c| c == 'a'),
+            "synthetic transcript: {text:?}"
+        );
+    }
+
+    /// `set_delay_ms` is applied and `stream_session` builds a session borrowing
+    /// the model's parts.
+    #[test]
+    fn set_delay_then_build_stream_session() {
+        let _mlx = mlx_guard();
+        let cfg = tiny_config();
+        let mut model = VoxtralMlxModel::from_parts(
+            tiny_weights(),
+            tiny_tokenizer(),
+            cfg,
+            cfg.default_delay_ms as u32,
+        );
+        model.set_delay_ms(240);
+        let mut session = model.stream_session();
+        // A short feed exercises the borrow without requiring a full prefill.
+        session.feed(&[0.0_f32; 1600]).unwrap();
     }
 
     fn model_dir() -> Option<std::path::PathBuf> {

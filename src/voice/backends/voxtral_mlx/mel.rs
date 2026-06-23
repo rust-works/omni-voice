@@ -284,4 +284,31 @@ mod tests {
         assert_eq!(mel.data.len(), N_MELS * mel.frames);
         assert_eq!(mel.frames % 2, 0, "frame count must be even");
     }
+
+    #[test]
+    fn mel_frames_available_counts_complete_windows() {
+        // A frame needs N_FFT samples; each further frame needs HOP more.
+        assert_eq!(mel_frames_available(N_FFT - 1), 0);
+        assert_eq!(mel_frames_available(N_FFT), 1);
+        assert_eq!(mel_frames_available(N_FFT + HOP), 2);
+        assert_eq!(mel_frames_available(N_FFT + 2 * HOP), 3);
+    }
+
+    #[test]
+    fn mel_frames_is_frame_major_finite_and_consistent() {
+        // 11 complete frames available.
+        let audio = vec![0.1_f32; N_FFT + 10 * HOP];
+        let avail = mel_frames_available(audio.len());
+        assert_eq!(avail, 11);
+
+        let all = mel_frames(&audio, 0, avail, 1.5);
+        assert_eq!(all.len(), avail * N_MELS, "frame-major: (frames × bins)");
+        assert!(all.iter().all(|x| x.is_finite()));
+
+        // Computing a sub-range yields the identical frame slice (the streaming
+        // session computes only newly-available frames incrementally).
+        let tail = mel_frames(&audio, 5, avail, 1.5);
+        assert_eq!(tail.len(), (avail - 5) * N_MELS);
+        assert_eq!(&tail[..], &all[5 * N_MELS..]);
+    }
 }

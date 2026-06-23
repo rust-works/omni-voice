@@ -227,8 +227,9 @@ impl<'a> Decoder<'a> {
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::super::config::VoxtralMlxConfig;
+    use super::super::test_support::{mlx_guard, tiny_config, tiny_weights};
     use super::super::{load_safetensors, Weights};
-    use super::Decoder;
+    use super::{time_embedding, Decoder};
     use mlx_rs::Dtype;
 
     fn model_dir() -> Option<std::path::PathBuf> {
@@ -245,6 +246,60 @@ mod tests {
             a.as_slice::<f32>().iter().all(|x| x.is_finite()),
             "{what} must be finite (no NaN/Inf)"
         );
+    }
+
+    /// `time_embedding` is `[cos(t·invfreq) ‖ sin(t·invfreq)]`; at `t = 0` every
+    /// cosine is 1 and every sine is 0.
+    #[test]
+    fn time_embedding_packs_cos_then_sin() {
+        let _mlx = mlx_guard();
+        let e = time_embedding(0.0, 8, 10_000.0);
+        e.eval().unwrap();
+        let v = e.as_slice::<f32>();
+        assert_eq!(v.len(), 8);
+        for c in &v[..4] {
+            assert!((c - 1.0).abs() < 1e-6, "cos(0) should be 1, got {c}");
+        }
+        for s in &v[4..] {
+            assert!(s.abs() < 1e-6, "sin(0) should be 0, got {s}");
+        }
+    }
+
+    /// Prefills a short prompt then decodes one step on the synthetic INT4 model,
+    /// exercising every decoder path without the real weights: ada-norm gains, the
+    /// tied-embedding lookup, GQA attention (RoPE + SDPA), the growing KV cache
+    /// (empty then appended), the ada-conditioned SwiGLU FFN, the final norm, and
+    /// the tied LM head — asserting shapes and finiteness.
+    #[test]
+    fn decoder_prefill_and_step_run_on_synthetic_weights() {
+        let _mlx = mlx_guard();
+        let cfg = tiny_config();
+        let map = tiny_weights();
+        let dec = Decoder::new(
+            Weights::new(&map, cfg.quant.group_size, cfg.quant.bits),
+            cfg.decoder,
+        );
+
+        let ada = dec.precompute_ada_gains(6.0).unwrap();
+        assert_eq!(ada.len(), cfg.decoder.n_layers);
+        let mut caches = dec.make_cache();
+        assert_eq!(caches.len(), cfg.decoder.n_layers);
+
+        // Prefill 4 tokens (all < vocab 64).
+        let prompt = [1_i32, 5, 9, 3];
+        let embeds = dec.embed_tokens(&prompt).unwrap();
+        assert_eq!(embeds.shape(), &[4, cfg.decoder.dim as i32]);
+        let h = dec.forward(&embeds, 0, &ada, &mut caches).unwrap();
+        assert_eq!(h.shape(), &[4, cfg.decoder.dim as i32]);
+        let logits = dec.logits(&h).unwrap();
+        assert_eq!(logits.shape(), &[4, cfg.decoder.vocab_size as i32]);
+        assert_finite(&logits, "prefill logits");
+
+        // One decode step at position 4: seq = 1, mask = None, KV cache appended.
+        let step = dec.embed_tokens(&[7]).unwrap();
+        let h2 = dec.forward(&step, 4, &ada, &mut caches).unwrap();
+        assert_eq!(h2.shape(), &[1, cfg.decoder.dim as i32]);
+        assert_finite(&dec.logits(&h2).unwrap(), "decode-step logits");
     }
 
     /// Prefills a short token sequence, decodes one step from the KV cache, and

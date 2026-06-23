@@ -144,4 +144,32 @@ mod tests {
         assert_eq!(tok.decode(&[3]), "hi");
         assert_eq!(tok.decode(&[99]), ""); // beyond vocab
     }
+
+    #[test]
+    fn from_model_dir_reads_tekken_json() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        std::fs::write(
+            tmp.path().join("tekken.json"),
+            r#"{"config":{"default_num_special_tokens":3},"vocab":[{"token_bytes":"aGk="}]}"#,
+        )
+        .unwrap();
+        let tok = TekkenTokenizer::from_model_dir(tmp.path()).unwrap();
+        assert_eq!(tok.decode(&[3]), "hi");
+    }
+
+    #[test]
+    fn from_model_dir_missing_file_errors() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        // `TekkenTokenizer` is not `Debug`, so match rather than `unwrap_err`.
+        let Err(err) = TekkenTokenizer::from_model_dir(tmp.path()) else {
+            panic!("expected a missing-file error");
+        };
+        assert!(format!("{err:#}").contains("tekken.json"), "got: {err}");
+    }
+
+    #[test]
+    fn from_json_rejects_invalid_base64_vocab() {
+        let json = r#"{"config":{"default_num_special_tokens":1},"vocab":[{"token_bytes":"not valid base64!"}]}"#;
+        assert!(TekkenTokenizer::from_json(json).is_err());
+    }
 }

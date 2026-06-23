@@ -218,3 +218,117 @@ fn run_stream(
         }
     }
 }
+
+#[cfg(test)]
+impl VoxtralMlxBackend {
+    /// Test-only constructor wrapping an in-memory model (bypasses `new`'s disk
+    /// load + model-presence check), so the synthetic tiny model can drive the
+    /// `Transcriber` paths without the ~2.4 GB INT4 weights.
+    pub(crate) fn from_model(model: VoxtralMlxModel) -> Self {
+        Self {
+            model: Arc::new(Mutex::new(model)),
+        }
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod tests {
+    use super::super::test_support::{mlx_guard, tiny_config, tiny_tokenizer, tiny_weights};
+    use super::*;
+    use crate::voice::transcriber::VecAudioInput;
+
+    fn tiny_backend() -> VoxtralMlxBackend {
+        let cfg = tiny_config();
+        VoxtralMlxBackend::from_model(VoxtralMlxModel::from_parts(
+            tiny_weights(),
+            tiny_tokenizer(),
+            cfg,
+            cfg.default_delay_ms as u32,
+        ))
+    }
+
+    fn collect(backend: &VoxtralMlxBackend, samples: Vec<i16>) -> Vec<TranscriptEvent> {
+        let input = VecAudioInput::from_samples(samples, 4096);
+        backend
+            .transcribe(Box::new(input))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect()
+    }
+
+    /// Empty audio emits only the terminal `StreamEnd` endpoint (the no-audio
+    /// short-circuit, matching the other backends).
+    #[test]
+    fn transcribe_empty_audio_emits_only_endpoint() {
+        let _mlx = mlx_guard();
+        let events = collect(&tiny_backend(), Vec::new());
+        assert_eq!(events.len(), 1);
+        assert!(matches!(
+            events[0],
+            TranscriptEvent::Endpoint {
+                kind: EndpointKind::StreamEnd,
+                ..
+            }
+        ));
+    }
+
+    /// Real audio runs the offline pass and emits a `Final` (synthetic transcript)
+    /// followed by the terminal `Endpoint`.
+    #[test]
+    fn transcribe_audio_emits_final_then_endpoint() {
+        let _mlx = mlx_guard();
+        // ~1.5 s exceeds the prompt length, so the decoder produces tokens.
+        let events = collect(&tiny_backend(), vec![1000_i16; 24_000]);
+        assert!(matches!(
+            events.last().unwrap(),
+            TranscriptEvent::Endpoint {
+                kind: EndpointKind::StreamEnd,
+                ..
+            }
+        ));
+        // Every event before the terminal endpoint is a `Final`.
+        for ev in &events[..events.len() - 1] {
+            assert!(matches!(ev, TranscriptEvent::Final { .. }), "got {ev:?}");
+        }
+        assert_eq!(events.len(), 2, "expected Final + Endpoint, got {events:?}");
+    }
+
+    /// Drives the async streaming `Transcriber` end-to-end on the synthetic model:
+    /// the feeder + `spawn_blocking` inference loop run the streaming session and
+    /// the segmenter, ending with a terminal `StreamEnd`. The `mlx_guard` is held
+    /// for the whole await so the background inference thread is the only MLX
+    /// activity in the process while it runs.
+    // The `mlx_guard` is intentionally held across the `.await`s: it serializes
+    // MLX work against *other test threads*, and nothing on this test's runtime
+    // ever acquires it, so there is no deadlock risk the lint guards against.
+    #[allow(clippy::await_holding_lock)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn transcribe_stream_runs_and_ends_with_stream_end() {
+        use crate::voice::transcriber::FileAsyncAudioInput;
+        use crate::voice::STREAM_CHUNK_SAMPLES;
+        use futures::StreamExt;
+
+        let _mlx = mlx_guard();
+        let backend = tiny_backend();
+        // ~1.5 s of in-memory audio replayed as fast as possible (no pacing).
+        let audio =
+            FileAsyncAudioInput::from_samples(vec![1000_i16; 24_000], STREAM_CHUNK_SAMPLES, false);
+        let mut stream = backend.transcribe_stream(Box::new(audio));
+
+        let mut saw_stream_end = false;
+        let mut count = 0usize;
+        while let Some(ev) = stream.next().await {
+            if let TranscriptEvent::Endpoint {
+                kind: EndpointKind::StreamEnd,
+                ..
+            } = ev.unwrap()
+            {
+                saw_stream_end = true;
+            }
+            count += 1;
+        }
+        assert!(count >= 1, "stream produced no events");
+        assert!(saw_stream_end, "stream must end with a StreamEnd endpoint");
+    }
+}
