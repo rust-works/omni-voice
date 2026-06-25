@@ -62,6 +62,8 @@ by Michael Nygard.
 | [ADR-0036](adr-0036.md)  | ❌ Deprecated                            | 2026-05-30 | Confused-Deputy Browser Bridge with Dual-Plane Default-Closed Authentication           |
 | [ADR-0037](adr-0037.md)  | 🔄 Superseded by [ADR-0041](adr-0041.md) | 2026-06-06 | Pure-C Native ASR Backends Behind a Rust FFI Boundary on Non-Windows Targets           |
 | [ADR-0038](adr-0038.md)  | ✅ Accepted                              | 2026-06-21 | Async `StreamingTranscriber` Seam Alongside the Sync `Transcriber`                     |
+| [ADR-0039](adr-0039.md)  | ✅ Accepted                              | 2026-06-08 | Permit C++/CMake for `mlx-rs` on Apple Silicon — Real-Time INT4 Voxtral via MLX        |
 | [ADR-0040](adr-0040.md)  | 🔄 Superseded by [ADR-0041](adr-0041.md) | 2026-06-10 | candle + earshot VAD + LocalAgreement-2 as the Latency-Tolerant Streaming ASR Floor    |
 | [ADR-0041](adr-0041.md)  | ✅ Accepted                              | 2026-06-18 | Apple Silicon macOS as the Sole Supported Platform                                     |
 | [ADR-0042](adr-0042.md)  | ✅ Accepted                              | 2026-06-18 | Native Apple-Silicon ASR Backend Selection                                             |
+| [ADR-0043](adr-0043.md)  | ✅ Accepted                              | 2026-06-25 | Voxtral-MLX as the Default ASR Backend                                                 |
