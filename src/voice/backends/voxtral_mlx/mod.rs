@@ -1,7 +1,8 @@
 //! Real-time INT4 Voxtral backend via Apple **MLX** (`mlx-rs`) — [ADR-0039].
 //!
-//! Compiled only with the off-by-default `voxtral-mlx` feature on macOS Apple
-//! Silicon (MLX is Apple-only). This is a **port** of `mlx-audio`'s Python
+//! Compiled with the `voxtral-mlx` feature (default-on per ADR-0043; opt out
+//! with `--no-default-features`) on macOS Apple Silicon (MLX is Apple-only).
+//! This is a **port** of `mlx-audio`'s Python
 //! `voxtral_realtime` model to `mlx-rs`, running the INT4-quantized weights for
 //! real-time transcription (the BF16 `voxtral.c` path measured RTF 1.25; INT4
 //! is the lever — #933 validation).
@@ -9,14 +10,14 @@
 //! **Status (#933 M1 complete).** The full offline forward pass is ported and
 //! **validated end-to-end**: mel front-end (M1.4) → encoder + adapter (M1.2) →
 //! decoder with GQA + ada-norm + KV cache (M1.3) → Tekken decode (M1.4), wired by
-//! [`VoxtralMlxModel::transcribe`] (M1.4). On the real INT4 model on Metal it
+//! `VoxtralMlxModel::transcribe` (M1.4). On the real INT4 model on Metal it
 //! produces correct transcripts; on a 32 s prefix of the 5-min fixture (release)
 //! it measured **WER 1.5%** and **RTF 0.193** (≈ 5× real-time) — versus the
 //! `voxtral.c` BF16 path's RTF 1.25, confirming ADR-0039's INT4 real-time thesis
-//! (M1.5). The batch backend [`VoxtralMlxBackend`] implements [`Transcriber`] and
+//! (M1.5). The batch backend `VoxtralMlxBackend` implements [`Transcriber`] and
 //! is wired to `--backend voxtral-mlx` with a `voxtral-mlx-int4` install variant
 //! (M2). Long audio of any length is handled by the chunked encoder
-//! ([`AudioEncoder::encode_chunked`], proven numerically equal to the single-pass
+//! (`AudioEncoder::encode_chunked`, proven numerically equal to the single-pass
 //! path); on the full 5-min fixture it measured **WER 4.0%** and **RTF 0.263**,
 //! matching `voxtral.c`'s 4.12% at ≈ 5× its speed (M3a). The
 //! [`StreamingTranscriber`](crate::voice::transcriber::StreamingTranscriber) impl

@@ -5,8 +5,10 @@
 //! jsonl` and `--format md` outputs. Distinct from the trait-level test
 //! in `tests/voice_transcribe_test.rs`, which exercises `MockTranscriber`
 //! through a deterministic-RNG seam — this test goes through the
-//! production factory (`create_default_transcriber`), which seeds the
-//! mock with `SystemUlidRng`. The `event_id` ULIDs are redacted via
+//! production factory (`create_default_transcriber`) with `--backend mock`,
+//! which seeds the mock with `SystemUlidRng`. (`--backend` is explicit because
+//! the default is now `voxtral-mlx`, ADR-0043.) The `event_id` ULIDs are
+//! redacted via
 //! `insta`'s filter so the snapshot is byte-stable across runs.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
@@ -23,6 +25,8 @@ fn run_transcribe(format: &str) -> String {
         .args([
             "transcribe",
             fixture_path().to_str().unwrap(),
+            "--backend",
+            "mock",
             "--format",
             format,
         ])
@@ -67,6 +71,8 @@ fn voice_transcribe_rejects_missing_wav() {
         .args([
             "transcribe",
             "/nonexistent/path/should-not-exist.wav",
+            "--backend",
+            "mock",
             "--format",
             "jsonl",
         ])
