@@ -102,6 +102,11 @@ pub struct ModelSpec {
     pub model_flag: &'static str,
     /// How to fetch the bytes.
     pub source: ModelSource,
+    /// Approximate total download size in bytes, shown in the
+    /// `install-model` confirmation prompt so the user can weigh the
+    /// transfer before opting in. Informational only; for
+    /// [`ModelSource::HttpReleaseAsset`] the exact `bytes` is used instead.
+    pub approx_bytes: u64,
 }
 
 impl ModelSpec {
@@ -147,6 +152,22 @@ impl ModelSpec {
         self.required_files.iter().map(|f| dir.join(f)).collect()
     }
 
+    /// Human-readable `(source_url, size)` pair for the `install-model`
+    /// download confirmation prompt. The size is exact for a single signed
+    /// release asset and an approximation (`~`-prefixed) for multi-file
+    /// HuggingFace Hub repositories.
+    pub fn download_summary(&self) -> (String, String) {
+        match self.source {
+            ModelSource::HfHub { repo_id, revision } => (
+                format!("https://huggingface.co/{repo_id}/tree/{revision}"),
+                format!("~{}", human_bytes(self.approx_bytes)),
+            ),
+            ModelSource::HttpReleaseAsset { url, bytes, .. } => {
+                (url.to_string(), human_bytes(bytes))
+            }
+        }
+    }
+
     /// Verifies that `dir` contains every file in `self.required_files`.
     ///
     /// On failure, returns the install hint shaped for this spec (the
@@ -170,6 +191,24 @@ impl ModelSpec {
     }
 }
 
+/// Formats a byte count as a short human-readable size (B / KB / MB / GB,
+/// binary units) for download prompts.
+fn human_bytes(bytes: u64) -> String {
+    const KB: f64 = 1024.0;
+    const MB: f64 = KB * 1024.0;
+    const GB: f64 = MB * 1024.0;
+    let b = bytes as f64;
+    if b >= GB {
+        format!("{:.1} GB", b / GB)
+    } else if b >= MB {
+        format!("{:.0} MB", b / MB)
+    } else if b >= KB {
+        format!("{:.0} KB", b / KB)
+    } else {
+        format!("{bytes} B")
+    }
+}
+
 // ── Registered specs ──────────────────────────────────────────────────────
 
 /// Whisper `tiny.en` — production ASR runtime per ADR-0033.
@@ -185,6 +224,7 @@ pub const WHISPER_TINY_EN: ModelSpec = ModelSpec {
         repo_id: MODEL_ID,
         revision: REVISION,
     },
+    approx_bytes: 75_000_000,
 };
 
 /// Wespeaker `voxceleb_resnet34_LM` — production speaker-embedding
@@ -203,6 +243,9 @@ pub const SPEAKER_WESPEAKER_EN: ModelSpec = ModelSpec {
         sha256: "e9848563da86f263117134dfd7ad63c92355b37de492b55e325400c9d9c39012",
         bytes: 26_530_550,
     },
+    // Exact `bytes` above is used for the prompt; this mirrors it for the
+    // generic accessor.
+    approx_bytes: 26_530_550,
 };
 
 /// Parakeet-TDT-0.6B-v2 — pure-Rust streaming-native ASR backend.
@@ -231,6 +274,8 @@ pub const PARAKEET_TDT_0_6B_V2: ModelSpec = ModelSpec {
         repo_id: "mlx-community/parakeet-tdt-0.6b-v2",
         revision: "main",
     },
+    // Raw MLX safetensors (~2.47 GB) downloaded before conversion.
+    approx_bytes: 2_470_000_000,
 };
 
 /// Voxtral-Mini-4B-Realtime INT4 (MLX) — the in-process `voxtral-mlx` backend.
@@ -249,6 +294,8 @@ pub const VOXTRAL_MLX_INT4: ModelSpec = ModelSpec {
         repo_id: "mlx-community/Voxtral-Mini-4B-Realtime-2602-4bit",
         revision: "fdebf7b2af834a1db4b8a3c99ab7480b333adf9e",
     },
+    // INT4-quantised weights (~2.4 GB) plus the tekken tokenizer.
+    approx_bytes: 2_400_000_000,
 };
 
 /// Resolves the INT4 Voxtral MLX model directory for the current invocation.
@@ -562,5 +609,41 @@ mod tests {
                 panic!("PARAKEET_TDT_0_6B_V2 should be HfHub-sourced");
             }
         }
+    }
+
+    // ── Download prompt summary ──────────────────────────────────────────
+
+    #[test]
+    fn human_bytes_scales_units() {
+        assert_eq!(human_bytes(512), "512 B");
+        assert_eq!(human_bytes(26_530_550), "25 MB");
+        assert_eq!(human_bytes(2_400_000_000), "2.2 GB");
+    }
+
+    #[test]
+    fn download_summary_hfhub_is_approx_repo_url() {
+        let (url, size) = WHISPER_TINY_EN.download_summary();
+        assert!(
+            url.starts_with("https://huggingface.co/openai/whisper-tiny.en/tree/"),
+            "got: {url}"
+        );
+        assert!(
+            size.starts_with('~'),
+            "HfHub size should be approximate, got: {size}"
+        );
+    }
+
+    #[test]
+    fn download_summary_release_asset_is_exact_url_and_size() {
+        let (url, size) = SPEAKER_WESPEAKER_EN.download_summary();
+        assert!(
+            url.contains("wespeaker_en_voxceleb_resnet34_LM.onnx"),
+            "got: {url}"
+        );
+        assert!(
+            !size.starts_with('~'),
+            "release-asset size should be exact, got: {size}"
+        );
+        assert_eq!(size, "25 MB");
     }
 }

@@ -11,7 +11,7 @@
 //! enrol time, so network failures surface explicitly when the user opts
 //! in to installing rather than silently on first use.
 
-use std::io::{Read, Write};
+use std::io::{BufRead, IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -69,8 +69,12 @@ impl Variant {
 /// `--dest` to override).
 ///
 /// Idempotent: if every required file is already present and non-empty,
-/// the command prints a "model already installed" line and exits 0. Pass
-/// `--force` to re-download anyway.
+/// the command prints a "model already installed" line and exits 0 *without*
+/// prompting. Pass `--force` to re-download anyway.
+///
+/// When bytes will actually be transferred, the command first prints the
+/// source URL and expected size and prompts for confirmation on stdin (#14).
+/// Bypass the prompt with `--accept-downloads` or `OMNI_VOICE_AUTO_DOWNLOAD=true`.
 #[derive(Parser)]
 pub struct InstallModelCommand {
     /// Override the install directory. Defaults to the variant's
@@ -82,6 +86,12 @@ pub struct InstallModelCommand {
     #[arg(long)]
     pub force: bool,
 
+    /// Proceed with downloads without the interactive confirmation prompt.
+    /// Also bypassable via `OMNI_VOICE_AUTO_DOWNLOAD=true` for
+    /// non-interactive automation (CI).
+    #[arg(long)]
+    pub accept_downloads: bool,
+
     /// Which model variant to install. Defaults to `whisper-tiny.en`.
     #[arg(long, value_enum, default_value_t = Variant::WhisperTinyEn)]
     pub variant: Variant,
@@ -90,15 +100,21 @@ pub struct InstallModelCommand {
 impl InstallModelCommand {
     /// Entry point. Writes user-facing progress to stderr so stdout stays
     /// reserved for machine-readable output (parity with `voice
-    /// transcribe`'s JSONL pipe-detection convention).
+    /// transcribe`'s JSONL pipe-detection convention). Resolves tty-ness and
+    /// locks stdin/stderr here, keeping the prompt plumbing out of the
+    /// testable core.
     pub fn execute(self) -> Result<()> {
+        let stdin = std::io::stdin();
+        let is_tty = stdin.is_terminal();
+        let mut reader = stdin.lock();
         let mut err = std::io::stderr().lock();
-        self.run(&mut err)
+        self.run(&mut reader, is_tty, &mut err)
     }
 
-    /// Writer-generic core, parameterised over stderr so tests can drive
-    /// the success/idempotency paths without touching the global stream.
-    fn run<W: Write>(self, w: &mut W) -> Result<()> {
+    /// Reader/writer-generic core, parameterised over stdin + stderr and an
+    /// explicit `is_tty` flag so tests can drive the prompt, idempotency, and
+    /// success paths without touching the global streams.
+    fn run<R: BufRead, W: Write>(self, stdin: &mut R, is_tty: bool, w: &mut W) -> Result<()> {
         let spec = self.variant.spec();
         let dest = match self.dest {
             Some(p) => p,
@@ -107,9 +123,19 @@ impl InstallModelCommand {
                 .ok_or_else(|| anyhow!("could not determine home directory; pass --dest <path>"))?,
         };
 
+        // Idempotent skip never prompts — no bytes will be transferred.
         if !self.force && all_present(spec, &dest) {
             writeln!(w, "model already installed at {}", dest.display())?;
             return Ok(());
+        }
+
+        // Bytes will be transferred: gate on explicit consent (#14).
+        match confirm_downloads(spec, &dest, self.accept_downloads, stdin, is_tty, w)? {
+            Consent::Proceed => {}
+            Consent::Declined => {
+                writeln!(w, "Aborted.")?;
+                return Ok(());
+            }
         }
 
         // Parakeet has a different upstream file set than the install
@@ -128,6 +154,71 @@ impl InstallModelCommand {
                 download_release_asset(spec, url, sha256, bytes, &dest, w)
             }
         }
+    }
+}
+
+/// Outcome of the pre-download confirmation gate.
+#[derive(Debug, PartialEq, Eq)]
+enum Consent {
+    Proceed,
+    Declined,
+}
+
+/// Environment override that bypasses the download confirmation prompt for
+/// non-interactive automation. Truthy values: `true` / `1`.
+const AUTO_DOWNLOAD_ENV: &str = "OMNI_VOICE_AUTO_DOWNLOAD";
+
+fn auto_download_env() -> bool {
+    std::env::var(AUTO_DOWNLOAD_ENV)
+        .is_ok_and(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "true" | "1"))
+}
+
+/// Confirms a model download before any bytes transfer.
+///
+/// Returns [`Consent::Proceed`] when `--accept-downloads` or
+/// `OMNI_VOICE_AUTO_DOWNLOAD` bypasses the prompt, or when the user answers
+/// yes at an interactive prompt; [`Consent::Declined`] on any other answer.
+/// Prints the source URL and expected size first. When stdin is **not** a
+/// terminal and no bypass was given, it bails loudly (pointing at the flag
+/// and env var) rather than blocking forever on `read_line`.
+fn confirm_downloads<R: BufRead, W: Write>(
+    spec: &ModelSpec,
+    dest: &Path,
+    accept_downloads: bool,
+    stdin: &mut R,
+    is_tty: bool,
+    w: &mut W,
+) -> Result<Consent> {
+    if accept_downloads || auto_download_env() {
+        return Ok(Consent::Proceed);
+    }
+
+    let (url, size) = spec.download_summary();
+    writeln!(
+        w,
+        "About to download the {} model ({size}) from:",
+        spec.kind_label
+    )?;
+    writeln!(w, "  {url}")?;
+    writeln!(w, "  into {}", dest.display())?;
+
+    if !is_tty {
+        bail!(
+            "refusing to download without confirmation on a non-interactive stdin; \
+             pass --accept-downloads or set {AUTO_DOWNLOAD_ENV}=true"
+        );
+    }
+
+    write!(w, "Proceed? [y/N] ")?;
+    w.flush()?;
+    let mut line = String::new();
+    stdin
+        .read_line(&mut line)
+        .context("read confirmation from stdin")?;
+    if matches!(line.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
+        Ok(Consent::Proceed)
+    } else {
+        Ok(Consent::Declined)
     }
 }
 
@@ -722,10 +813,11 @@ mod tests {
         let cmd = InstallModelCommand {
             dest: Some(tmp.path().to_path_buf()),
             force: false,
+            accept_downloads: false,
             variant: Variant::WhisperTinyEn,
         };
         let mut out: Vec<u8> = Vec::new();
-        cmd.run(&mut out).unwrap();
+        cmd.run(&mut std::io::empty(), false, &mut out).unwrap();
         let msg = String::from_utf8(out).unwrap();
         assert!(msg.contains("already installed"), "got: {msg}");
     }
@@ -738,10 +830,11 @@ mod tests {
         let cmd = InstallModelCommand {
             dest: Some(tmp.path().to_path_buf()),
             force: false,
+            accept_downloads: false,
             variant: Variant::SpeakerWespeakerEn,
         };
         let mut out: Vec<u8> = Vec::new();
-        cmd.run(&mut out).unwrap();
+        cmd.run(&mut std::io::empty(), false, &mut out).unwrap();
         let msg = String::from_utf8(out).unwrap();
         assert!(msg.contains("already installed"), "got: {msg}");
     }
@@ -848,6 +941,19 @@ mod tests {
     }
 
     #[test]
+    fn parses_accept_downloads() {
+        #[derive(Parser)]
+        struct T {
+            #[command(flatten)]
+            c: InstallModelCommand,
+        }
+        let default = T::try_parse_from(["test"]).unwrap();
+        assert!(!default.c.accept_downloads);
+        let t = T::try_parse_from(["test", "--accept-downloads"]).unwrap();
+        assert!(t.c.accept_downloads);
+    }
+
+    #[test]
     fn parses_speaker_variant() {
         #[derive(Parser)]
         struct T {
@@ -898,10 +1004,11 @@ mod tests {
         let cmd = InstallModelCommand {
             dest: None,
             force: false,
+            accept_downloads: false,
             variant: Variant::WhisperTinyEn,
         };
         let mut out: Vec<u8> = Vec::new();
-        let result = cmd.run(&mut out);
+        let result = cmd.run(&mut std::io::empty(), false, &mut out);
 
         match prev_home {
             Some(v) => std::env::set_var("HOME", v),
@@ -930,10 +1037,11 @@ mod tests {
         let cmd = InstallModelCommand {
             dest: None,
             force: false,
+            accept_downloads: false,
             variant: Variant::SpeakerWespeakerEn,
         };
         let mut out: Vec<u8> = Vec::new();
-        let result = cmd.run(&mut out);
+        let result = cmd.run(&mut std::io::empty(), false, &mut out);
 
         match prev_home {
             Some(v) => std::env::set_var("HOME", v),
@@ -966,6 +1074,139 @@ mod tests {
         assert_eq!(
             Variant::VoxtralMlxInt4.spec().variant,
             VOXTRAL_MLX_INT4.variant
+        );
+    }
+
+    // ── Download confirmation gate (#14) ─────────────────────────────────
+
+    #[test]
+    fn confirm_proceeds_with_accept_flag() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut out: Vec<u8> = Vec::new();
+        // `is_tty=false` must not matter once the flag bypasses the prompt.
+        let outcome = confirm_downloads(
+            &WHISPER_TINY_EN,
+            tmp.path(),
+            true,
+            &mut std::io::empty(),
+            false,
+            &mut out,
+        )
+        .unwrap();
+        assert_eq!(outcome, Consent::Proceed);
+        assert!(out.is_empty(), "accepted download should not prompt");
+    }
+
+    #[test]
+    fn confirm_proceeds_with_env_var() {
+        let _g = env_guard();
+        let prev = std::env::var_os(AUTO_DOWNLOAD_ENV);
+        std::env::set_var(AUTO_DOWNLOAD_ENV, "true");
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut out: Vec<u8> = Vec::new();
+        let outcome = confirm_downloads(
+            &WHISPER_TINY_EN,
+            tmp.path(),
+            false,
+            &mut std::io::empty(),
+            false,
+            &mut out,
+        );
+        match prev {
+            Some(v) => std::env::set_var(AUTO_DOWNLOAD_ENV, v),
+            None => std::env::remove_var(AUTO_DOWNLOAD_ENV),
+        }
+        assert_eq!(outcome.unwrap(), Consent::Proceed);
+    }
+
+    #[test]
+    fn confirm_prompts_and_proceeds_on_yes() {
+        let _g = env_guard();
+        std::env::remove_var(AUTO_DOWNLOAD_ENV);
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut reader = std::io::Cursor::new(b"y\n".to_vec());
+        let mut out: Vec<u8> = Vec::new();
+        let outcome = confirm_downloads(
+            &WHISPER_TINY_EN,
+            tmp.path(),
+            false,
+            &mut reader,
+            true,
+            &mut out,
+        )
+        .unwrap();
+        assert_eq!(outcome, Consent::Proceed);
+        let msg = String::from_utf8(out).unwrap();
+        assert!(msg.contains("About to download"), "got: {msg}");
+        assert!(
+            msg.contains("huggingface.co/openai/whisper-tiny.en"),
+            "summary must show the source URL, got: {msg}"
+        );
+        assert!(msg.contains("Proceed? [y/N]"), "got: {msg}");
+    }
+
+    #[test]
+    fn confirm_declines_on_no() {
+        let _g = env_guard();
+        std::env::remove_var(AUTO_DOWNLOAD_ENV);
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut reader = std::io::Cursor::new(b"n\n".to_vec());
+        let mut out: Vec<u8> = Vec::new();
+        let outcome = confirm_downloads(
+            &WHISPER_TINY_EN,
+            tmp.path(),
+            false,
+            &mut reader,
+            true,
+            &mut out,
+        )
+        .unwrap();
+        assert_eq!(outcome, Consent::Declined);
+    }
+
+    #[test]
+    fn confirm_bails_on_non_tty_without_bypass() {
+        let _g = env_guard();
+        std::env::remove_var(AUTO_DOWNLOAD_ENV);
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut out: Vec<u8> = Vec::new();
+        let err = confirm_downloads(
+            &WHISPER_TINY_EN,
+            tmp.path(),
+            false,
+            &mut std::io::empty(),
+            false,
+            &mut out,
+        )
+        .unwrap_err();
+        let msg = format!("{err:#}");
+        assert!(msg.contains("--accept-downloads"), "got: {msg}");
+        assert!(msg.contains(AUTO_DOWNLOAD_ENV), "got: {msg}");
+    }
+
+    #[test]
+    fn run_aborts_on_declined_prompt_without_downloading() {
+        // Not idempotent (dest is empty) so the gate fires; declining must
+        // print "Aborted.", touch the network/filesystem not at all, and
+        // still exit Ok.
+        let _g = env_guard();
+        std::env::remove_var(AUTO_DOWNLOAD_ENV);
+        let tmp = tempfile::TempDir::new().unwrap();
+        let dest = tmp.path().join("models");
+        let cmd = InstallModelCommand {
+            dest: Some(dest.clone()),
+            force: false,
+            accept_downloads: false,
+            variant: Variant::WhisperTinyEn,
+        };
+        let mut reader = std::io::Cursor::new(b"n\n".to_vec());
+        let mut out: Vec<u8> = Vec::new();
+        cmd.run(&mut reader, true, &mut out).unwrap();
+        let msg = String::from_utf8(out).unwrap();
+        assert!(msg.contains("Aborted."), "got: {msg}");
+        assert!(
+            !dest.join("config.json").exists(),
+            "declined download must not install anything"
         );
     }
 
@@ -1066,9 +1307,10 @@ mod tests {
                 let cmd = InstallModelCommand {
                     dest: Some(dest.path().to_path_buf()),
                     force: false,
+                    accept_downloads: true,
                     variant: Variant::WhisperTinyEn,
                 };
-                cmd.run(&mut out).unwrap();
+                cmd.run(&mut std::io::empty(), false, &mut out).unwrap();
             });
             (out, dest)
         })
@@ -1454,9 +1696,10 @@ mod tests {
                     let cmd = InstallModelCommand {
                         dest: Some(dest.path().to_path_buf()),
                         force: false,
+                        accept_downloads: true,
                         variant: Variant::ParakeetTdt06bV2,
                     };
-                    cmd.run(&mut out).unwrap();
+                    cmd.run(&mut std::io::empty(), false, &mut out).unwrap();
                 });
             });
             (out, dest)
@@ -1511,9 +1754,10 @@ mod tests {
                     let cmd = InstallModelCommand {
                         dest: Some(dest.path().to_path_buf()),
                         force: false,
+                        accept_downloads: true,
                         variant: Variant::ParakeetTdt06bV2,
                     };
-                    cmd.run(&mut out).unwrap_err()
+                    cmd.run(&mut std::io::empty(), false, &mut out).unwrap_err()
                 })
             })
         })
