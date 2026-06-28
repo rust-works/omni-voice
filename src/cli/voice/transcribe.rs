@@ -547,15 +547,18 @@ mod tests {
     #[test]
     fn run_propagates_missing_wav_error() {
         let mut buf: Vec<u8> = Vec::new();
-        let err = cmd(PathBuf::from("/nonexistent/should/not/exist.wav"), None)
-            .run(&mut buf, OutputFormat::Jsonl)
-            .unwrap_err();
+        let err = cmd(
+            PathBuf::from("/nonexistent/should/not/exist.wav"),
+            Some("mock"),
+        )
+        .run(&mut buf, OutputFormat::Jsonl)
+        .unwrap_err();
         assert!(err.to_string().contains("Failed to open WAV"), "got: {err}");
     }
 
     #[test]
     fn run_propagates_writer_error_jsonl() {
-        let err = cmd(fixture_wav(), None)
+        let err = cmd(fixture_wav(), Some("mock"))
             .run(&mut AlwaysFailWriter, OutputFormat::Jsonl)
             .unwrap_err();
         assert!(
@@ -566,7 +569,7 @@ mod tests {
 
     #[test]
     fn run_propagates_writer_error_md() {
-        let err = cmd(fixture_wav(), None)
+        let err = cmd(fixture_wav(), Some("mock"))
             .run(&mut AlwaysFailWriter, OutputFormat::Md)
             .unwrap_err();
         assert!(
@@ -584,7 +587,7 @@ mod tests {
         // of FlushFailWriter they don't. The behaviour we're locking in
         // is "flush errors propagate, full stop" — not which `?` site
         // catches them first.
-        let err = cmd(fixture_wav(), None)
+        let err = cmd(fixture_wav(), Some("mock"))
             .run(&mut FlushFailWriter, OutputFormat::Jsonl)
             .unwrap_err();
         assert!(

@@ -27,7 +27,10 @@ reconcile the results into materialized notes.
 
 > **Requirements:** Apple Silicon macOS (`aarch64-apple-darwin`) only. omni-voice
 > does not build or run on Intel macs, Linux, or Windows — the build fails fast on
-> any other target. See [ADR-0041](docs/adrs/adr-0041.md).
+> any other target. See [ADR-0041](docs/adrs/adr-0041.md). The default build also
+> needs a **C++ toolchain + CMake** (it includes the `voxtral-mlx` MLX backend,
+> [ADR-0043](docs/adrs/adr-0043.md)); pass `--no-default-features` for a lighter,
+> toolchain-free build.
 
 ```bash
 # Install from crates.io
@@ -106,10 +109,16 @@ model selection, the Claude CLI sandbox and its escape hatches
 ## 🔧 Requirements
 
 - **Rust**: 1.80+ (to build or install from source)
+- **A C++ toolchain + CMake** — the default build includes the `voxtral-mlx`
+  ASR backend ([ADR-0043](docs/adrs/adr-0043.md)), which builds Apple MLX from
+  source. Use `--no-default-features` for a lighter, toolchain-free binary that
+  defaults to the `mock` backend.
 - **A microphone** for `capture` / `enroll`
 - **Model files** for real transcription — `omni-voice install-model`
-  downloads them into `~/.omni-voice/voice/models/`. The default `mock`
-  transcriber backend needs no model.
+  downloads them into `~/.omni-voice/voice/models/`. The default `voxtral-mlx`
+  backend needs the INT4 Voxtral model (`install-model --variant
+  voxtral-mlx-int4`, ~3 GB); a `--no-default-features` build defaults to `mock`
+  and needs no model.
 - **An AI backend** for `reflect` only — see
   [AI backend selection](#-ai-backend-selection) above. The other commands run
   entirely offline.

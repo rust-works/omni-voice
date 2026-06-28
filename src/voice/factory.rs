@@ -7,12 +7,13 @@
 //! 1. `opts.backend` (set by `--backend` from the CLI in #802),
 //! 2. `OMNI_VOICE_VOICE_BACKEND` (env var, with project settings.json
 //!    fallback via [`crate::utils::settings::get_env_var`]),
-//! 3. Default — `"mock"` until the real ASR backend has been through a
-//!    release cycle; pick `--backend whisper-candle` (batch) or
-//!    `--backend whisper-candle-streaming` (latency-tolerant streaming)
-//!    explicitly. See [`crate::voice::backends::candle`],
-//!    [`crate::voice::backends::candle_streaming`], ADR-0033, and
-//!    ADR-0040.
+//! 3. Default — `"voxtral-mlx"`, the headline streaming-native backend
+//!    (ADR-0042/0043), in a default build; `"mock"` under
+//!    `--no-default-features` (the toolchain-light build keeps a
+//!    dependency-free default). Override explicitly with `--backend
+//!    whisper-candle` (batch), `--backend whisper-candle-streaming`, or
+//!    `--backend parakeet-tdt`. See [`crate::voice::backends`], ADR-0043,
+//!    ADR-0042, ADR-0039, and ADR-0033.
 //!
 //! [`create_default_claude_client`]: crate::claude::client::create_default_claude_client
 
@@ -43,6 +44,28 @@ pub struct VoiceOpts {
     pub model: Option<PathBuf>,
 }
 
+/// The default backend used when neither `--backend` nor
+/// `OMNI_VOICE_VOICE_BACKEND` is set (ADR-0043): the streaming-native
+/// `voxtral-mlx` in a default build, falling back to `mock` under
+/// `--no-default-features` so the toolchain-light build keeps a working,
+/// dependency-free default.
+///
+/// Split into two `#[cfg]`-gated definitions (rather than one `cfg!(...)`
+/// runtime branch) so only the active arm is compiled — the inactive arm
+/// isn't a structurally unreachable line for coverage to flag, matching the
+/// `#[cfg]` gating used by the `voxtral-mlx` match arm below.
+#[cfg(feature = "voxtral-mlx")]
+fn default_backend_name() -> &'static str {
+    "voxtral-mlx"
+}
+
+/// `--no-default-features` fallback for [`default_backend_name`]: the
+/// toolchain-light build keeps `mock` as its dependency-free default.
+#[cfg(not(feature = "voxtral-mlx"))]
+fn default_backend_name() -> &'static str {
+    "mock"
+}
+
 /// Constructs the appropriate [`Transcriber`] given `opts` and the
 /// process environment.
 ///
@@ -54,7 +77,7 @@ pub fn create_default_transcriber(opts: &VoiceOpts) -> Result<Box<dyn Transcribe
         .backend
         .clone()
         .or_else(|| crate::utils::settings::get_env_var("OMNI_VOICE_VOICE_BACKEND").ok())
-        .unwrap_or_else(|| "mock".to_string());
+        .unwrap_or_else(|| default_backend_name().to_string());
 
     match backend.as_str() {
         "mock" => Ok(Box::new(MockTranscriber::new(
@@ -90,7 +113,7 @@ pub fn create_default_transcriber(opts: &VoiceOpts) -> Result<Box<dyn Transcribe
         }
         other => {
             bail!(
-                "unknown voice backend: {other:?} (supported: \"mock\", \"whisper-candle\", \"whisper-candle-streaming\", \"parakeet-tdt\")"
+                "unknown voice backend: {other:?} (supported: \"voxtral-mlx\", \"mock\", \"whisper-candle\", \"whisper-candle-streaming\", \"parakeet-tdt\")"
             )
         }
     }
@@ -122,8 +145,23 @@ mod tests {
             .collect()
     }
 
+    // ADR-0043: the default backend is feature-aware — `voxtral-mlx` in a
+    // default build, `mock` under `--no-default-features`.
     #[test]
-    fn default_backend_is_mock() {
+    fn default_backend_name_matches_build() {
+        #[cfg(feature = "voxtral-mlx")]
+        assert_eq!(default_backend_name(), "voxtral-mlx");
+        #[cfg(not(feature = "voxtral-mlx"))]
+        assert_eq!(default_backend_name(), "mock");
+    }
+
+    // The end-to-end "default constructs and runs" check applies to the
+    // dependency-free `mock` default only (the `--no-default-features` build);
+    // the `voxtral-mlx` default needs the ~3 GB model and is covered by its own
+    // model-gated tests.
+    #[cfg(not(feature = "voxtral-mlx"))]
+    #[test]
+    fn default_backend_constructs_mock() {
         let _g = env_guard();
         std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
         let t = create_default_transcriber(&VoiceOpts::default()).unwrap();

@@ -1,9 +1,10 @@
 //! `VoxtralMlxBackend` — the batch [`Transcriber`] over the real-time INT4 MLX
 //! port (ADR-0039).
 //!
-//! Selected by `--backend voxtral-mlx`. Compiled only with the off-by-default
-//! `voxtral-mlx` feature on macOS Apple Silicon (the whole `voxtral_mlx` module
-//! is so gated). Like [`crate::voice::backends::voxtral::VoxtralBackend`] it
+//! Selected by `--backend voxtral-mlx` (the default backend, ADR-0043). Compiled
+//! with the `voxtral-mlx` feature (default-on; opt out via `--no-default-features`)
+//! on macOS Apple Silicon (the whole `voxtral_mlx` module is so gated). Like the
+//! other batch backends (`whisper-candle`, `parakeet-tdt`) it
 //! implements the **batch** contract — drain the audio, run one offline
 //! transcription pass, emit one `Final` plus a terminal `Endpoint`. Streaming
 //! (`Partial` segmentation) lands in M3.
