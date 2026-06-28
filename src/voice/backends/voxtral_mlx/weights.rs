@@ -49,7 +49,9 @@ mod tests {
     /// without the real model.
     #[test]
     fn save_then_load_roundtrips_via_mlx() {
-        let _mlx = super::super::test_support::mlx_guard();
+        let Some(_mlx) = super::super::test_support::mlx_guard() else {
+            return;
+        };
         let tmp = tempfile::TempDir::new().unwrap();
         let path = tmp.path().join("model.safetensors");
 

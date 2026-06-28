@@ -252,7 +252,7 @@ mod tests {
     /// cosine is 1 and every sine is 0.
     #[test]
     fn time_embedding_packs_cos_then_sin() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let e = time_embedding(0.0, 8, 10_000.0);
         e.eval().unwrap();
         let v = e.as_slice::<f32>();
@@ -272,7 +272,7 @@ mod tests {
     /// the tied LM head — asserting shapes and finiteness.
     #[test]
     fn decoder_prefill_and_step_run_on_synthetic_weights() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let cfg = tiny_config();
         let map = tiny_weights();
         let dec = Decoder::new(

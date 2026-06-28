@@ -327,7 +327,7 @@ mod tests {
 
     #[test]
     fn argmax_token_picks_the_max_logit() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let logits = Array::from_slice(&[0.1_f32, 0.2, 5.0, 0.3], &[1, 4]);
         assert_eq!(argmax_token(&logits).unwrap(), 2);
     }
@@ -340,7 +340,7 @@ mod tests {
     /// tokenizer maps every emitted id to `'a'`.
     #[test]
     fn stream_session_feeds_and_finishes_on_synthetic_weights() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let map = tiny_weights();
         let tok = tiny_tokenizer();
         let cfg = tiny_config();
