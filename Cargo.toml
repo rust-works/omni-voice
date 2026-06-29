@@ -72,7 +72,7 @@ nix = { version = "0.31", default-features = false, features = ["signal"] }
 # behind the default-on `voxtral-mlx` feature. `mlx-rs` builds the MLX C++
 # core from source via CMake; the crate is already Apple-Silicon-only (ADR-0041
 # build guard), so no extra target gating is needed.
-mlx-rs = { version = "0.21", optional = true }
+mlx-rs = { version = "0.25", optional = true }
 # Tekken tokenizer vocab is base64-encoded UTF-8 bytes (voxtral-mlx only).
 base64 = { version = "0.22", optional = true }
 

@@ -77,7 +77,7 @@ impl<'a> Weights<'a> {
         let w = self
             .get(&format!("{prefix}.weight"))?
             .as_dtype(COMPUTE_DTYPE)?;
-        let wt = w.transpose(&[1, 0])?;
+        let wt = w.transpose_axes(&[1, 0])?;
         let mut y = x.matmul(&wt).map_err(|e| anyhow!("matmul {prefix}: {e}"))?;
         if bias {
             let b = self

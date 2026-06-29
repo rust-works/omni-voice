@@ -14,7 +14,7 @@
 //! generation loop is M1.4 wiring.
 
 use anyhow::{anyhow, Result};
-use mlx_rs::ops::concatenate;
+use mlx_rs::ops::concatenate_axis;
 use mlx_rs::Array;
 
 use super::config::DecoderConfig;
@@ -58,8 +58,8 @@ impl KvCache {
         let (nk, nv) = match &self.kv {
             None => (k.clone(), v.clone()),
             Some((pk, pv)) => (
-                concatenate(&[pk, k], 2).map_err(|e| anyhow!("kv k concat: {e}"))?,
-                concatenate(&[pv, v], 2).map_err(|e| anyhow!("kv v concat: {e}"))?,
+                concatenate_axis(&[pk, k], 2).map_err(|e| anyhow!("kv k concat: {e}"))?,
+                concatenate_axis(&[pv, v], 2).map_err(|e| anyhow!("kv v concat: {e}"))?,
             ),
         };
         self.kv = Some((nk.clone(), nv.clone()));
@@ -91,14 +91,14 @@ impl<'a> Decoder<'a> {
     pub fn precompute_ada_gains(&self, t_value: f32) -> Result<Vec<Array>> {
         let t_cond =
             time_embedding(t_value, self.cfg.dim, 10_000.0).reshape(&[1, self.cfg.dim as i32])?;
-        let one = Array::from_float(1.0);
+        let one = Array::from_f32(1.0);
         let mut gains = Vec::with_capacity(self.cfg.n_layers);
         for layer in 0..self.cfg.n_layers {
             let lp = format!("decoder.layers.{layer}.ada_rms_norm_t_cond");
             let down = self.w.get(&format!("{lp}.ada_down.weight"))?; // F32 [bottleneck, dim]
             let up = self.w.get(&format!("{lp}.ada_up.weight"))?; // F32 [dim, bottleneck]
-            let hidden = mlx_rs::nn::gelu(t_cond.matmul(&down.transpose(&[1, 0])?)?)?;
-            let scale = hidden.matmul(&up.transpose(&[1, 0])?)?; // [1, dim] F32
+            let hidden = mlx_rs::nn::gelu(t_cond.matmul(&down.transpose_axes(&[1, 0])?)?)?;
+            let scale = hidden.matmul(&up.transpose_axes(&[1, 0])?)?; // [1, dim] F32
             let gain = scale.add(&one)?.as_dtype(COMPUTE_DTYPE)?; // [1, dim] F16
             gains.push(gain);
         }
@@ -109,7 +109,8 @@ impl<'a> Decoder<'a> {
     pub fn embed_tokens(&self, ids: &[i32]) -> Result<Array> {
         let emb = self.w.get("decoder.tok_embeddings.weight")?;
         let idx = Array::from_slice(ids, &[ids.len() as i32]);
-        emb.take(&idx, 0).map_err(|e| anyhow!("embed take: {e}"))
+        emb.take_axis(&idx, 0)
+            .map_err(|e| anyhow!("embed take: {e}"))
     }
 
     /// One layer's GQA attention (no biases). `start_pos` is the RoPE offset / the
@@ -132,9 +133,15 @@ impl<'a> Decoder<'a> {
         let v = self.w.qlinear(x, &format!("{prefix}.wv"), false)?;
 
         // [seq, h*hd] -> [1, h, seq, hd]
-        let q = q.reshape(&[1, seq, nh, hd])?.transpose(&[0, 2, 1, 3])?;
-        let k = k.reshape(&[1, seq, nkv, hd])?.transpose(&[0, 2, 1, 3])?;
-        let v = v.reshape(&[1, seq, nkv, hd])?.transpose(&[0, 2, 1, 3])?;
+        let q = q
+            .reshape(&[1, seq, nh, hd])?
+            .transpose_axes(&[0, 2, 1, 3])?;
+        let k = k
+            .reshape(&[1, seq, nkv, hd])?
+            .transpose_axes(&[0, 2, 1, 3])?;
+        let v = v
+            .reshape(&[1, seq, nkv, hd])?
+            .transpose_axes(&[0, 2, 1, 3])?;
 
         let theta = self.cfg.rope_theta;
         let q = mlx_rs::fast::rope(&q, hd, true, theta, 1.0, start_pos, None)?;
@@ -150,11 +157,19 @@ impl<'a> Decoder<'a> {
             None
         };
         let scale = 1.0 / (self.cfg.head_dim as f32).sqrt();
-        let out =
-            mlx_rs::fast::scaled_dot_product_attention(&q, &k, &v, scale, mask.as_ref(), None)
-                .map_err(|e| anyhow!("decoder sdpa layer {layer}: {e}"))?;
+        let out = mlx_rs::fast::scaled_dot_product_attention(
+            &q,
+            &k,
+            &v,
+            scale,
+            mask.as_ref()
+                .map(mlx_rs::fast::ScaledDotProductAttentionMask::from),
+        )
+        .map_err(|e| anyhow!("decoder sdpa layer {layer}: {e}"))?;
 
-        let out = out.transpose(&[0, 2, 1, 3])?.reshape(&[seq, nh * hd])?;
+        let out = out
+            .transpose_axes(&[0, 2, 1, 3])?
+            .reshape(&[seq, nh * hd])?;
         self.w.qlinear(&out, &format!("{prefix}.wo"), false)
     }
 
@@ -218,7 +233,7 @@ impl<'a> Decoder<'a> {
             .w
             .get("decoder.tok_embeddings.weight")?
             .as_dtype(COMPUTE_DTYPE)?;
-        h.matmul(&emb.transpose(&[1, 0])?)
+        h.matmul(&emb.transpose_axes(&[1, 0])?)
             .map_err(|e| anyhow!("logits matmul: {e}"))
     }
 }

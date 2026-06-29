@@ -16,7 +16,7 @@
 //! cache (`encode_chunks`) lands with streaming (M3).
 
 use anyhow::{anyhow, bail, Result};
-use mlx_rs::ops::concatenate;
+use mlx_rs::ops::concatenate_axis;
 use mlx_rs::ops::indexing::IndexOp;
 use mlx_rs::Array;
 
@@ -45,7 +45,7 @@ impl<'a> AudioEncoder<'a> {
             let shape = x.shape();
             let zeros =
                 mlx_rs::ops::zeros::<f32>(&[shape[0], pad, shape[2]])?.as_dtype(COMPUTE_DTYPE)?;
-            concatenate(&[zeros, x.clone()], 1).map_err(|e| anyhow!("pad {prefix}: {e}"))?
+            concatenate_axis(&[zeros, x.clone()], 1).map_err(|e| anyhow!("pad {prefix}: {e}"))?
         } else {
             x.clone()
         };
@@ -68,14 +68,14 @@ impl<'a> AudioEncoder<'a> {
     pub fn conv_stem(&self, mel: &Array) -> Result<Array> {
         // mel.T[None] : [128, frames] -> [1, frames, 128]
         let x = mel
-            .transpose(&[1, 0])?
-            .expand_dims(&[0])?
+            .transpose_axes(&[1, 0])?
+            .expand_dims_axes(&[0])?
             .as_dtype(COMPUTE_DTYPE)?;
         let x =
             mlx_rs::nn::gelu(self.causal_conv1d(&x, "encoder.conv_layers_0_conv.conv", 3, 1)?)?;
         let x =
             mlx_rs::nn::gelu(self.causal_conv1d(&x, "encoder.conv_layers_1_conv.conv", 3, 2)?)?;
-        let x = x.squeeze(&[0i32][..])?; // [seq, 1280]
+        let x = x.squeeze_axes(&[0i32][..])?; // [seq, 1280]
 
         let seq = x.shape()[0];
         let trunc = seq % self.cfg.downsample_factor as i32;
@@ -114,7 +114,8 @@ impl<'a> AudioEncoder<'a> {
 
         // [seq, nh*hd] -> [1, nh, seq, hd]
         let to_heads = |t: &Array| -> Result<Array> {
-            Ok(t.reshape(&[1, seq, nh, hd])?.transpose(&[0, 2, 1, 3])?)
+            Ok(t.reshape(&[1, seq, nh, hd])?
+                .transpose_axes(&[0, 2, 1, 3])?)
         };
         let q = to_heads(&q)?;
         let k = to_heads(&k)?;
@@ -129,17 +130,21 @@ impl<'a> AudioEncoder<'a> {
         let (ck, cv) = match prev_kv {
             None => (k.clone(), v.clone()),
             Some((pk, pv)) => (
-                concatenate(&[pk, &k], 2).map_err(|e| anyhow!("kv k concat layer {layer}: {e}"))?,
-                concatenate(&[pv, &v], 2).map_err(|e| anyhow!("kv v concat layer {layer}: {e}"))?,
+                concatenate_axis(&[pk, &k], 2)
+                    .map_err(|e| anyhow!("kv k concat layer {layer}: {e}"))?,
+                concatenate_axis(&[pv, &v], 2)
+                    .map_err(|e| anyhow!("kv v concat layer {layer}: {e}"))?,
             ),
         };
 
         let scale = 1.0 / (self.cfg.head_dim as f32).sqrt();
-        let out = mlx_rs::fast::scaled_dot_product_attention(&q, &ck, &cv, scale, mask, None)
+        let out = mlx_rs::fast::scaled_dot_product_attention(&q, &ck, &cv, scale, mask)
             .map_err(|e| anyhow!("sdpa layer {layer}: {e}"))?;
 
         // [1, nh, seq, hd] -> [seq, nh*hd]
-        let out = out.transpose(&[0, 2, 1, 3])?.reshape(&[seq, nh * hd])?;
+        let out = out
+            .transpose_axes(&[0, 2, 1, 3])?
+            .reshape(&[seq, nh * hd])?;
         let out = self.w.qlinear(&out, &format!("{prefix}.wo"), true)?;
         Ok((out, (k, v)))
     }
@@ -282,7 +287,8 @@ impl<'a> AudioEncoder<'a> {
         }
 
         let refs: Vec<&Array> = chunk_outputs.iter().collect();
-        let encoded = concatenate(&refs, 0).map_err(|e| anyhow!("concat chunk outputs: {e}"))?;
+        let encoded =
+            concatenate_axis(&refs, 0).map_err(|e| anyhow!("concat chunk outputs: {e}"))?;
         self.downsample_and_project(&encoded)
     }
 
@@ -338,13 +344,14 @@ impl<'a> AudioEncoder<'a> {
             if keep > 0 {
                 let pad = mlx_rs::ops::zeros::<f32>(&[keep, x_new.shape()[1]])?
                     .as_dtype(COMPUTE_DTYPE)?;
-                concatenate(&[&pad, x_new], 0).map_err(|e| anyhow!("conv pad {prefix}: {e}"))?
+                concatenate_axis(&[&pad, x_new], 0)
+                    .map_err(|e| anyhow!("conv pad {prefix}: {e}"))?
             } else {
                 x_new.clone()
             }
         } else {
             match &st.state {
-                Some(s) => concatenate(&[s, x_new], 0)
+                Some(s) => concatenate_axis(&[s, x_new], 0)
                     .map_err(|e| anyhow!("conv state concat {prefix}: {e}"))?,
                 None => x_new.clone(),
             }
@@ -356,13 +363,13 @@ impl<'a> AudioEncoder<'a> {
             return Ok(mlx_rs::ops::zeros::<f32>(&[0, c_out])?.as_dtype(COMPUTE_DTYPE)?);
         }
 
-        let out = mlx_rs::ops::conv1d(&context.expand_dims(&[0])?, &weight, stride, 0, 1, 1)
+        let out = mlx_rs::ops::conv1d(&context.expand_dims_axes(&[0])?, &weight, stride, 0, 1, 1)
             .map_err(|e| anyhow!("stream conv1d {prefix}: {e}"))?;
         let bias = self
             .w
             .get(&format!("{prefix}.bias"))?
             .as_dtype(COMPUTE_DTYPE)?;
-        let out = out.add(&bias)?.squeeze(&[0i32][..])?; // [n_out, C_out]
+        let out = out.add(&bias)?.squeeze_axes(&[0i32][..])?; // [n_out, C_out]
         let n_out = out.shape()[0];
 
         if keep > 0 {
@@ -432,16 +439,16 @@ impl<'a> AudioEncoder<'a> {
             let (mut nk, mut nv) = match slot.take() {
                 None => (k, v),
                 Some((pk, pv)) => (
-                    concatenate(&[&pk, &k], 2).map_err(|e| anyhow!("enc kv k: {e}"))?,
-                    concatenate(&[&pv, &v], 2).map_err(|e| anyhow!("enc kv v: {e}"))?,
+                    concatenate_axis(&[&pk, &k], 2).map_err(|e| anyhow!("enc kv k: {e}"))?,
+                    concatenate_axis(&[&pv, &v], 2).map_err(|e| anyhow!("enc kv v: {e}"))?,
                 ),
             };
             let t = nk.shape()[2];
             if t as usize > sw {
                 let idx: Vec<i32> = ((t - sw as i32)..t).collect();
                 let idx = Array::from_slice(&idx, &[sw as i32]);
-                nk = nk.take(&idx, 2)?;
-                nv = nv.take(&idx, 2)?;
+                nk = nk.take_axis(&idx, 2)?;
+                nv = nv.take_axis(&idx, 2)?;
             }
             *slot = Some((nk, nv));
         }
@@ -556,7 +563,7 @@ mod tests {
             .unwrap()
             .abs()
             .unwrap()
-            .max(None, None)
+            .max(None)
             .unwrap();
         max_abs.eval().unwrap();
         assert!(
@@ -708,7 +715,7 @@ mod tests {
             .unwrap()
             .abs()
             .unwrap()
-            .max(None, None)
+            .max(None)
             .unwrap();
         diff.eval().unwrap();
         let max_abs = diff.item::<f32>();
