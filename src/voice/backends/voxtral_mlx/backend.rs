@@ -262,7 +262,7 @@ mod tests {
     /// short-circuit, matching the other backends).
     #[test]
     fn transcribe_empty_audio_emits_only_endpoint() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let events = collect(&tiny_backend(), Vec::new());
         assert_eq!(events.len(), 1);
         assert!(matches!(
@@ -278,7 +278,7 @@ mod tests {
     /// followed by the terminal `Endpoint`.
     #[test]
     fn transcribe_audio_emits_final_then_endpoint() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         // ~1.5 s exceeds the prompt length, so the decoder produces tokens.
         let events = collect(&tiny_backend(), vec![1000_i16; 24_000]);
         assert!(matches!(
@@ -310,7 +310,7 @@ mod tests {
         use crate::voice::STREAM_CHUNK_SAMPLES;
         use futures::StreamExt;
 
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let backend = tiny_backend();
         // ~1.5 s of in-memory audio replayed as fast as possible (no pacing).
         let audio =

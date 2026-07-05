@@ -201,6 +201,14 @@ location under `~/.omni-voice/voice/models/<variant>/`. Idempotent: if every
 required file is already present and non-empty, it reports "model already
 installed" and exits without re-downloading.
 
+When bytes will actually be transferred, the command first prints the source
+URL and expected size and prompts `Proceed? [y/N]` on stdin. Each downloaded
+file's integrity is then verified against HuggingFace's content hash (or the
+release asset's pinned SHA-256), so a corrupt or truncated download fails
+loudly instead of installing silently. On a non-interactive stdin (a pipe or
+CI) the command refuses rather than blocking; pass `--accept-downloads` or set
+`OMNI_VOICE_AUTO_DOWNLOAD=true` to proceed.
+
 ```text
 omni-voice install-model [OPTIONS]
 ```
@@ -210,13 +218,18 @@ omni-voice install-model [OPTIONS]
 | `--variant <VARIANT>` | `whisper-tiny.en` | Which model to install: `whisper-tiny.en` (for the `whisper-candle` ASR backend) or `speaker-wespeaker-en` (for speaker embedding). |
 | `--dest <DEST>` | variant's canonical location | Override the install directory. |
 | `--force` | off | Re-download even if all required files are already present. |
+| `--accept-downloads` | off | Skip the confirmation prompt and proceed with the download. Also bypassable via `OMNI_VOICE_AUTO_DOWNLOAD=true`. |
 
 ```bash
-# Install the Whisper ASR model (the default variant).
+# Install the Whisper ASR model (the default variant). Prompts before download.
 omni-voice install-model
 
 # Install the speaker-embedding model used by enroll / --speaker.
 omni-voice install-model --variant speaker-wespeaker-en
+
+# Non-interactive (CI): accept the download without prompting.
+omni-voice install-model --accept-downloads
+# …or: OMNI_VOICE_AUTO_DOWNLOAD=true omni-voice install-model
 ```
 
 ### `enroll`

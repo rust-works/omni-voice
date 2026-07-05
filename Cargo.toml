@@ -44,6 +44,10 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 dirs = "6.0.0"
 url = "2.5.8"
 sha2 = "0.11"
+# git blob SHA-1 OID verification for small non-LFS HuggingFace files in
+# `install-model` (large LFS weights verify via SHA-256). Pinned to the same
+# RustCrypto `digest 0.11` line as `sha2`.
+sha1 = "0.11"
 cpal = "0.18"
 rubato = "3.0"
 hound = "3.5"

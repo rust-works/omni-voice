@@ -287,7 +287,7 @@ mod tests {
     /// Tekken decode. The synthetic tokenizer maps every emitted id to `'a'`.
     #[test]
     fn transcribe_runs_end_to_end_on_synthetic_weights() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let cfg = tiny_config();
         let model = VoxtralMlxModel::from_parts(
             tiny_weights(),
@@ -307,7 +307,7 @@ mod tests {
     /// the model's parts.
     #[test]
     fn set_delay_then_build_stream_session() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let cfg = tiny_config();
         let mut model = VoxtralMlxModel::from_parts(
             tiny_weights(),

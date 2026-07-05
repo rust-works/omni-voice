@@ -15,7 +15,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use std::collections::HashMap;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use mlx_rs::ops::quantize;
 use mlx_rs::Array;
@@ -36,13 +36,58 @@ const BITS: i32 = 4;
 /// the same reason.)
 static MLX_LOCK: Mutex<()> = Mutex::new(());
 
-/// Acquires the process-global MLX lock for the calling test. Bind it for the
-/// whole test body: `let _mlx = mlx_guard();`. Recovers from poisoning so one
-/// failing test does not cascade into spurious failures.
-pub(crate) fn mlx_guard() -> MutexGuard<'static, ()> {
-    MLX_LOCK
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
+/// Acquires the process-global MLX lock for the calling test, or returns
+/// `None` when MLX tests are disabled on this machine (see [`mlx_available`] —
+/// e.g. under CI) so the caller can skip cleanly. Bind it for the whole
+/// test body with let-else:
+///
+/// ```ignore
+/// let Some(_mlx) = mlx_guard() else { return };
+/// ```
+///
+/// Recovers from poisoning so one failing test does not cascade into spurious
+/// failures.
+pub(crate) fn mlx_guard() -> Option<MutexGuard<'static, ()>> {
+    if !mlx_available() {
+        return None;
+    }
+    Some(
+        MLX_LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner),
+    )
+}
+
+/// Whether MLX-backed unit tests should run on this machine.
+///
+/// MLX drives the process-global Metal device, and on GitHub's macOS CI runners
+/// those evaluations are unreliable in two distinct, *uncatchable* ways: some
+/// runners (mid macOS-26 migration) reject the Metal-Shading-Language-4.0
+/// metallib outright (`This library is using language version 4.0 …`), and
+/// others abort part-way through a run with an uncaught C++ exception
+/// (`libc++abi: terminating`). Both terminate the whole test process with
+/// SIGABRT, so no in-process probe or `catch_unwind` can recover — the only
+/// reliable defence is to not run these tests in CI.
+///
+/// omni-voice is Apple-Silicon-only (ADR-0041), so any real dev machine has a
+/// capable GPU and runs the full MLX suite via `cargo test` / `scripts/build.sh`
+/// pre-merge, and the model-gated integration tests cover end-to-end
+/// correctness against the real weights locally. Returns `false` — skip — under
+/// CI (the `CI` env var GitHub Actions sets) or when `OMNI_VOICE_SKIP_MLX_TESTS`
+/// is set to force a skip locally. Cached for the run.
+pub(crate) fn mlx_available() -> bool {
+    static AVAILABLE: OnceLock<bool> = OnceLock::new();
+    *AVAILABLE.get_or_init(|| !skip_mlx_tests())
+}
+
+/// True when MLX tests should be skipped: explicitly via
+/// `OMNI_VOICE_SKIP_MLX_TESTS`, or implicitly under CI (`CI` set to a truthy
+/// value, as GitHub Actions does).
+fn skip_mlx_tests() -> bool {
+    if std::env::var_os("OMNI_VOICE_SKIP_MLX_TESTS").is_some() {
+        return true;
+    }
+    std::env::var("CI").is_ok_and(|v| !matches!(v.as_str(), "" | "false" | "0"))
 }
 
 /// A tiny model config (dim 64, one layer each, vocab 64) usable end-to-end.

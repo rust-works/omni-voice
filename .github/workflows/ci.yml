@@ -30,11 +30,23 @@ jobs:
         components: rustfmt
     - uses: Swatinem/rust-cache@v2
     - name: Run tests
+      # Run with --no-default-features so the `voxtral-mlx` default feature (and
+      # its `mlx-sys`/MLX dependency) is excluded from these jobs. MLX drives the
+      # Metal GPU, and GitHub's macos-latest runners (mid macOS-26 migration)
+      # intermittently abort the whole test process (SIGABRT / "libc++abi:
+      # terminating" or "language version 4.0 ... not supported") when Metal
+      # kernels run on an incompatible runner — uncatchable, so it flakes
+      # per-runner. Excluding the feature means no Metal code is linked or run
+      # here. The default (voxtral-mlx) build is still compile-checked by Clippy
+      # and exercised by the Coverage job (--all-features), where the model-free
+      # MLX unit tests skip via `mlx_available()` (CI gate). The candle Metal
+      # tests are model-gated (#[ignore]) and never run in CI either way. Full
+      # MLX coverage runs locally on Apple Silicon via `scripts/build.sh`.
       run: |
         if [ -z "${{ matrix.features }}" ]; then
-          cargo test --verbose
+          cargo test --no-default-features --verbose
         else
-          cargo test --features "${{ matrix.features }}" --verbose
+          cargo test --no-default-features --features "${{ matrix.features }}" --verbose
         fi
 
   fmt:

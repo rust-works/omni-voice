@@ -55,10 +55,13 @@ variant is `whisper-tiny.en`:
 omni-voice install-model
 ```
 
-The files land in `~/.omni-voice/voice/models/whisper-tiny.en/`. The command
-is idempotent — re-running it prints "model already installed" unless you
-pass `--force`. To install the speaker-embedding model used by `enroll`
-instead, pass `--variant speaker-wespeaker-en`.
+It prints the source and size and prompts before downloading; the bytes are
+integrity-checked on the way in. The files land in
+`~/.omni-voice/voice/models/whisper-tiny.en/`. The command is idempotent —
+re-running it prints "model already installed" unless you pass `--force`. To
+install the speaker-embedding model used by `enroll` instead, pass
+`--variant speaker-wespeaker-en`. For non-interactive use (CI), pass
+`--accept-downloads` or set `OMNI_VOICE_AUTO_DOWNLOAD=true`.
 
 ## 3. Capture audio
 

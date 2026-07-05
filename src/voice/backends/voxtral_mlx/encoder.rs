@@ -519,7 +519,7 @@ mod tests {
     /// factor: 12 mel frames → 6 conv frames (stride-2) → trunc to 4 (÷4).
     #[test]
     fn conv_stem_truncates_to_downsample_multiple() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let map = tiny_weights();
         let enc = tiny_encoder(&map);
         let conv = enc.conv_stem(&synth(128, 12)).unwrap();
@@ -532,7 +532,7 @@ mod tests {
     /// attention) — the M1.2 / M3 paths on synthetic INT4 weights.
     #[test]
     fn encode_full_and_chunked_agree_on_synthetic_weights() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let cfg = tiny_config();
         let map = tiny_weights();
         let enc = tiny_encoder(&map);
@@ -575,7 +575,7 @@ mod tests {
     /// must route through the chunked path).
     #[test]
     fn encode_full_rejects_input_past_cap() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let map = tiny_weights();
         let enc = tiny_encoder(&map);
         let over =
@@ -589,7 +589,7 @@ mod tests {
     /// remainder.
     #[test]
     fn project_downsampled_handles_full_and_empty_groups() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let map = tiny_weights();
         let enc = tiny_encoder(&map);
 
@@ -608,7 +608,7 @@ mod tests {
     /// without the real model.
     #[test]
     fn streaming_conv_stem_and_encode_run_on_synthetic_weights() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let cfg = tiny_config();
         let map = tiny_weights();
         let enc = tiny_encoder(&map);

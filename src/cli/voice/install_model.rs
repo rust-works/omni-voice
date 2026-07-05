@@ -11,13 +11,14 @@
 //! enrol time, so network failures surface explicitly when the user opts
 //! in to installing rather than silently on first use.
 
-use std::io::Write;
+use std::io::{BufRead, IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::{Parser, ValueEnum};
 use hf_hub::{api::sync::ApiBuilder, Repo, RepoType};
+use sha1::Sha1;
 use sha2::{Digest, Sha256};
 
 use crate::voice::models::{
@@ -68,8 +69,12 @@ impl Variant {
 /// `--dest` to override).
 ///
 /// Idempotent: if every required file is already present and non-empty,
-/// the command prints a "model already installed" line and exits 0. Pass
-/// `--force` to re-download anyway.
+/// the command prints a "model already installed" line and exits 0 *without*
+/// prompting. Pass `--force` to re-download anyway.
+///
+/// When bytes will actually be transferred, the command first prints the
+/// source URL and expected size and prompts for confirmation on stdin (#14).
+/// Bypass the prompt with `--accept-downloads` or `OMNI_VOICE_AUTO_DOWNLOAD=true`.
 #[derive(Parser)]
 pub struct InstallModelCommand {
     /// Override the install directory. Defaults to the variant's
@@ -81,6 +86,12 @@ pub struct InstallModelCommand {
     #[arg(long)]
     pub force: bool,
 
+    /// Proceed with downloads without the interactive confirmation prompt.
+    /// Also bypassable via `OMNI_VOICE_AUTO_DOWNLOAD=true` for
+    /// non-interactive automation (CI).
+    #[arg(long)]
+    pub accept_downloads: bool,
+
     /// Which model variant to install. Defaults to `whisper-tiny.en`.
     #[arg(long, value_enum, default_value_t = Variant::WhisperTinyEn)]
     pub variant: Variant,
@@ -89,15 +100,21 @@ pub struct InstallModelCommand {
 impl InstallModelCommand {
     /// Entry point. Writes user-facing progress to stderr so stdout stays
     /// reserved for machine-readable output (parity with `voice
-    /// transcribe`'s JSONL pipe-detection convention).
+    /// transcribe`'s JSONL pipe-detection convention). Resolves tty-ness and
+    /// locks stdin/stderr here, keeping the prompt plumbing out of the
+    /// testable core.
     pub fn execute(self) -> Result<()> {
+        let stdin = std::io::stdin();
+        let is_tty = stdin.is_terminal();
+        let mut reader = stdin.lock();
         let mut err = std::io::stderr().lock();
-        self.run(&mut err)
+        self.run(&mut reader, is_tty, &mut err)
     }
 
-    /// Writer-generic core, parameterised over stderr so tests can drive
-    /// the success/idempotency paths without touching the global stream.
-    fn run<W: Write>(self, w: &mut W) -> Result<()> {
+    /// Reader/writer-generic core, parameterised over stdin + stderr and an
+    /// explicit `is_tty` flag so tests can drive the prompt, idempotency, and
+    /// success paths without touching the global streams.
+    fn run<R: BufRead, W: Write>(self, stdin: &mut R, is_tty: bool, w: &mut W) -> Result<()> {
         let spec = self.variant.spec();
         let dest = match self.dest {
             Some(p) => p,
@@ -106,9 +123,19 @@ impl InstallModelCommand {
                 .ok_or_else(|| anyhow!("could not determine home directory; pass --dest <path>"))?,
         };
 
+        // Idempotent skip never prompts — no bytes will be transferred.
         if !self.force && all_present(spec, &dest) {
             writeln!(w, "model already installed at {}", dest.display())?;
             return Ok(());
+        }
+
+        // Bytes will be transferred: gate on explicit consent (#14).
+        match confirm_downloads(spec, &dest, self.accept_downloads, stdin, is_tty, w)? {
+            Consent::Proceed => {}
+            Consent::Declined => {
+                writeln!(w, "Aborted.")?;
+                return Ok(());
+            }
         }
 
         // Parakeet has a different upstream file set than the install
@@ -127,6 +154,71 @@ impl InstallModelCommand {
                 download_release_asset(spec, url, sha256, bytes, &dest, w)
             }
         }
+    }
+}
+
+/// Outcome of the pre-download confirmation gate.
+#[derive(Debug, PartialEq, Eq)]
+enum Consent {
+    Proceed,
+    Declined,
+}
+
+/// Environment override that bypasses the download confirmation prompt for
+/// non-interactive automation. Truthy values: `true` / `1`.
+const AUTO_DOWNLOAD_ENV: &str = "OMNI_VOICE_AUTO_DOWNLOAD";
+
+fn auto_download_env() -> bool {
+    std::env::var(AUTO_DOWNLOAD_ENV)
+        .is_ok_and(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "true" | "1"))
+}
+
+/// Confirms a model download before any bytes transfer.
+///
+/// Returns [`Consent::Proceed`] when `--accept-downloads` or
+/// `OMNI_VOICE_AUTO_DOWNLOAD` bypasses the prompt, or when the user answers
+/// yes at an interactive prompt; [`Consent::Declined`] on any other answer.
+/// Prints the source URL and expected size first. When stdin is **not** a
+/// terminal and no bypass was given, it bails loudly (pointing at the flag
+/// and env var) rather than blocking forever on `read_line`.
+fn confirm_downloads<R: BufRead, W: Write>(
+    spec: &ModelSpec,
+    dest: &Path,
+    accept_downloads: bool,
+    stdin: &mut R,
+    is_tty: bool,
+    w: &mut W,
+) -> Result<Consent> {
+    if accept_downloads || auto_download_env() {
+        return Ok(Consent::Proceed);
+    }
+
+    let (url, size) = spec.download_summary();
+    writeln!(
+        w,
+        "About to download the {} model ({size}) from:",
+        spec.kind_label
+    )?;
+    writeln!(w, "  {url}")?;
+    writeln!(w, "  into {}", dest.display())?;
+
+    if !is_tty {
+        bail!(
+            "refusing to download without confirmation on a non-interactive stdin; \
+             pass --accept-downloads or set {AUTO_DOWNLOAD_ENV}=true"
+        );
+    }
+
+    write!(w, "Proceed? [y/N] ")?;
+    w.flush()?;
+    let mut line = String::new();
+    stdin
+        .read_line(&mut line)
+        .context("read confirmation from stdin")?;
+    if matches!(line.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
+        Ok(Consent::Proceed)
+    } else {
+        Ok(Consent::Declined)
     }
 }
 
@@ -193,6 +285,8 @@ fn install_parakeet<W: Write>(spec: &ModelSpec, dest: &Path, w: &mut W) -> Resul
                  Check your network or set HTTPS_PROXY"
             )
         })?;
+        let note = verify_hub_download(&downloaded)
+            .with_context(|| format!("verify integrity of downloaded {file}"))?;
         let target = dest.join(file);
         atomic_install_copy(&downloaded, &target).with_context(|| {
             format!(
@@ -203,7 +297,7 @@ fn install_parakeet<W: Write>(spec: &ModelSpec, dest: &Path, w: &mut W) -> Resul
         let bytes = std::fs::metadata(&target).map_or(0, |m| m.len());
         writeln!(
             w,
-            "done ({bytes} bytes in {:.1}s)",
+            "done ({bytes} bytes in {:.1}s; {note})",
             start.elapsed().as_secs_f64()
         )?;
     }
@@ -413,6 +507,10 @@ fn download_hf_hub<W: Write>(
                  Check your network or set HTTPS_PROXY"
             )
         })?;
+        // Verify integrity against hf-hub's own content identity *before*
+        // installing, so a corrupt/truncated download never lands at `dest`.
+        let note = verify_hub_download(&downloaded)
+            .with_context(|| format!("verify integrity of downloaded {file}"))?;
         let target = dest.join(file);
         atomic_install_copy(&downloaded, &target).with_context(|| {
             format!(
@@ -423,7 +521,7 @@ fn download_hf_hub<W: Write>(
         let bytes = std::fs::metadata(&target).map_or(0, |m| m.len());
         writeln!(
             w,
-            "done ({bytes} bytes in {:.1}s)",
+            "done ({bytes} bytes in {:.1}s; {note})",
             start.elapsed().as_secs_f64()
         )?;
     }
@@ -435,6 +533,120 @@ fn download_hf_hub<W: Write>(
         dest.display()
     )?;
     Ok(())
+}
+
+/// Verifies an hf-hub-cached file against the integrity hash hf-hub stored
+/// it under. hf-hub writes each file to `blobs/<etag>` and symlinks the
+/// snapshot path to it, where the etag is the file's HuggingFace content
+/// identity: the **SHA-256** LFS OID for large (LFS) files — the only place a
+/// silent bad install could ship subtly-wrong weights — and the **git blob
+/// SHA-1** for small non-LFS files (`config.json`, `tekken.json`, …).
+///
+/// Returns a short status note for the caller's progress line. Hashes are
+/// computed streaming (64 KiB chunks) so a multi-GB weight file is never read
+/// into memory. Mirrors the bail-on-mismatch contract of
+/// [`download_release_asset`].
+///
+/// If the recovered blob name is neither a SHA-256 nor a git-SHA-1 hex string
+/// (e.g. hf-hub symlinks disabled, or a hub mock with a synthetic etag),
+/// verification degrades to a skip rather than failing — the strong guarantee
+/// covers every real hub blob, which is content-addressed by one of the two.
+fn verify_hub_download(cached: &Path) -> Result<&'static str> {
+    let blob = std::fs::canonicalize(cached)
+        .with_context(|| format!("resolve hf-hub cache blob for {}", cached.display()))?;
+    let etag = blob
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default();
+    if is_sha256_hex(etag) {
+        let got = sha256_file(&blob)
+            .with_context(|| format!("hash {} for SHA-256 verification", blob.display()))?;
+        if !got.eq_ignore_ascii_case(etag) {
+            bail!(
+                "SHA-256 mismatch for {}: expected {etag}, got {got}",
+                cached.display()
+            );
+        }
+        Ok("sha256 verified")
+    } else if is_git_sha1_hex(etag) {
+        let got = git_blob_sha1_file(&blob)
+            .with_context(|| format!("hash {} for git SHA-1 verification", blob.display()))?;
+        if !got.eq_ignore_ascii_case(etag) {
+            bail!(
+                "git SHA-1 mismatch for {}: expected {etag}, got {got}",
+                cached.display()
+            );
+        }
+        Ok("git-sha1 verified")
+    } else {
+        Ok("integrity check skipped")
+    }
+}
+
+fn is_sha256_hex(s: &str) -> bool {
+    s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+fn is_git_sha1_hex(s: &str) -> bool {
+    s.len() == 40 && s.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+/// Lowercase hex of a finalised RustCrypto digest.
+fn hex_digest(digest: impl AsRef<[u8]>) -> String {
+    let digest = digest.as_ref();
+    let mut hex = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        use std::fmt::Write as _;
+        // `write!` into a `String` is infallible.
+        let _ = write!(&mut hex, "{byte:02x}");
+    }
+    hex
+}
+
+/// SHA-256 of an in-memory buffer (hex).
+fn sha256_hex(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    hex_digest(hasher.finalize())
+}
+
+/// Streaming SHA-256 of a file's contents (hex).
+fn sha256_file(path: &Path) -> Result<String> {
+    let mut file = std::fs::File::open(path).with_context(|| format!("open {}", path.display()))?;
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 64 * 1024];
+    loop {
+        let n = file
+            .read(&mut buf)
+            .with_context(|| format!("read {}", path.display()))?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+    Ok(hex_digest(hasher.finalize()))
+}
+
+/// Streaming git blob SHA-1 (`sha1("blob {len}\0" + content)`) of a file —
+/// the OID HuggingFace reports as the etag for small, non-LFS files.
+fn git_blob_sha1_file(path: &Path) -> Result<String> {
+    let len = std::fs::metadata(path)
+        .with_context(|| format!("stat {}", path.display()))?
+        .len();
+    let mut file = std::fs::File::open(path).with_context(|| format!("open {}", path.display()))?;
+    let mut hasher = Sha1::new();
+    hasher.update(format!("blob {len}\0").as_bytes());
+    let mut buf = [0u8; 64 * 1024];
+    loop {
+        let n = file
+            .read(&mut buf)
+            .with_context(|| format!("read {}", path.display()))?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+    Ok(hex_digest(hasher.finalize()))
 }
 
 fn download_release_asset<W: Write>(
@@ -495,18 +707,7 @@ fn download_release_asset<W: Write>(
         .read_to_vec()
         .with_context(|| format!("read response body for {url}"))?;
 
-    let actual_sha = {
-        let mut hasher = Sha256::new();
-        hasher.update(&bytes);
-        let digest = hasher.finalize();
-        let mut hex = String::with_capacity(digest.len() * 2);
-        for byte in digest {
-            use std::fmt::Write as _;
-            // `write!` into a `String` is infallible.
-            let _ = write!(&mut hex, "{byte:02x}");
-        }
-        hex
-    };
+    let actual_sha = sha256_hex(&bytes);
     if !actual_sha.eq_ignore_ascii_case(expected_sha256) {
         bail!("SHA-256 mismatch for {file_name}: expected {expected_sha256}, got {actual_sha}");
     }
@@ -612,10 +813,11 @@ mod tests {
         let cmd = InstallModelCommand {
             dest: Some(tmp.path().to_path_buf()),
             force: false,
+            accept_downloads: false,
             variant: Variant::WhisperTinyEn,
         };
         let mut out: Vec<u8> = Vec::new();
-        cmd.run(&mut out).unwrap();
+        cmd.run(&mut std::io::empty(), false, &mut out).unwrap();
         let msg = String::from_utf8(out).unwrap();
         assert!(msg.contains("already installed"), "got: {msg}");
     }
@@ -628,10 +830,11 @@ mod tests {
         let cmd = InstallModelCommand {
             dest: Some(tmp.path().to_path_buf()),
             force: false,
+            accept_downloads: false,
             variant: Variant::SpeakerWespeakerEn,
         };
         let mut out: Vec<u8> = Vec::new();
-        cmd.run(&mut out).unwrap();
+        cmd.run(&mut std::io::empty(), false, &mut out).unwrap();
         let msg = String::from_utf8(out).unwrap();
         assert!(msg.contains("already installed"), "got: {msg}");
     }
@@ -680,6 +883,39 @@ mod tests {
     }
 
     #[test]
+    fn sha256_file_matches_in_memory_hash() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let p = tmp.path().join("f");
+        std::fs::write(&p, b"weights-bytes").unwrap();
+        assert_eq!(sha256_file(&p).unwrap(), sha256_hex(b"weights-bytes"));
+    }
+
+    #[test]
+    fn git_blob_sha1_matches_git_hash_object() {
+        // Reference value from `printf 'test content\n' | git hash-object --stdin`
+        // (the Pro Git book example): blob OID for the 13-byte content.
+        let tmp = tempfile::TempDir::new().unwrap();
+        let p = tmp.path().join("f");
+        std::fs::write(&p, b"test content\n").unwrap();
+        assert_eq!(
+            git_blob_sha1_file(&p).unwrap(),
+            "d670460b4b4aece5915caf5c68d12f560a9fe3e4"
+        );
+    }
+
+    #[test]
+    fn is_hex_helpers_classify_by_length() {
+        assert!(is_sha256_hex(&"a".repeat(64)));
+        assert!(!is_sha256_hex(&"a".repeat(40)));
+        assert!(is_git_sha1_hex(&"a".repeat(40)));
+        assert!(!is_git_sha1_hex(&"a".repeat(64)));
+        // hf-hub mock etags like "etag-config.json" classify as neither,
+        // so verification degrades to a skip.
+        assert!(!is_sha256_hex("etag-config.json"));
+        assert!(!is_git_sha1_hex("etag-config.json"));
+    }
+
+    #[test]
     fn parses_no_args() {
         #[derive(Parser)]
         struct T {
@@ -702,6 +938,19 @@ mod tests {
         let t = T::try_parse_from(["test", "--dest", "/opt/x", "--force"]).unwrap();
         assert_eq!(t.c.dest.as_deref(), Some(Path::new("/opt/x")));
         assert!(t.c.force);
+    }
+
+    #[test]
+    fn parses_accept_downloads() {
+        #[derive(Parser)]
+        struct T {
+            #[command(flatten)]
+            c: InstallModelCommand,
+        }
+        let default = T::try_parse_from(["test"]).unwrap();
+        assert!(!default.c.accept_downloads);
+        let t = T::try_parse_from(["test", "--accept-downloads"]).unwrap();
+        assert!(t.c.accept_downloads);
     }
 
     #[test]
@@ -755,10 +1004,11 @@ mod tests {
         let cmd = InstallModelCommand {
             dest: None,
             force: false,
+            accept_downloads: false,
             variant: Variant::WhisperTinyEn,
         };
         let mut out: Vec<u8> = Vec::new();
-        let result = cmd.run(&mut out);
+        let result = cmd.run(&mut std::io::empty(), false, &mut out);
 
         match prev_home {
             Some(v) => std::env::set_var("HOME", v),
@@ -787,10 +1037,11 @@ mod tests {
         let cmd = InstallModelCommand {
             dest: None,
             force: false,
+            accept_downloads: false,
             variant: Variant::SpeakerWespeakerEn,
         };
         let mut out: Vec<u8> = Vec::new();
-        let result = cmd.run(&mut out);
+        let result = cmd.run(&mut std::io::empty(), false, &mut out);
 
         match prev_home {
             Some(v) => std::env::set_var("HOME", v),
@@ -826,6 +1077,139 @@ mod tests {
         );
     }
 
+    // ── Download confirmation gate (#14) ─────────────────────────────────
+
+    #[test]
+    fn confirm_proceeds_with_accept_flag() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut out: Vec<u8> = Vec::new();
+        // `is_tty=false` must not matter once the flag bypasses the prompt.
+        let outcome = confirm_downloads(
+            &WHISPER_TINY_EN,
+            tmp.path(),
+            true,
+            &mut std::io::empty(),
+            false,
+            &mut out,
+        )
+        .unwrap();
+        assert_eq!(outcome, Consent::Proceed);
+        assert!(out.is_empty(), "accepted download should not prompt");
+    }
+
+    #[test]
+    fn confirm_proceeds_with_env_var() {
+        let _g = env_guard();
+        let prev = std::env::var_os(AUTO_DOWNLOAD_ENV);
+        std::env::set_var(AUTO_DOWNLOAD_ENV, "true");
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut out: Vec<u8> = Vec::new();
+        let outcome = confirm_downloads(
+            &WHISPER_TINY_EN,
+            tmp.path(),
+            false,
+            &mut std::io::empty(),
+            false,
+            &mut out,
+        );
+        match prev {
+            Some(v) => std::env::set_var(AUTO_DOWNLOAD_ENV, v),
+            None => std::env::remove_var(AUTO_DOWNLOAD_ENV),
+        }
+        assert_eq!(outcome.unwrap(), Consent::Proceed);
+    }
+
+    #[test]
+    fn confirm_prompts_and_proceeds_on_yes() {
+        let _g = env_guard();
+        std::env::remove_var(AUTO_DOWNLOAD_ENV);
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut reader = std::io::Cursor::new(b"y\n".to_vec());
+        let mut out: Vec<u8> = Vec::new();
+        let outcome = confirm_downloads(
+            &WHISPER_TINY_EN,
+            tmp.path(),
+            false,
+            &mut reader,
+            true,
+            &mut out,
+        )
+        .unwrap();
+        assert_eq!(outcome, Consent::Proceed);
+        let msg = String::from_utf8(out).unwrap();
+        assert!(msg.contains("About to download"), "got: {msg}");
+        assert!(
+            msg.contains("huggingface.co/openai/whisper-tiny.en"),
+            "summary must show the source URL, got: {msg}"
+        );
+        assert!(msg.contains("Proceed? [y/N]"), "got: {msg}");
+    }
+
+    #[test]
+    fn confirm_declines_on_no() {
+        let _g = env_guard();
+        std::env::remove_var(AUTO_DOWNLOAD_ENV);
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut reader = std::io::Cursor::new(b"n\n".to_vec());
+        let mut out: Vec<u8> = Vec::new();
+        let outcome = confirm_downloads(
+            &WHISPER_TINY_EN,
+            tmp.path(),
+            false,
+            &mut reader,
+            true,
+            &mut out,
+        )
+        .unwrap();
+        assert_eq!(outcome, Consent::Declined);
+    }
+
+    #[test]
+    fn confirm_bails_on_non_tty_without_bypass() {
+        let _g = env_guard();
+        std::env::remove_var(AUTO_DOWNLOAD_ENV);
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut out: Vec<u8> = Vec::new();
+        let err = confirm_downloads(
+            &WHISPER_TINY_EN,
+            tmp.path(),
+            false,
+            &mut std::io::empty(),
+            false,
+            &mut out,
+        )
+        .unwrap_err();
+        let msg = format!("{err:#}");
+        assert!(msg.contains("--accept-downloads"), "got: {msg}");
+        assert!(msg.contains(AUTO_DOWNLOAD_ENV), "got: {msg}");
+    }
+
+    #[test]
+    fn run_aborts_on_declined_prompt_without_downloading() {
+        // Not idempotent (dest is empty) so the gate fires; declining must
+        // print "Aborted.", touch the network/filesystem not at all, and
+        // still exit Ok.
+        let _g = env_guard();
+        std::env::remove_var(AUTO_DOWNLOAD_ENV);
+        let tmp = tempfile::TempDir::new().unwrap();
+        let dest = tmp.path().join("models");
+        let cmd = InstallModelCommand {
+            dest: Some(dest.clone()),
+            force: false,
+            accept_downloads: false,
+            variant: Variant::WhisperTinyEn,
+        };
+        let mut reader = std::io::Cursor::new(b"n\n".to_vec());
+        let mut out: Vec<u8> = Vec::new();
+        cmd.run(&mut reader, true, &mut out).unwrap();
+        let msg = String::from_utf8(out).unwrap();
+        assert!(msg.contains("Aborted."), "got: {msg}");
+        assert!(
+            !dest.join("config.json").exists(),
+            "declined download must not install anything"
+        );
+    }
+
     // ── Download paths (hermetic, via wiremock) ──────────────────────────
     //
     // These cover the network-touching functions that used to be exercised
@@ -838,27 +1222,25 @@ mod tests {
     use wiremock::matchers::{method, path_regex};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    fn sha256_hex(bytes: &[u8]) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(bytes);
-        let digest = hasher.finalize();
-        let mut hex = String::with_capacity(digest.len() * 2);
-        for byte in digest {
-            use std::fmt::Write as _;
-            let _ = write!(&mut hex, "{byte:02x}");
-        }
-        hex
-    }
-
     /// Mounts a mock that satisfies both hf-hub requests for `file`: the
     /// metadata probe (`Range: bytes=0-0`, reads `etag` / `x-repo-commit` /
     /// `Content-Range` headers) and the actual download (reads the body).
+    ///
+    /// The etag is set to the body's real SHA-256 so hf-hub names the cache
+    /// blob by that hash — exercising `verify_hub_download`'s LFS path on the
+    /// happy path. (Real hub LFS files are content-addressed identically.)
     async fn mount_hub_file(server: &MockServer, file: &str, body: &[u8]) {
+        mount_hub_file_with_etag(server, file, body, &sha256_hex(body)).await;
+    }
+
+    /// As [`mount_hub_file`] but with an explicit `etag`, so a test can serve
+    /// a blob whose stored hash disagrees with its bytes (corruption).
+    async fn mount_hub_file_with_etag(server: &MockServer, file: &str, body: &[u8], etag: &str) {
         Mock::given(method("GET"))
             .and(path_regex(format!(r"/{}$", regex_escape(file))))
             .respond_with(
                 ResponseTemplate::new(200)
-                    .insert_header("etag", format!("etag-{file}").as_str())
+                    .insert_header("etag", etag)
                     .insert_header("x-repo-commit", "0123456789abcdef")
                     .insert_header(
                         "content-range",
@@ -925,9 +1307,10 @@ mod tests {
                 let cmd = InstallModelCommand {
                     dest: Some(dest.path().to_path_buf()),
                     force: false,
+                    accept_downloads: true,
                     variant: Variant::WhisperTinyEn,
                 };
-                cmd.run(&mut out).unwrap();
+                cmd.run(&mut std::io::empty(), false, &mut out).unwrap();
             });
             (out, dest)
         })
@@ -940,6 +1323,47 @@ mod tests {
         }
         let msg = String::from_utf8(out).unwrap();
         assert!(msg.contains("Whisper model installed at"), "got: {msg}");
+        // Each file's etag is its real SHA-256, so the LFS integrity path
+        // runs and reports success for every fetched file.
+        assert_eq!(
+            msg.matches("sha256 verified").count(),
+            files.len(),
+            "every fetched file should be sha256-verified; got: {msg}"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn download_hf_hub_rejects_corrupt_file() {
+        // The hub reports a (valid-shaped) SHA-256 etag that disagrees with
+        // the body it serves — the corruption hf-hub itself would not catch.
+        // `verify_hub_download` must bail and leave nothing installed.
+        let server = MockServer::start().await;
+        let body: &[u8] = b"weights-bytes";
+        let wrong_sha = "0".repeat(64);
+        mount_hub_file_with_etag(&server, "config.json", body, &wrong_sha).await;
+
+        let endpoint = server.uri();
+        let (err, dest) = tokio::task::spawn_blocking(move || {
+            let hf_home = tempfile::TempDir::new().unwrap();
+            let dest = tempfile::TempDir::new().unwrap();
+            let mut out: Vec<u8> = Vec::new();
+            let err = with_hf_env(&endpoint, hf_home.path(), || {
+                download_hf_hub(&WHISPER_TINY_EN, "test/repo", "main", dest.path(), &mut out)
+                    .unwrap_err()
+            });
+            (err, dest)
+        })
+        .await
+        .unwrap();
+
+        assert!(
+            format!("{err:#}").contains("SHA-256 mismatch"),
+            "got: {err:#}"
+        );
+        assert!(
+            !dest.path().join("config.json").exists(),
+            "corrupt download must not be installed"
+        );
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -1272,9 +1696,10 @@ mod tests {
                     let cmd = InstallModelCommand {
                         dest: Some(dest.path().to_path_buf()),
                         force: false,
+                        accept_downloads: true,
                         variant: Variant::ParakeetTdt06bV2,
                     };
-                    cmd.run(&mut out).unwrap();
+                    cmd.run(&mut std::io::empty(), false, &mut out).unwrap();
                 });
             });
             (out, dest)
@@ -1329,9 +1754,10 @@ mod tests {
                     let cmd = InstallModelCommand {
                         dest: Some(dest.path().to_path_buf()),
                         force: false,
+                        accept_downloads: true,
                         variant: Variant::ParakeetTdt06bV2,
                     };
-                    cmd.run(&mut out).unwrap_err()
+                    cmd.run(&mut std::io::empty(), false, &mut out).unwrap_err()
                 })
             })
         })

@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn chunk_mask_first_chunk_is_plain_causal() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         // prev_len = 0 → query i attends keys j ≤ i (chunk_len ≤ window).
         let g = attends(&chunk_window_mask(4, 0, 750).unwrap(), 4, 4);
         for (i, row) in g.iter().enumerate() {
@@ -187,7 +187,7 @@ mod tests {
 
     #[test]
     fn chunk_mask_windows_across_the_boundary() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         // window = 3, prev_len = 3 (combined cols = 3 + chunk_len). Query i
         // (abs i) attends combined key j (abs j-3) iff i-3 < j-3 ≤ i, i.e.
         // i < j ≤ i+3.
@@ -211,7 +211,7 @@ mod tests {
     /// Metal without the real model.
     #[test]
     fn weights_primitives_run_on_metal() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let cfg = tiny_config();
         let map = tiny_weights();
         let weights = Weights::new(&map, cfg.quant.group_size, cfg.quant.bits);
@@ -255,7 +255,7 @@ mod tests {
     /// A missing affine bias surfaces as an error rather than a panic.
     #[test]
     fn qlinear_missing_bias_errors() {
-        let _mlx = mlx_guard();
+        let Some(_mlx) = mlx_guard() else { return };
         let cfg = tiny_config();
         let map = tiny_weights();
         let w = Weights::new(&map, cfg.quant.group_size, cfg.quant.bits);
