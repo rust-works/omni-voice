@@ -616,6 +616,7 @@ mod tests {
     #[test]
     fn human_bytes_scales_units() {
         assert_eq!(human_bytes(512), "512 B");
+        assert_eq!(human_bytes(2_048), "2 KB");
         assert_eq!(human_bytes(26_530_550), "25 MB");
         assert_eq!(human_bytes(2_400_000_000), "2.2 GB");
     }

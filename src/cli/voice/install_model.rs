@@ -1366,6 +1366,113 @@ mod tests {
         );
     }
 
+    /// Git blob SHA-1 (40-hex) of `body` — the OID HuggingFace reports as the
+    /// etag for small, non-LFS files, driving `verify_hub_download`'s git-SHA-1
+    /// branch.
+    fn git_blob_sha1_of(body: &[u8]) -> String {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let p = tmp.path().join("blob");
+        std::fs::write(&p, body).unwrap();
+        git_blob_sha1_file(&p).unwrap()
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn download_hf_hub_verifies_git_sha1_etags() {
+        // Small non-LFS files carry a git blob SHA-1 etag (40 hex), so
+        // `verify_hub_download` takes the git-SHA-1 path and reports
+        // "git-sha1 verified" for each.
+        let server = MockServer::start().await;
+        let files: &[(&str, &[u8])] = &[
+            ("config.json", b"{\"cfg\":1}"),
+            ("tokenizer.json", b"{\"tok\":2}"),
+            ("model.safetensors", b"weights-bytes"),
+        ];
+        for (file, body) in files {
+            mount_hub_file_with_etag(&server, file, body, &git_blob_sha1_of(body)).await;
+        }
+        let endpoint = server.uri();
+        let out = tokio::task::spawn_blocking(move || {
+            let hf_home = tempfile::TempDir::new().unwrap();
+            let dest = tempfile::TempDir::new().unwrap();
+            let mut out: Vec<u8> = Vec::new();
+            with_hf_env(&endpoint, hf_home.path(), || {
+                download_hf_hub(&WHISPER_TINY_EN, "test/repo", "main", dest.path(), &mut out)
+                    .unwrap();
+            });
+            out
+        })
+        .await
+        .unwrap();
+        let msg = String::from_utf8(out).unwrap();
+        assert_eq!(
+            msg.matches("git-sha1 verified").count(),
+            files.len(),
+            "every non-LFS file should be git-sha1-verified; got: {msg}"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn download_hf_hub_rejects_git_sha1_mismatch() {
+        // A (valid-shaped) 40-hex git-OID etag that disagrees with the body
+        // must bail on the git-SHA-1 path, like the SHA-256 path.
+        let server = MockServer::start().await;
+        let wrong = "0".repeat(40);
+        mount_hub_file_with_etag(&server, "config.json", b"body-bytes", &wrong).await;
+        let endpoint = server.uri();
+        let err = tokio::task::spawn_blocking(move || {
+            let hf_home = tempfile::TempDir::new().unwrap();
+            let dest = tempfile::TempDir::new().unwrap();
+            let mut out: Vec<u8> = Vec::new();
+            with_hf_env(&endpoint, hf_home.path(), || {
+                download_hf_hub(&WHISPER_TINY_EN, "test/repo", "main", dest.path(), &mut out)
+                    .unwrap_err()
+            })
+        })
+        .await
+        .unwrap();
+        assert!(
+            format!("{err:#}").contains("git SHA-1 mismatch"),
+            "got: {err:#}"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn download_hf_hub_skips_unrecognised_etag() {
+        // An etag that is neither a SHA-256 nor a git SHA-1 (e.g. an opaque
+        // validator, or hf-hub symlinks disabled) degrades to a skip rather
+        // than a failure, and the file still installs.
+        let server = MockServer::start().await;
+        let files: &[(&str, &[u8])] = &[
+            ("config.json", b"{\"cfg\":1}"),
+            ("tokenizer.json", b"{\"tok\":2}"),
+            ("model.safetensors", b"weights-bytes"),
+        ];
+        for (file, body) in files {
+            mount_hub_file_with_etag(&server, file, body, &format!("opaque-{file}")).await;
+        }
+        let endpoint = server.uri();
+        let (out, dest) = tokio::task::spawn_blocking(move || {
+            let hf_home = tempfile::TempDir::new().unwrap();
+            let dest = tempfile::TempDir::new().unwrap();
+            let mut out: Vec<u8> = Vec::new();
+            with_hf_env(&endpoint, hf_home.path(), || {
+                download_hf_hub(&WHISPER_TINY_EN, "test/repo", "main", dest.path(), &mut out)
+                    .unwrap();
+            });
+            (out, dest)
+        })
+        .await
+        .unwrap();
+        let msg = String::from_utf8(out).unwrap();
+        assert!(
+            msg.contains("integrity check skipped"),
+            "unrecognised etag should skip verification; got: {msg}"
+        );
+        for (file, _) in files {
+            assert!(dest.path().join(file).is_file(), "{file} should install");
+        }
+    }
+
     #[tokio::test(flavor = "multi_thread")]
     async fn download_hf_hub_error_names_failing_file() {
         // No mocks mounted: every request 404s, so the first required
