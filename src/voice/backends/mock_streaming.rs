@@ -278,4 +278,35 @@ mod tests {
             }
         ));
     }
+
+    #[test]
+    fn default_script_has_two_segments_with_a_silence_gap() {
+        let script = MockStreamingTranscriber::default_script();
+        assert_eq!(script.len(), 2);
+        assert!(script[0].text.starts_with("[mock listen]"));
+        // The second utterance starts after the first ends — a silence gap.
+        assert!(script[1].start > script[0].end);
+    }
+
+    #[tokio::test]
+    async fn new_with_default_script_emits_expected_shape() {
+        // The production `new` constructor (real-entropy ULIDs) driving the
+        // default script over ≥5 s of audio.
+        let backend = MockStreamingTranscriber::new(MockStreamingTranscriber::default_script());
+        let input = FileAsyncAudioInput::from_samples(vec![0_i16; 16_000 * 6], 1_600, false);
+        let events: Vec<TranscriptEvent> = backend
+            .transcribe_stream(Box::new(input))
+            .map(Result::unwrap)
+            .collect()
+            .await;
+        // 2 segments × (Partial, Final, SilenceGap) + terminal StreamEnd.
+        assert_eq!(events.len(), 7, "got: {events:#?}");
+        assert!(matches!(
+            events.last().unwrap(),
+            TranscriptEvent::Endpoint {
+                kind: EndpointKind::StreamEnd,
+                ..
+            }
+        ));
+    }
 }

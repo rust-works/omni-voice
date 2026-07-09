@@ -327,6 +327,80 @@ mod tests {
     }
 
     #[test]
+    fn pump_flushes_resampler_tail_at_source_end() {
+        // 48 kHz needs the (non-identity) resampler. 5000 input frames = one
+        // 4096-frame chunk processed during push + a buffered remainder that
+        // is only emitted by the end-of-source flush — the path identity-rate
+        // tests never exercise.
+        let source = FileAudioSource::from_samples(vec![0.25_f32; 5_000], 48_000, 1, 5_000);
+        let (tx, mut rx) = audio_channel(64);
+        let result = pump_source(source, &tx, &flag(false)).unwrap();
+        assert_eq!(result.reason, PumpReason::SourceEnded);
+        assert!(
+            result.delivered > 0,
+            "push should deliver at least one chunk"
+        );
+        let mut got = 0usize;
+        while let Ok(chunk) = rx.try_recv() {
+            got += chunk.len();
+        }
+        // ~5000 * 16000/48000 ≈ 1666 samples once the flush tail is included.
+        assert!(got > 1_000, "flush tail should be included, got {got}");
+    }
+
+    /// [`AudioSource`] wrapper that flips a shutdown flag after returning
+    /// `after_chunks` chunks, so the pump's shutdown branch fires while the
+    /// resampler still holds buffered (48 kHz) input to flush.
+    struct FlipShutdownAfter {
+        inner: FileAudioSource,
+        flag: Arc<AtomicBool>,
+        after_chunks: u32,
+        seen: u32,
+    }
+
+    impl AudioSource for FlipShutdownAfter {
+        fn next_chunk(&mut self) -> Option<Vec<f32>> {
+            let chunk = self.inner.next_chunk();
+            if chunk.is_some() {
+                self.seen += 1;
+                if self.seen >= self.after_chunks {
+                    self.flag.store(true, Ordering::Relaxed);
+                }
+            }
+            chunk
+        }
+        fn sample_rate(&self) -> u32 {
+            self.inner.sample_rate()
+        }
+        fn channels(&self) -> u16 {
+            self.inner.channels()
+        }
+    }
+
+    #[test]
+    fn pump_flushes_tail_on_shutdown() {
+        let flag = flag(false);
+        // One 2000-frame chunk (< the 4096-frame resampler chunk) buffers with
+        // no push output; the flag then flips, so the next loop iteration hits
+        // the shutdown branch and flushes the buffered tail.
+        let inner = FileAudioSource::from_samples(vec![0.3_f32; 48_000], 48_000, 1, 2_000);
+        let source = FlipShutdownAfter {
+            inner,
+            flag: Arc::clone(&flag),
+            after_chunks: 1,
+            seen: 0,
+        };
+        let (tx, mut rx) = audio_channel(64);
+        let result = pump_source(source, &tx, &flag).unwrap();
+        assert_eq!(result.reason, PumpReason::SourceEnded);
+        let mut got = 0usize;
+        while let Ok(chunk) = rx.try_recv() {
+            got += chunk.len();
+        }
+        assert!(got > 0, "shutdown flush should emit the buffered tail");
+    }
+
+    #[test]
     fn backoff_doubles_then_caps_then_gives_up() {
         let mut b = Backoff::new(Duration::from_millis(100), Duration::from_secs(5), 20);
         assert_eq!(b.next_delay(), Some(Duration::from_millis(100)));

@@ -349,4 +349,79 @@ mod tests {
         );
         assert!(msg.contains("install-model"), "got: {msg}");
     }
+
+    // ── create_default_streaming_transcriber (voice listen, #8) ─────
+
+    #[test]
+    fn streaming_factory_mock_backend_constructs() {
+        let _g = env_guard();
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+        let opts = VoiceOpts {
+            backend: Some("mock".to_string()),
+            model: None,
+        };
+        assert!(create_default_streaming_transcriber(&opts).is_ok());
+    }
+
+    #[test]
+    fn streaming_factory_rejects_batch_only_backends() {
+        let _g = env_guard();
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+        for backend in ["whisper-candle", "whisper-candle-streaming", "parakeet-tdt"] {
+            let opts = VoiceOpts {
+                backend: Some(backend.to_string()),
+                model: None,
+            };
+            let Err(err) = create_default_streaming_transcriber(&opts) else {
+                panic!("expected {backend:?} to be rejected for streaming");
+            };
+            let msg = err.to_string();
+            assert!(msg.contains(backend), "got: {msg}");
+            assert!(msg.contains("does not support streaming"), "got: {msg}");
+            assert!(msg.contains("voxtral-mlx"), "got: {msg}");
+        }
+    }
+
+    #[test]
+    fn streaming_factory_unknown_backend_errors() {
+        let _g = env_guard();
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+        let opts = VoiceOpts {
+            backend: Some("klingon".to_string()),
+            model: None,
+        };
+        let Err(err) = create_default_streaming_transcriber(&opts) else {
+            panic!("expected unknown streaming backend to error");
+        };
+        let msg = err.to_string();
+        assert!(msg.contains("klingon"), "got: {msg}");
+        assert!(msg.contains("streaming backends"), "got: {msg}");
+    }
+
+    #[test]
+    fn streaming_factory_honours_env_backend() {
+        let _g = env_guard();
+        std::env::set_var("OMNI_VOICE_VOICE_BACKEND", "mock");
+        // No explicit backend → falls through to the env var.
+        assert!(create_default_streaming_transcriber(&VoiceOpts::default()).is_ok());
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+    }
+
+    #[cfg(not(feature = "voxtral-mlx"))]
+    #[test]
+    fn streaming_factory_voxtral_requires_feature() {
+        let _g = env_guard();
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+        let opts = VoiceOpts {
+            backend: Some("voxtral-mlx".to_string()),
+            model: None,
+        };
+        let Err(err) = create_default_streaming_transcriber(&opts) else {
+            panic!("expected voxtral-mlx to require its feature under --no-default-features");
+        };
+        assert!(
+            err.to_string().contains("--features voxtral-mlx"),
+            "got: {err}"
+        );
+    }
 }

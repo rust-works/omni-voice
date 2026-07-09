@@ -22,7 +22,7 @@ pub mod log;
 pub mod scheduler;
 pub mod supervisor;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -100,6 +100,21 @@ fn default_ai_factory() -> AiClientFactory {
 /// until the stream ends, the idle-after budget elapses, or Ctrl-C is
 /// pressed. Blocks (async) until the session finishes.
 pub async fn run_listen(opts: ListenOptions) -> Result<ListenSummary> {
+    let shutdown = install_ctrl_c_handler().context("installing Ctrl-C handler")?;
+    run_listen_with(opts, default_ai_factory(), None, shutdown).await
+}
+
+/// Testable core of [`run_listen`]: the AI factory, the session-root
+/// override, and the shutdown flag are injected, so a test can drive the
+/// whole runner over a `--audio-file` WAV replay with a mock AI backend
+/// under a temp root — no microphone, no signals, no network. `run_listen`
+/// supplies the production defaults.
+async fn run_listen_with(
+    opts: ListenOptions,
+    ai_factory: AiClientFactory,
+    session_root_override: Option<PathBuf>,
+    shutdown: Arc<AtomicBool>,
+) -> Result<ListenSummary> {
     let voice_opts = VoiceOpts {
         backend: opts.backend.clone(),
         model: None,
@@ -111,22 +126,23 @@ pub async fn run_listen(opts: ListenOptions) -> Result<ListenSummary> {
         .clone()
         .unwrap_or_else(|| "default".to_string());
 
-    let shutdown = install_ctrl_c_handler().context("installing Ctrl-C handler")?;
+    let root = session_root_override.as_deref();
     write_log_line(
+        root,
         &opts.session_id,
         &log::session_start_line(&Utc::now().to_rfc3339(), &opts.session_id, &backend_label),
     );
 
     let scheduler = ListenScheduler::new(
         opts.session_id.clone(),
-        None,
+        session_root_override.clone(),
         SchedulerConfig {
             trigger: opts.trigger.clone(),
             idle_after: opts.idle_after,
             spawn_reflections: true,
             ..SchedulerConfig::default()
         },
-        default_ai_factory(),
+        ai_factory,
     );
 
     // Source the audio: a mic-free WAV replay, or the live cpal supervisor.
@@ -159,6 +175,7 @@ pub async fn run_listen(opts: ListenOptions) -> Result<ListenSummary> {
 
     let summary = summary?;
     write_log_line(
+        root,
         &opts.session_id,
         &log::session_stop_line(
             &Utc::now().to_rfc3339(),
@@ -199,9 +216,14 @@ fn stop_reason_label(reason: StopReason) -> &'static str {
 
 /// Best-effort append of a listen status line to the session's
 /// `reflections.log`. Never fails the session — a log write is not
-/// load-bearing.
-fn write_log_line(session_id: &str, line: &str) {
-    let Ok(session) = session::open_or_create(session_id) else {
+/// load-bearing. `root` mirrors the scheduler's session-root override so
+/// both write to the same place.
+fn write_log_line(root: Option<&Path>, session_id: &str, line: &str) {
+    let opened = match root {
+        Some(r) => session::open_or_create_under(r, session_id),
+        None => session::open_or_create(session_id),
+    };
+    let Ok(session) = opened else {
         return;
     };
     if let Err(e) = session.append_log(line) {
@@ -392,5 +414,230 @@ mod tests {
         let summary = scheduler.run(stream, shutdown).await.unwrap();
         assert_eq!(summary.stopped_by, StopReason::Idle);
         assert_eq!(summary.reflections_fired, 0, "a lone Partial fires nothing");
+    }
+
+    /// Spawn mode (the production concurrency path): reflections run via
+    /// `tokio::spawn` and are reaped between events, rather than inline.
+    #[tokio::test]
+    async fn listen_spawn_mode_reflects_and_persists() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let root = tmp.path().to_path_buf();
+        let script = vec![
+            seg("first utterance here", 0, 2),
+            seg("second utterance here", 3, 5),
+            seg("third utterance here", 6, 8),
+        ];
+        let transcriber = Box::new(MockStreamingTranscriber::with_rng_factory(
+            script,
+            Arc::new(|| Box::new(CountingUlidRng::new())),
+        ));
+        let input = FileAsyncAudioInput::from_samples(vec![0_i16; 16_000 * 9], 1_600, false);
+        let scheduler = ListenScheduler::new(
+            "spawn".to_string(),
+            Some(root.clone()),
+            SchedulerConfig {
+                trigger: TriggerConfig {
+                    word_delta: 1,
+                    min_interval: Duration::ZERO,
+                    ..TriggerConfig::default()
+                },
+                idle_after: Duration::ZERO,
+                tick: Duration::from_millis(20),
+                spawn_reflections: true,
+            },
+            counting_ai_factory(),
+        );
+        let shutdown = Arc::new(AtomicBool::new(false));
+        let summary = run_core(input, transcriber, scheduler, shutdown)
+            .await
+            .unwrap();
+        assert_eq!(summary.stopped_by, StopReason::StreamEnd);
+        assert!(summary.reflections_fired >= 1);
+        // Spawn+collapse may merge fires, but every final is persisted and at
+        // least one reflection lands on disk.
+        let sess = session::open_or_create_under(&root, "spawn").unwrap();
+        assert_eq!(
+            session::read_transcript_finals_after(&sess.paths.transcript, None)
+                .unwrap()
+                .len(),
+            3
+        );
+        assert!(!sess.read_events().unwrap().is_empty());
+    }
+
+    /// A transcription-stream error is logged and skipped — it must not end
+    /// the session or panic.
+    #[tokio::test]
+    async fn stream_error_is_logged_and_skipped() {
+        use crate::voice::transcriber::{EndpointKind, TranscriptEvent, TranscriptEventStream};
+        use futures::stream;
+
+        let tmp = tempfile::TempDir::new().unwrap();
+        let root = tmp.path().to_path_buf();
+        let events: Vec<Result<TranscriptEvent>> = vec![
+            Ok(TranscriptEvent::Final {
+                event_id: ulid::Ulid::from_parts(0, 1),
+                text: "kept".to_string(),
+                start: Duration::ZERO,
+                end: Duration::from_millis(500),
+                confidence: 1.0,
+                words: None,
+                speaker: None,
+                revisable: true,
+            }),
+            Err(anyhow::anyhow!("simulated decode error")),
+            Ok(TranscriptEvent::Endpoint {
+                at: Duration::from_secs(1),
+                kind: EndpointKind::StreamEnd,
+            }),
+        ];
+        let stream: TranscriptEventStream = Box::pin(stream::iter(events));
+        let scheduler = ListenScheduler::new(
+            "streamerr".to_string(),
+            Some(root.clone()),
+            SchedulerConfig {
+                trigger: TriggerConfig {
+                    word_delta: 1,
+                    min_interval: Duration::ZERO,
+                    ..TriggerConfig::default()
+                },
+                spawn_reflections: false,
+                tick: Duration::from_millis(20),
+                idle_after: Duration::ZERO,
+            },
+            counting_ai_factory(),
+        );
+        let summary = scheduler
+            .run(stream, Arc::new(AtomicBool::new(false)))
+            .await
+            .unwrap();
+        assert_eq!(summary.stopped_by, StopReason::StreamEnd);
+        assert!(summary.reflections_fired >= 1, "the kept final reflects");
+    }
+
+    /// The wall-clock silence-gap trigger fires from the tick branch when no
+    /// events arrive but finalized content is pending.
+    #[tokio::test]
+    async fn silence_gap_in_tick_fires_reflection() {
+        use crate::voice::transcriber::{TranscriptEvent, TranscriptEventStream};
+        use futures::stream::{self, StreamExt};
+
+        let tmp = tempfile::TempDir::new().unwrap();
+        let root = tmp.path().to_path_buf();
+        // One Final (pending content), then silence forever.
+        let fin = TranscriptEvent::Final {
+            event_id: ulid::Ulid::from_parts(0, 1),
+            text: "remember this".to_string(),
+            start: Duration::ZERO,
+            end: Duration::from_millis(500),
+            confidence: 1.0,
+            words: None,
+            speaker: None,
+            revisable: true,
+        };
+        let stream: TranscriptEventStream =
+            Box::pin(stream::once(async move { Ok(fin) }).chain(stream::pending()));
+        let scheduler = ListenScheduler::new(
+            "silence".to_string(),
+            Some(root),
+            SchedulerConfig {
+                trigger: TriggerConfig {
+                    // Only the silence gap should fire (not word-delta).
+                    silence_gap: Duration::from_millis(40),
+                    word_delta: 10_000,
+                    max_interval: Duration::from_secs(600),
+                    min_interval: Duration::ZERO,
+                },
+                idle_after: Duration::from_millis(400),
+                tick: Duration::from_millis(20),
+                spawn_reflections: false,
+            },
+            counting_ai_factory(),
+        );
+        let summary = scheduler
+            .run(stream, Arc::new(AtomicBool::new(false)))
+            .await
+            .unwrap();
+        assert_eq!(summary.stopped_by, StopReason::Idle);
+        assert!(
+            summary.reflections_fired >= 1,
+            "silence gap should fire a reflection before the idle timeout"
+        );
+    }
+
+    /// Writes a 16 kHz mono i16 WAV of `samples` silent frames.
+    fn write_silence_wav(path: &Path, samples: usize) {
+        let spec = hound::WavSpec {
+            channels: 1,
+            sample_rate: 16_000,
+            bits_per_sample: 16,
+            sample_format: hound::SampleFormat::Int,
+        };
+        let mut w = hound::WavWriter::create(path, spec).unwrap();
+        for _ in 0..samples {
+            w.write_sample(0_i16).unwrap();
+        }
+        w.finalize().unwrap();
+    }
+
+    /// Drives the full production runner (`run_listen_with`) over a
+    /// `--audio-file` WAV replay with a mock AI backend under a temp root —
+    /// the whole path minus the microphone and real credentials.
+    #[tokio::test]
+    async fn run_listen_with_replays_audio_file_and_persists() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let root = tmp.path().join("voice-root");
+        let wav = tmp.path().join("in.wav");
+        // 3 s of audio: the default mock script's first segment (ends at 2 s)
+        // emits during replay, the second flushes at stream end.
+        write_silence_wav(&wav, 16_000 * 3);
+
+        let mut opts = ListenOptions::new("filerun");
+        opts.backend = Some("mock".to_string());
+        opts.audio_file = Some(wav);
+        opts.trigger.word_delta = 1;
+        opts.trigger.min_interval = Duration::ZERO;
+
+        let summary = run_listen_with(
+            opts,
+            counting_ai_factory(),
+            Some(root.clone()),
+            Arc::new(AtomicBool::new(false)),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(summary.stopped_by, StopReason::StreamEnd);
+        assert!(summary.reflections_fired >= 1);
+
+        // Persisted under the override root, with start/stop bookend log lines.
+        let sess = session::open_or_create_under(&root, "filerun").unwrap();
+        assert!(!sess.read_events().unwrap().is_empty());
+        let log = std::fs::read_to_string(&sess.paths.log).unwrap();
+        assert!(
+            log.contains("listen start session=filerun backend=mock"),
+            "{log}"
+        );
+        assert!(log.contains("listen stop reason=stream-end"), "{log}");
+    }
+
+    #[tokio::test]
+    async fn run_listen_with_bad_audio_file_fails_fast() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut opts = ListenOptions::new("bad");
+        opts.backend = Some("mock".to_string());
+        opts.audio_file = Some(PathBuf::from("/no/such/file.wav"));
+        let err = run_listen_with(
+            opts,
+            counting_ai_factory(),
+            Some(tmp.path().to_path_buf()),
+            Arc::new(AtomicBool::new(false)),
+        )
+        .await
+        .unwrap_err();
+        assert!(
+            format!("{err:#}").contains("--audio-file"),
+            "expected an --audio-file context, got: {err:#}"
+        );
     }
 }

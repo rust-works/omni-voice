@@ -600,6 +600,31 @@ mod tests {
     }
 
     #[test]
+    fn append_transcript_empty_slice_is_noop() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("transcript.jsonl");
+        append_transcript(&path, &[]).unwrap();
+        assert!(!path.exists(), "empty append should not create the file");
+    }
+
+    #[test]
+    fn append_then_read_transcript_round_trips() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("transcript.jsonl");
+        append_transcript(&path, &[make_final(1, "a")]).unwrap();
+        append_transcript(&path, &[make_final(2, "b")]).unwrap();
+        let back = read_transcript(&path).unwrap();
+        assert_eq!(back.len(), 2);
+        match (&back[0], &back[1]) {
+            (TranscriptEvent::Final { text: t0, .. }, TranscriptEvent::Final { text: t1, .. }) => {
+                assert_eq!(t0, "a");
+                assert_eq!(t1, "b");
+            }
+            other => panic!("expected two Finals, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn read_transcript_skips_blank_lines() {
         let tmp = TempDir::new().unwrap();
         let path = tmp.path().join("transcript.jsonl");
