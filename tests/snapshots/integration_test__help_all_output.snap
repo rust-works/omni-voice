@@ -12,6 +12,7 @@ Commands:
   capture        Captures audio from a microphone to a 16 kHz mono WAV file
   transcribe     Transcribes a 16 kHz mono WAV file to JSONL or markdown
   reflect        Reflects on a transcript and emits reflection events
+  listen         Listens on a live microphone, transcribing and reflecting continuously
   review         Reconciles a session's events.jsonl into materialized markdown
   install-model  Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-voice/voice/models/<variant>/`
   enroll         Captures a microphone sample and persists a speaker embedding to `~/.omni-voice/voice/speakers/<name>.json`
@@ -109,6 +110,35 @@ Options:
       --accept-downloads   Proceed with downloads without the interactive confirmation prompt. Also bypassable via `OMNI_VOICE_AUTO_DOWNLOAD=true` for non-interactive automation (CI)
       --variant <VARIANT>  Which model variant to install. Defaults to `whisper-tiny.en` [default: whisper-tiny.en] [possible values: whisper-tiny.en, parakeet-tdt-0.6b-v2, voxtral-mlx-int4, speaker-wespeaker-en]
   -h, --help               Print help (see more with '--help')
+
+
+================================================================================
+
+omni-voice listen - Listens on a live microphone, transcribing and reflecting continuously
+
+Listens on a live microphone, transcribing and reflecting continuously
+
+Usage: listen [OPTIONS] --session <SESSION>
+
+Options:
+      --session <SESSION>
+          Session id. Transcript, events, and logs live under `~/.omni-voice/voice/<id>/`
+      --backend <BACKEND>
+          ASR backend. Must be a streaming backend (`voxtral-mlx` or `mock`); batch backends are rejected. Defaults to the build's streaming default
+      --device <DEVICE>
+          Audio input device name. Defaults to the system default input
+      --audio-buffer-size <AUDIO_BUFFER_SIZE>
+          cpal capture buffer size in frames (100 ms at 16 kHz by default) [default: 1600]
+      --trigger-silence-gap-ms <TRIGGER_SILENCE_GAP_MS>
+          Reflect after this many milliseconds of silence [default: 1500]
+      --trigger-word-delta <TRIGGER_WORD_DELTA>
+          Reflect after this many finalized words since the last reflection [default: 30]
+      --trigger-max-interval-ms <TRIGGER_MAX_INTERVAL_MS>
+          Reflect at least this often (milliseconds) during unbroken speech [default: 60000]
+      --idle-after <IDLE_AFTER>
+          Auto-stop after this many seconds of continuous silence. `0` (default) runs until Ctrl-C [default: 0]
+  -h, --help
+          Print help
 
 
 ================================================================================

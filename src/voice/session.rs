@@ -137,6 +137,13 @@ impl Session {
         append_events(&self.paths.events, events)
     }
 
+    /// Appends transcript events to `transcript.jsonl` (used by
+    /// `voice listen` to persist streamed `Final`s as they arrive, before
+    /// firing a reflection over them).
+    pub fn append_transcript(&self, events: &[TranscriptEvent]) -> Result<()> {
+        append_transcript(&self.paths.transcript, events)
+    }
+
     /// Updates `meta.last_reflected_event_id` in memory and on disk.
     pub fn set_last_reflected(&mut self, id: EventId) -> Result<()> {
         self.meta.last_reflected_event_id = Some(id);
@@ -321,6 +328,32 @@ pub fn append_events(path: &Path, events: &[Event]) -> Result<()> {
     writer
         .flush()
         .with_context(|| format!("flushing events log at {}", path.display()))?;
+    Ok(())
+}
+
+/// Appends transcript events as JSONL to `path`. Each event is one line,
+/// flushed after the batch. Skips silently when `events` is empty. Mirrors
+/// [`append_events`] for the `TranscriptEvent` stream.
+pub fn append_transcript(path: &Path, events: &[TranscriptEvent]) -> Result<()> {
+    if events.is_empty() {
+        return Ok(());
+    }
+    let file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .with_context(|| format!("opening transcript log for append at {}", path.display()))?;
+    let mut writer = BufWriter::new(file);
+    for e in events {
+        serde_json::to_writer(&mut writer, e)
+            .with_context(|| format!("serialising transcript event to {}", path.display()))?;
+        writer
+            .write_all(b"\n")
+            .with_context(|| format!("appending newline to {}", path.display()))?;
+    }
+    writer
+        .flush()
+        .with_context(|| format!("flushing transcript log at {}", path.display()))?;
     Ok(())
 }
 
