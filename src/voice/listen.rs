@@ -1,14 +1,14 @@
 //! `voice listen` — the realtime `capture → transcribe → reflect` scheduler.
 //!
 //! Wraps the shipped streaming ASR seam
-//! ([`StreamingTranscriber`](crate::voice::StreamingTranscriber)) for
+//! ([`StreamingTranscriber`]) for
 //! continuous live operation. Three cooperating pieces:
 //!
 //! - [`supervisor`] — a dedicated-thread cpal capture supervisor that
 //!   mixes down/resamples/quantises microphone audio and re-opens the
 //!   stream on failure behind an exponential backoff.
 //! - [`input`] — the bounded channel bridging the `!Send` capture thread to
-//!   the `Send` [`AsyncAudioInput`](crate::voice::transcriber::AsyncAudioInput)
+//!   the `Send` [`AsyncAudioInput`]
 //!   the transcriber consumes.
 //! - [`scheduler`] — consumes the `Partial`/`Final`/`Endpoint` event stream,
 //!   persists finals, and fires `reflect` on a silence-gap / word-delta /
@@ -85,8 +85,9 @@ impl ListenOptions {
     }
 }
 
-/// The production factory: a fresh backend-dispatched [`AiClient`] per
-/// reflection (honours `OMNI_VOICE_AI_BACKEND` and the budget cap).
+/// The production factory: a fresh backend-dispatched
+/// [`AiClient`](crate::claude::ai::AiClient) per reflection (honours
+/// `OMNI_VOICE_AI_BACKEND` and the budget cap).
 fn default_ai_factory() -> AiClientFactory {
     Arc::new(|| Box::pin(create_default_claude_client(None, None)))
 }

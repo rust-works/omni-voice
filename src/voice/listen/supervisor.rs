@@ -155,9 +155,9 @@ pub fn pump_source<S: AudioSource>(
 
 /// Exponential backoff with a ceiling and a retry budget.
 ///
-/// Delays double each attempt from [`BACKOFF_BASE`] up to [`BACKOFF_CAP`];
-/// after [`Backoff::max_retries`] consecutive attempts [`Backoff::next_delay`]
-/// returns `None` (give up). A successful stream resets the sequence.
+/// Delays double each attempt from a base delay up to a ceiling; once the
+/// retry budget is exhausted [`Backoff::next_delay`] returns `None` (give
+/// up). A successful stream resets the sequence.
 pub struct Backoff {
     base: Duration,
     cap: Duration,
