@@ -22,6 +22,7 @@ pub mod log;
 pub mod scheduler;
 pub mod supervisor;
 
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -34,7 +35,9 @@ use crate::claude::client::create_default_claude_client;
 use crate::voice::capture::install_ctrl_c_handler;
 use crate::voice::factory::{create_default_streaming_transcriber, VoiceOpts};
 use crate::voice::session;
-use crate::voice::transcriber::{AsyncAudioInput, StreamingTranscriber};
+use crate::voice::transcriber::{
+    AsyncAudioInput, FileAsyncAudioInput, StreamingTranscriber, STREAM_CHUNK_SAMPLES,
+};
 
 use self::input::{audio_channel, DEFAULT_CHANNEL_CAPACITY};
 use self::scheduler::{
@@ -59,6 +62,10 @@ pub struct ListenOptions {
     pub trigger: TriggerConfig,
     /// Auto-end after this much continuous silence ([`Duration::ZERO`] = never).
     pub idle_after: Duration,
+    /// Replay this 16 kHz mono WAV at realtime pace instead of opening the
+    /// microphone (`--audio-file`). `None` uses live capture. For
+    /// reproducible testing and demos without audio hardware.
+    pub audio_file: Option<PathBuf>,
 }
 
 impl ListenOptions {
@@ -73,6 +80,7 @@ impl ListenOptions {
             channel_capacity: DEFAULT_CHANNEL_CAPACITY,
             trigger: TriggerConfig::default(),
             idle_after: Duration::ZERO,
+            audio_file: None,
         }
     }
 }
@@ -83,12 +91,14 @@ fn default_ai_factory() -> AiClientFactory {
     Arc::new(|| Box::pin(create_default_claude_client(None, None)))
 }
 
-/// Runs a live `voice listen` session end to end.
+/// Runs a `voice listen` session end to end.
 ///
-/// Opens the microphone behind the [`supervisor`] thread, streams it through
-/// the configured streaming transcriber, and drives reflections via
-/// [`ListenScheduler`] until the stream ends, the idle-after budget elapses,
-/// or Ctrl-C is pressed. Blocks (async) until the session finishes.
+/// Audio comes from either a WAV replay (`--audio-file`, realtime-paced,
+/// mic-free) or — the default — the live microphone behind the
+/// [`supervisor`] thread. Either way it streams through the configured
+/// streaming transcriber and drives reflections via [`ListenScheduler`]
+/// until the stream ends, the idle-after budget elapses, or Ctrl-C is
+/// pressed. Blocks (async) until the session finishes.
 pub async fn run_listen(opts: ListenOptions) -> Result<ListenSummary> {
     let voice_opts = VoiceOpts {
         backend: opts.backend.clone(),
@@ -101,22 +111,7 @@ pub async fn run_listen(opts: ListenOptions) -> Result<ListenSummary> {
         .clone()
         .unwrap_or_else(|| "default".to_string());
 
-    let (tx, rx) = audio_channel(opts.channel_capacity);
-    let dropped = tx.dropped_handle();
     let shutdown = install_ctrl_c_handler().context("installing Ctrl-C handler")?;
-
-    // The cpal source is !Send, so the supervisor owns it on its own thread.
-    let supervisor = {
-        let device = opts.device.clone();
-        let buffer = Some(opts.buffer_frames);
-        let shutdown = Arc::clone(&shutdown);
-        std::thread::Builder::new()
-            .name("voice-listen-capture".to_string())
-            .spawn(move || run_cpal_supervisor(device, buffer, tx, shutdown))
-            .context("spawning capture supervisor thread")?
-    };
-
-    let session_root = session::voice_root().ok();
     write_log_line(
         &opts.session_id,
         &log::session_start_line(&Utc::now().to_rfc3339(), &opts.session_id, &backend_label),
@@ -134,16 +129,35 @@ pub async fn run_listen(opts: ListenOptions) -> Result<ListenSummary> {
         default_ai_factory(),
     );
 
-    let summary = run_core(rx, transcriber, scheduler, Arc::clone(&shutdown)).await;
-
-    // Wind down the capture thread regardless of how the loop ended.
-    shutdown.store(true, Ordering::Relaxed);
-    if supervisor.join().is_err() {
-        warn!("capture supervisor thread panicked");
-    }
+    // Source the audio: a mic-free WAV replay, or the live cpal supervisor.
+    let (summary, dropped_chunks) = if let Some(path) = opts.audio_file.as_deref() {
+        let input = FileAsyncAudioInput::from_wav_path(path, STREAM_CHUNK_SAMPLES, true)
+            .with_context(|| format!("opening --audio-file {}", path.display()))?;
+        let summary = run_core(input, transcriber, scheduler, Arc::clone(&shutdown)).await;
+        (summary, 0_u64)
+    } else {
+        let (tx, rx) = audio_channel(opts.channel_capacity);
+        let dropped = tx.dropped_handle();
+        // The cpal source is !Send, so the supervisor owns it on its own thread.
+        let supervisor = {
+            let device = opts.device.clone();
+            let buffer = Some(opts.buffer_frames);
+            let shutdown = Arc::clone(&shutdown);
+            std::thread::Builder::new()
+                .name("voice-listen-capture".to_string())
+                .spawn(move || run_cpal_supervisor(device, buffer, tx, shutdown))
+                .context("spawning capture supervisor thread")?
+        };
+        let summary = run_core(rx, transcriber, scheduler, Arc::clone(&shutdown)).await;
+        // Wind down the capture thread regardless of how the loop ended.
+        shutdown.store(true, Ordering::Relaxed);
+        if supervisor.join().is_err() {
+            warn!("capture supervisor thread panicked");
+        }
+        (summary, dropped.load(Ordering::Relaxed))
+    };
 
     let summary = summary?;
-    let dropped_chunks = dropped.load(Ordering::Relaxed);
     write_log_line(
         &opts.session_id,
         &log::session_stop_line(
@@ -159,7 +173,6 @@ pub async fn run_listen(opts: ListenOptions) -> Result<ListenSummary> {
             "capture queue overflowed; some audio was dropped"
         );
     }
-    let _ = session_root;
     Ok(summary)
 }
 

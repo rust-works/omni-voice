@@ -5,6 +5,7 @@
 //! `~/.omni-voice/voice/<session>/`. Runs until the idle-after budget
 //! elapses (if set) or Ctrl-C is pressed. See issue #8.
 
+use std::path::PathBuf;
 use std::time::Duration;
 
 use anyhow::Result;
@@ -67,6 +68,12 @@ pub struct ListenCommand {
     /// (default) runs until Ctrl-C.
     #[arg(long, default_value_t = 0)]
     pub idle_after: u32,
+
+    /// Replay a 16 kHz mono WAV at realtime pace instead of opening the
+    /// microphone — for reproducible testing and demos without audio
+    /// hardware. Hidden: a developer/test affordance, not a primary flow.
+    #[arg(long, value_name = "PATH", hide = true)]
+    pub audio_file: Option<PathBuf>,
 }
 
 impl ListenCommand {
@@ -87,6 +94,7 @@ impl ListenCommand {
                 min_interval: Duration::from_secs(MIN_INTERVAL_SECS),
             },
             idle_after: Duration::from_secs(u64::from(self.idle_after)),
+            audio_file: self.audio_file,
         };
 
         eprintln!("Listening on session {} (Ctrl-C to stop)…", opts.session_id);
@@ -138,6 +146,18 @@ mod tests {
             DEFAULT_TRIGGER_MAX_INTERVAL_MS
         );
         assert_eq!(cli.listen.idle_after, 0);
+        assert!(cli.listen.audio_file.is_none());
+    }
+
+    #[test]
+    fn parses_audio_file() {
+        let cli =
+            TestCli::try_parse_from(["test", "--session", "s1", "--audio-file", "/tmp/rec.wav"])
+                .unwrap();
+        assert_eq!(
+            cli.listen.audio_file.as_deref(),
+            Some(std::path::Path::new("/tmp/rec.wav"))
+        );
     }
 
     #[test]
