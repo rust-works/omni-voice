@@ -22,7 +22,7 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
 use mlx_rs::ops::indexing::IndexOp;
-use mlx_rs::ops::{concatenate, indexing::argmax};
+use mlx_rs::ops::{concatenate_axis, indexing::argmax_axis};
 use mlx_rs::Array;
 
 use super::config::VoxtralMlxConfig;
@@ -37,7 +37,7 @@ use super::tokenizer::TekkenTokenizer;
 /// offline path).
 pub(crate) fn argmax_token(logits: &Array) -> Result<i64> {
     let axis = (logits.ndim() - 1) as i32;
-    let idx = argmax(logits, axis, false)?;
+    let idx = argmax_axis(logits, axis, false)?;
     idx.eval()?;
     Ok(i64::from(idx.item::<u32>()))
 }
@@ -221,7 +221,9 @@ impl<'a> StreamSession<'a> {
     /// adapter tokens and carrying the `<4`-frame remainder.
     fn ingest_normed(&mut self, normed: &Array) -> Result<()> {
         let combined = match self.norm_leftover.take() {
-            Some(l) => concatenate(&[&l, normed], 0).map_err(|e| anyhow!("norm concat: {e}"))?,
+            Some(l) => {
+                concatenate_axis(&[&l, normed], 0).map_err(|e| anyhow!("norm concat: {e}"))?
+            }
             None => normed.clone(),
         };
         let ds = self.cfg.encoder.downsample_factor as i32;
@@ -233,7 +235,7 @@ impl<'a> StreamSession<'a> {
                 .project_downsampled(&combined.index(0..groups * ds))?;
             self.adapter = Some(match self.adapter.take() {
                 Some(a) => {
-                    concatenate(&[&a, &new], 0).map_err(|e| anyhow!("adapter concat: {e}"))?
+                    concatenate_axis(&[&a, &new], 0).map_err(|e| anyhow!("adapter concat: {e}"))?
                 }
                 None => new,
             });
