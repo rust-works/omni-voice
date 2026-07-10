@@ -107,7 +107,7 @@ jobs:
       # (HF Hub openai/whisper-tiny.en@refs/pr/15), so a constant cache key is
       # correct; bump the key if the pin ever changes. The action's setup
       # install-model is idempotent ("already installed") on a cache hit.
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.omni-voice/voice/models/whisper-tiny.en
         key: whisper-tiny-en-refs-pr-15
