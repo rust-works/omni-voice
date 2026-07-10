@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{Sample, SampleFormat, Stream, StreamConfig};
+use cpal::{BufferSize, Sample, SampleFormat, Stream, StreamConfig};
 use ringbuf::traits::{Consumer, Producer, Split};
 use ringbuf::{HeapCons, HeapRb};
 
@@ -182,13 +182,23 @@ pub struct CpalAudioSource {
 impl CpalAudioSource {
     /// Opens the default input device (or the device matching
     /// `device_name`, if provided) and starts a stream at its native rate
-    /// and channel count.
+    /// and channel count, using the device's default buffer size.
     ///
     /// `device_name` matching is exact (case-sensitive) against
     /// `Device::name()` — cpal reports platform-native names which differ
     /// across macOS/Linux/Windows, so users get an error listing every
     /// detected device when no match is found.
     pub fn new(device_name: Option<&str>) -> Result<Self> {
+        Self::with_buffer_size(device_name, None)
+    }
+
+    /// Like [`CpalAudioSource::new`], but requests an explicit callback
+    /// buffer size in frames.
+    ///
+    /// `voice listen` sets this ([`BufferSize::Fixed`]) so CoreAudio delivers
+    /// a predictable callback cadence rather than whatever the device
+    /// defaults to. `None` falls back to `BufferSize::Default`.
+    pub fn with_buffer_size(device_name: Option<&str>, buffer_frames: Option<u32>) -> Result<Self> {
         let host = cpal::default_host();
         let device = match device_name {
             None => host
@@ -204,7 +214,10 @@ impl CpalAudioSource {
             .default_input_config()
             .with_context(|| format!("Failed to query default input config for {resolved_name}"))?;
         let sample_format = supported.sample_format();
-        let config: StreamConfig = supported.config();
+        let mut config: StreamConfig = supported.config();
+        if let Some(frames) = buffer_frames {
+            config.buffer_size = BufferSize::Fixed(frames);
+        }
         let sample_rate = config.sample_rate;
         let channels = config.channels;
 

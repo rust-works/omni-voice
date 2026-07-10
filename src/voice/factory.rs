@@ -24,9 +24,10 @@ use anyhow::{bail, Result};
 use crate::voice::backends::candle::CandleTranscriber;
 use crate::voice::backends::candle_streaming::CandleStreamingTranscriber;
 use crate::voice::backends::mock::MockTranscriber;
+use crate::voice::backends::mock_streaming::MockStreamingTranscriber;
 use crate::voice::backends::parakeet::CandleParakeetTranscriber;
 use crate::voice::models::{resolve_parakeet_model_dir, resolve_whisper_model_dir};
-use crate::voice::transcriber::Transcriber;
+use crate::voice::transcriber::{StreamingTranscriber, Transcriber};
 
 /// Backend-selection options carried from the CLI (or constructed
 /// programmatically for tests).
@@ -66,6 +67,16 @@ fn default_backend_name() -> &'static str {
     "mock"
 }
 
+/// Resolves the backend name from `opts.backend` → `OMNI_VOICE_VOICE_BACKEND`
+/// → [`default_backend_name`]. Shared by the batch and streaming factories
+/// so both honour the same precedence.
+fn resolve_backend_name(opts: &VoiceOpts) -> String {
+    opts.backend
+        .clone()
+        .or_else(|| crate::utils::settings::get_env_var("OMNI_VOICE_VOICE_BACKEND").ok())
+        .unwrap_or_else(|| default_backend_name().to_string())
+}
+
 /// Constructs the appropriate [`Transcriber`] given `opts` and the
 /// process environment.
 ///
@@ -73,11 +84,7 @@ fn default_backend_name() -> &'static str {
 /// construction errors (missing model file, failed initialisation) bubble
 /// up from the backend's own `new`.
 pub fn create_default_transcriber(opts: &VoiceOpts) -> Result<Box<dyn Transcriber>> {
-    let backend = opts
-        .backend
-        .clone()
-        .or_else(|| crate::utils::settings::get_env_var("OMNI_VOICE_VOICE_BACKEND").ok())
-        .unwrap_or_else(|| default_backend_name().to_string());
+    let backend = resolve_backend_name(opts);
 
     match backend.as_str() {
         "mock" => Ok(Box::new(MockTranscriber::new(
@@ -114,6 +121,52 @@ pub fn create_default_transcriber(opts: &VoiceOpts) -> Result<Box<dyn Transcribe
         other => {
             bail!(
                 "unknown voice backend: {other:?} (supported: \"voxtral-mlx\", \"mock\", \"whisper-candle\", \"whisper-candle-streaming\", \"parakeet-tdt\")"
+            )
+        }
+    }
+}
+
+/// Constructs the appropriate [`StreamingTranscriber`] for `voice listen`
+/// (#8), given `opts` and the process environment.
+///
+/// Same backend precedence as [`create_default_transcriber`], but only the
+/// streaming-capable backends are wired: `voxtral-mlx` (the real-time
+/// default in a `voxtral-mlx` build) and `mock` (the dependency-free CI
+/// driver). The batch-only backends (`whisper-candle`,
+/// `whisper-candle-streaming`, `parakeet-tdt`) are rejected with a clear
+/// message rather than silently degrading to non-streaming behaviour.
+pub fn create_default_streaming_transcriber(
+    opts: &VoiceOpts,
+) -> Result<Box<dyn StreamingTranscriber>> {
+    let backend = resolve_backend_name(opts);
+
+    match backend.as_str() {
+        "mock" => Ok(Box::new(MockStreamingTranscriber::new(
+            MockStreamingTranscriber::default_script(),
+        ))),
+        #[cfg(feature = "voxtral-mlx")]
+        "voxtral-mlx" => {
+            use crate::voice::backends::voxtral_mlx::{
+                VoxtralMlxBackend, DEFAULT_VOXTRAL_MLX_DELAY_MS,
+            };
+            use crate::voice::models::resolve_voxtral_mlx_model_dir;
+            let dir = resolve_voxtral_mlx_model_dir(opts)?;
+            Ok(Box::new(VoxtralMlxBackend::new(
+                &dir,
+                DEFAULT_VOXTRAL_MLX_DELAY_MS,
+            )?))
+        }
+        #[cfg(not(feature = "voxtral-mlx"))]
+        "voxtral-mlx" => {
+            bail!("the `voxtral-mlx` backend requires building with `--features voxtral-mlx`")
+        }
+        "whisper-candle" | "whisper-candle-streaming" | "parakeet-tdt" => bail!(
+            "backend {backend:?} is batch-only and does not support streaming; \
+             `voice listen` needs a streaming backend — use \"voxtral-mlx\" or \"mock\""
+        ),
+        other => {
+            bail!(
+                "unknown voice backend: {other:?} (streaming backends: \"voxtral-mlx\", \"mock\")"
             )
         }
     }
@@ -295,5 +348,80 @@ mod tests {
             "got: {msg}"
         );
         assert!(msg.contains("install-model"), "got: {msg}");
+    }
+
+    // ── create_default_streaming_transcriber (voice listen, #8) ─────
+
+    #[test]
+    fn streaming_factory_mock_backend_constructs() {
+        let _g = env_guard();
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+        let opts = VoiceOpts {
+            backend: Some("mock".to_string()),
+            model: None,
+        };
+        assert!(create_default_streaming_transcriber(&opts).is_ok());
+    }
+
+    #[test]
+    fn streaming_factory_rejects_batch_only_backends() {
+        let _g = env_guard();
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+        for backend in ["whisper-candle", "whisper-candle-streaming", "parakeet-tdt"] {
+            let opts = VoiceOpts {
+                backend: Some(backend.to_string()),
+                model: None,
+            };
+            let Err(err) = create_default_streaming_transcriber(&opts) else {
+                panic!("expected {backend:?} to be rejected for streaming");
+            };
+            let msg = err.to_string();
+            assert!(msg.contains(backend), "got: {msg}");
+            assert!(msg.contains("does not support streaming"), "got: {msg}");
+            assert!(msg.contains("voxtral-mlx"), "got: {msg}");
+        }
+    }
+
+    #[test]
+    fn streaming_factory_unknown_backend_errors() {
+        let _g = env_guard();
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+        let opts = VoiceOpts {
+            backend: Some("klingon".to_string()),
+            model: None,
+        };
+        let Err(err) = create_default_streaming_transcriber(&opts) else {
+            panic!("expected unknown streaming backend to error");
+        };
+        let msg = err.to_string();
+        assert!(msg.contains("klingon"), "got: {msg}");
+        assert!(msg.contains("streaming backends"), "got: {msg}");
+    }
+
+    #[test]
+    fn streaming_factory_honours_env_backend() {
+        let _g = env_guard();
+        std::env::set_var("OMNI_VOICE_VOICE_BACKEND", "mock");
+        // No explicit backend → falls through to the env var.
+        assert!(create_default_streaming_transcriber(&VoiceOpts::default()).is_ok());
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+    }
+
+    #[cfg(not(feature = "voxtral-mlx"))]
+    #[test]
+    fn streaming_factory_voxtral_requires_feature() {
+        let _g = env_guard();
+        std::env::remove_var("OMNI_VOICE_VOICE_BACKEND");
+        let opts = VoiceOpts {
+            backend: Some("voxtral-mlx".to_string()),
+            model: None,
+        };
+        let Err(err) = create_default_streaming_transcriber(&opts) else {
+            panic!("expected voxtral-mlx to require its feature under --no-default-features");
+        };
+        assert!(
+            err.to_string().contains("--features voxtral-mlx"),
+            "got: {err}"
+        );
     }
 }

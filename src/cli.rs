@@ -105,6 +105,8 @@ pub enum Commands {
     Transcribe(voice::transcribe::TranscribeCommand),
     /// Reflects on a transcript and emits reflection events.
     Reflect(voice::reflect::ReflectCommand),
+    /// Listens on a live microphone, transcribing and reflecting continuously.
+    Listen(voice::listen::ListenCommand),
     /// Reconciles a session's events.jsonl into materialized markdown.
     Review(voice::review::ReviewCommand),
     /// Downloads the model files for a chosen variant (Whisper tiny.en
@@ -160,6 +162,7 @@ impl Cli {
             Commands::Capture(cmd) => cmd.execute(),
             Commands::Transcribe(cmd) => cmd.execute(),
             Commands::Reflect(cmd) => cmd.execute().await,
+            Commands::Listen(cmd) => cmd.execute().await,
             Commands::Review(cmd) => cmd.execute(),
             Commands::InstallModel(cmd) => cmd.execute(),
             Commands::Enroll(cmd) => cmd.execute(),

@@ -8,6 +8,9 @@
 //! Backends wired up:
 //!
 //! - [`mock::MockTranscriber`] — canned-script placeholder (default).
+//! - [`mock_streaming::MockStreamingTranscriber`] — canned-script
+//!   streaming placeholder for `voice listen` (#8); the streaming
+//!   counterpart of `mock`.
 //! - [`candle::CandleTranscriber`] — pure-Rust Whisper on `candle`
 //!   (`--backend whisper-candle`). See ADR-0033.
 //! - [`candle_streaming::CandleStreamingTranscriber`] — pure-Rust
@@ -21,6 +24,7 @@
 pub mod candle;
 pub mod candle_streaming;
 pub mod mock;
+pub mod mock_streaming;
 pub mod parakeet;
 /// In-process Voxtral Realtime backend via Apple MLX (`mlx-rs`).
 ///
