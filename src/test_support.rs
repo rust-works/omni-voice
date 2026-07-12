@@ -106,4 +106,42 @@ pub(crate) mod env {
             }
         }
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::EnvGuard;
+
+        // Unique to this test, so the pre-guard mutations below can't race
+        // other env tests; `EnvGuard` serialises everything else.
+        const PROBE: &str = "OMNI_VOICE_TEST_ENVGUARD_PROBE";
+
+        #[test]
+        fn envguard_snapshots_clears_and_restores() {
+            // A var with a prior value is restored to it on drop.
+            std::env::set_var(PROBE, "original");
+            {
+                let guard = EnvGuard::clearing(&[PROBE]);
+                assert!(std::env::var(PROBE).is_err(), "clearing() clears the var");
+                guard.set(PROBE, "temporary");
+                assert_eq!(std::env::var(PROBE).unwrap(), "temporary");
+            }
+            assert_eq!(
+                std::env::var(PROBE).unwrap(),
+                "original",
+                "drop restores the prior value"
+            );
+
+            // A var with no prior value is removed again on drop.
+            std::env::remove_var(PROBE);
+            {
+                let guard = EnvGuard::clearing(&[PROBE]);
+                guard.set(PROBE, "temporary");
+                assert_eq!(std::env::var(PROBE).unwrap(), "temporary");
+            }
+            assert!(
+                std::env::var(PROBE).is_err(),
+                "drop removes a var that had no prior value"
+            );
+        }
+    }
 }

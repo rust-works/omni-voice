@@ -2170,6 +2170,23 @@ mod tests {
         assert_heartbeat_reaped(&heartbeat, "kill_and_reap").await;
     }
 
+    /// Covers `assert_heartbeat_reaped`'s wait-for-first-beat poll: the
+    /// heartbeat file is absent when the assertion starts and appears one
+    /// beat later, then never grows again — so the poll loop runs before
+    /// the stop-growing check passes.
+    #[tokio::test]
+    #[cfg(unix)]
+    async fn assert_heartbeat_reaped_waits_for_late_first_beat() {
+        let tmp = TempDir::new().unwrap();
+        let heartbeat = tmp.path().join("late-heartbeat");
+        let late = heartbeat.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            std::fs::write(&late, b"..").unwrap();
+        });
+        assert_heartbeat_reaped(&heartbeat, "late-first-beat").await;
+    }
+
     /// `kill_and_reap` must tolerate a child that has already exited.
     /// In that case `child.id()` may still return Some until reaped —
     /// the killpg call returns ESRCH, which the helper swallows.
