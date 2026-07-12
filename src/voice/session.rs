@@ -621,8 +621,9 @@ pub fn remove_lock(path: &Path) -> Result<()> {
     }
 }
 
-/// Whether a probe-signal (`kill(pid, 0)`) says `pid` is still a live
-/// process. `ESRCH` means gone; `EPERM` means it exists but we may not
+/// Whether `pid` is still a live process, probed with `kill(pid, 0)`.
+///
+/// `ESRCH` means the process is gone; `EPERM` means it exists but we may not
 /// signal it (still alive). On non-Unix targets we cannot probe, so we
 /// conservatively report "alive" to avoid deleting a possibly-live session.
 #[cfg(unix)]
@@ -741,7 +742,7 @@ mod tests {
         assert_eq!(session.meta.created, session.meta.last_modified);
         assert!(session.meta.backend.is_none());
         assert!(session.meta.model.is_none());
-        assert_eq!(session.meta.spent_usd, 0.0);
+        assert!(session.meta.spent_usd.abs() < f64::EPSILON);
         assert!(session.meta.budget_cap_usd.is_none());
         assert!(session.meta.last_reflected_event_id.is_none());
         assert_eq!(session.meta.ttl_defaults, TtlDefaults::default());
