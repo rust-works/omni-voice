@@ -19,6 +19,7 @@ pub mod factory;
 pub mod features;
 pub mod idle;
 pub mod listen;
+pub mod log;
 pub mod models;
 pub mod paths;
 pub mod reconcile;
