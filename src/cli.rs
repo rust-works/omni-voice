@@ -109,6 +109,8 @@ pub enum Commands {
     Listen(voice::listen::ListenCommand),
     /// Reconciles a session's events.jsonl into materialized markdown.
     Review(voice::review::ReviewCommand),
+    /// Lists, shows, or garbage-collects session storage.
+    Sessions(voice::sessions::SessionsCommand),
     /// Downloads the model files for a chosen variant (Whisper tiny.en
     /// for the `whisper-candle` backend, or wespeaker for speaker
     /// embedding) into `~/.omni-voice/voice/models/<variant>/`.
@@ -164,6 +166,7 @@ impl Cli {
             Commands::Reflect(cmd) => cmd.execute().await,
             Commands::Listen(cmd) => cmd.execute().await,
             Commands::Review(cmd) => cmd.execute(),
+            Commands::Sessions(cmd) => cmd.execute(),
             Commands::InstallModel(cmd) => cmd.execute(),
             Commands::Enroll(cmd) => cmd.execute(),
             Commands::Completions(completions_cmd) => completions_cmd.execute(),
@@ -245,6 +248,33 @@ mod tests {
             cli.execute().await.is_err(),
             "enroll without an installed speaker model should error"
         );
+    }
+
+    #[test]
+    fn sessions_dispatches_via_execute() {
+        // Drives Cli::execute through the top-level Sessions arm end-to-end:
+        // `sessions list` against an empty temp voice root prints "No sessions
+        // found." and returns Ok, covering the dispatch arm plus
+        // SessionsCommand::execute (voice_root + stdout + flush). Serialised on
+        // the crate-wide env lock because OMNI_VOICE_VOICE_ROOT is process-wide
+        // (issue #12). Uses block_on in a sync test — the sessions dispatch does
+        // only synchronous work — so the env guard is not held across an await.
+        let _env = crate::test_support::env::env_lock();
+        let original = std::env::var("OMNI_VOICE_VOICE_ROOT").ok();
+        let tmp = tempfile::TempDir::new().unwrap();
+        std::env::set_var("OMNI_VOICE_VOICE_ROOT", tmp.path());
+
+        let cli = Cli::try_parse_from(["omni-voice", "sessions", "list"]).unwrap();
+        let result = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap()
+            .block_on(cli.execute());
+
+        match original {
+            Some(v) => std::env::set_var("OMNI_VOICE_VOICE_ROOT", v),
+            None => std::env::remove_var("OMNI_VOICE_VOICE_ROOT"),
+        }
+        result.expect("sessions list on an empty root should succeed");
     }
 
     #[test]

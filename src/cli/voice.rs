@@ -12,4 +12,5 @@ pub mod install_model;
 pub mod listen;
 pub mod reflect;
 pub mod review;
+pub mod sessions;
 pub mod transcribe;
