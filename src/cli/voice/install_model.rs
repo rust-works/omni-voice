@@ -778,17 +778,11 @@ fn part_sibling(to: &Path) -> Result<PathBuf> {
 mod tests {
     use super::*;
     use crate::voice::models::REQUIRED_FILES;
-    use std::sync::{Mutex, MutexGuard};
-
-    // HOME-mutating tests share this guard so they don't race the
-    // env-mutating tests in `voice::models`.
-    static ENV_GUARD: Mutex<()> = Mutex::new(());
-
-    fn env_guard() -> MutexGuard<'static, ()> {
-        match ENV_GUARD.lock() {
-            Ok(g) => g,
-            Err(poisoned) => poisoned.into_inner(),
-        }
+    // These tests mutate HOME (and other env vars), read by `home_dir()`
+    // across many modules — so they serialise on the crate-wide env lock,
+    // not a module-local one, to avoid cross-module races (issue #12).
+    fn env_guard() -> std::sync::MutexGuard<'static, ()> {
+        crate::test_support::env::env_lock()
     }
 
     fn stage_complete_whisper_model(dir: &Path) {

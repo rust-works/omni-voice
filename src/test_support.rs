@@ -46,3 +46,64 @@ pub(crate) mod shim {
         drop(file);
     }
 }
+
+/// Crate-wide serialization for env-var-mutating tests.
+///
+/// Environment variables are process-global, so a module-local mutex can
+/// only serialise tests *within* that module — tests in other modules
+/// still race on the same var (or on the global env namespace). Every
+/// env-var-touching test in the crate must therefore serialise on the one
+/// [`env_lock`] below rather than its own private mutex. See issue #12.
+pub(crate) mod env {
+    use std::sync::{Mutex, MutexGuard, PoisonError};
+
+    /// The single process-global lock every env-var-mutating test takes.
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    /// Acquires the crate-wide env lock, recovering from poisoning so an
+    /// intentional panic in one test doesn't cascade into the rest of the
+    /// suite.
+    pub(crate) fn env_lock() -> MutexGuard<'static, ()> {
+        ENV_LOCK.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Convenience guard for the common shape: acquire [`env_lock`],
+    /// snapshot and clear `keys`, and restore their original values on
+    /// drop. Mutate vars during the test with [`EnvGuard::set`] (or
+    /// directly) — anything listed in `keys` is restored regardless.
+    pub(crate) struct EnvGuard {
+        _lock: MutexGuard<'static, ()>,
+        saved: Vec<(String, Option<String>)>,
+    }
+
+    impl EnvGuard {
+        /// Locks, then snapshots and clears every var in `keys`.
+        pub(crate) fn clearing(keys: &[&str]) -> Self {
+            let lock = env_lock();
+            let saved = keys
+                .iter()
+                .map(|k| ((*k).to_string(), std::env::var(k).ok()))
+                .collect();
+            for k in keys {
+                std::env::remove_var(k);
+            }
+            Self { _lock: lock, saved }
+        }
+
+        /// Sets `key` to `value` for the lifetime of the guard.
+        pub(crate) fn set(&self, key: &str, value: &str) {
+            std::env::set_var(key, value);
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            for (k, v) in self.saved.drain(..) {
+                match v {
+                    Some(val) => std::env::set_var(&k, val),
+                    None => std::env::remove_var(&k),
+                }
+            }
+        }
+    }
+}

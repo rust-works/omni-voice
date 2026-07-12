@@ -776,18 +776,6 @@ where
     unreachable!("loop exits via return")
 }
 
-/// Test-only mutex serialising every test that mutates global state read
-/// by `claude-cli` (env vars and process-global config).
-///
-/// Shared across this module's tests **and** `crate::cli`'s tests because
-/// `Cli::propagate_global_flags` forwards CLI flags to the same env vars
-/// (`OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS`, `OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP`,
-/// `OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD`, `OMNI_VOICE_AI_BACKEND`) that the
-/// guards below snapshot. A single shared mutex eliminates cross-module
-/// races and avoids multi-lock deadlock entirely.
-#[cfg(test)]
-pub(crate) static CLI_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::await_holding_lock)]
 mod tests {
@@ -1031,8 +1019,8 @@ mod tests {
     }
 
     /// Test-scoped guard for `OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS`. Serialises
-    /// against every other env-mutating test via the shared
-    /// [`CLI_ENV_LOCK`].
+    /// against every other env-mutating test via the crate-wide env
+    /// lock in `crate::test_support::env`.
     struct AllowToolsEnvGuard {
         _lock: std::sync::MutexGuard<'static, ()>,
         saved: Option<String>,
@@ -1040,9 +1028,7 @@ mod tests {
 
     impl AllowToolsEnvGuard {
         fn new() -> Self {
-            let lock = CLI_ENV_LOCK
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let lock = crate::test_support::env::env_lock();
             let saved = std::env::var(ALLOW_TOOLS_ENV_VAR).ok();
             std::env::remove_var(ALLOW_TOOLS_ENV_VAR);
             Self { _lock: lock, saved }
@@ -1132,8 +1118,8 @@ mod tests {
     }
 
     /// Test-scoped guard for `OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP`. Serialises
-    /// against every other env-mutating test via the shared
-    /// [`CLI_ENV_LOCK`].
+    /// against every other env-mutating test via the crate-wide env
+    /// lock in `crate::test_support::env`.
     struct AllowMcpEnvGuard {
         _lock: std::sync::MutexGuard<'static, ()>,
         saved: Option<String>,
@@ -1141,9 +1127,7 @@ mod tests {
 
     impl AllowMcpEnvGuard {
         fn new() -> Self {
-            let lock = CLI_ENV_LOCK
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let lock = crate::test_support::env::env_lock();
             let saved = std::env::var(ALLOW_MCP_ENV_VAR).ok();
             std::env::remove_var(ALLOW_MCP_ENV_VAR);
             Self { _lock: lock, saved }
@@ -1206,7 +1190,7 @@ mod tests {
 
     #[test]
     fn new_picks_up_allow_mcp_env_var() {
-        // Single guard locks `CLI_ENV_LOCK`; we manually snapshot
+        // Single guard locks the crate-wide env lock; we manually snapshot
         // `ALLOW_TOOLS_ENV_VAR` here because acquiring a second guard would
         // deadlock on the shared mutex.
         let mcp_guard = AllowMcpEnvGuard::new();
@@ -1248,8 +1232,8 @@ mod tests {
     // ── Budget cap tests (MAX_BUDGET_ENV_VAR / with_max_budget_usd) ──
 
     /// Test-scoped guard for `OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD`. Serialises
-    /// against every other env-mutating test via the shared
-    /// [`CLI_ENV_LOCK`].
+    /// against every other env-mutating test via the crate-wide env
+    /// lock in `crate::test_support::env`.
     struct MaxBudgetEnvGuard {
         _lock: std::sync::MutexGuard<'static, ()>,
         saved: Option<String>,
@@ -1257,9 +1241,7 @@ mod tests {
 
     impl MaxBudgetEnvGuard {
         fn new() -> Self {
-            let lock = CLI_ENV_LOCK
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let lock = crate::test_support::env::env_lock();
             let saved = std::env::var(MAX_BUDGET_ENV_VAR).ok();
             std::env::remove_var(MAX_BUDGET_ENV_VAR);
             Self { _lock: lock, saved }

@@ -357,9 +357,10 @@ mod tests {
 
     // ── propagate_global_flags() tests ──
     //
-    // These tests mutate process-global env vars, so they serialise on
-    // `crate::claude::ai::claude_cli::CLI_ENV_LOCK` (shared with claude-cli's
-    // own env-mutating tests to avoid cross-module races).
+    // These tests mutate process-global env vars, so they serialise on the
+    // crate-wide env lock in `crate::test_support::env` (shared with every
+    // other env-mutating test — notably claude-cli's own — to avoid
+    // cross-module races; issue #12).
 
     const BACKEND_VAR: &str = "OMNI_VOICE_AI_BACKEND";
     const ALLOW_TOOLS_VAR: &str = "OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS";
@@ -376,9 +377,7 @@ mod tests {
 
     impl GlobalFlagsEnvGuard {
         fn new() -> Self {
-            let lock = crate::claude::ai::claude_cli::CLI_ENV_LOCK
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let lock = crate::test_support::env::env_lock();
             let names = [
                 BACKEND_VAR,
                 ALLOW_TOOLS_VAR,
