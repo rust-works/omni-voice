@@ -34,9 +34,10 @@ const MIN_INTERVAL_SECS: u64 = 3;
 #[derive(Parser)]
 pub struct ListenCommand {
     /// Session id. Transcript, events, and logs live under
-    /// `~/.omni-voice/voice/<id>/`.
+    /// `~/.omni-voice/voice/<id>/`. Omit to auto-mint a fresh ULID (echoed
+    /// on start so it can be passed to `omni-voice sessions show <id>`).
     #[arg(long)]
-    pub session: String,
+    pub session: Option<String>,
 
     /// ASR backend. Must be a streaming backend (`voxtral-mlx` or `mock`);
     /// batch backends are rejected. Defaults to the build's streaming
@@ -98,8 +99,12 @@ impl ListenCommand {
     /// scheduler loop) are async; the caller dispatches inside
     /// `#[tokio::main]`.
     pub async fn execute(self) -> Result<()> {
+        // No explicit --session → mint a fresh ULID for this run.
+        let session_id = self
+            .session
+            .unwrap_or_else(|| ulid::Ulid::new().to_string());
         let opts = ListenOptions {
-            session_id: self.session,
+            session_id,
             backend: self.backend,
             device: self.device,
             buffer_frames: self.audio_buffer_size,
@@ -145,14 +150,16 @@ mod tests {
     }
 
     #[test]
-    fn requires_session() {
-        assert!(TestCli::try_parse_from(["test"]).is_err());
+    fn session_is_optional_and_auto_minted() {
+        // Without --session the parse succeeds; the ULID is minted at execute.
+        let cli = TestCli::try_parse_from(["test"]).unwrap();
+        assert!(cli.listen.session.is_none());
     }
 
     #[test]
     fn parses_defaults() {
         let cli = TestCli::try_parse_from(["test", "--session", "morning"]).unwrap();
-        assert_eq!(cli.listen.session, "morning");
+        assert_eq!(cli.listen.session.as_deref(), Some("morning"));
         assert!(cli.listen.backend.is_none());
         assert!(cli.listen.device.is_none());
         assert_eq!(cli.listen.audio_buffer_size, DEFAULT_BUFFER_FRAMES);

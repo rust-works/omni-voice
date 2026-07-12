@@ -159,6 +159,14 @@ async fn run_listen_with(
     let ring = gate.as_ref().map(SpeakerGate::ring);
 
     let root = session_root_override.as_deref();
+    // Record this run's provenance in meta.yaml and claim the lock before
+    // any audio flows, so `sessions gc` sees a live session immediately.
+    init_session(
+        root,
+        &opts.session_id,
+        &backend_label,
+        opts.speaker.as_deref(),
+    );
     write_log_line(
         root,
         &opts.session_id,
@@ -227,6 +235,8 @@ async fn run_listen_with(
             "capture queue overflowed; some audio was dropped"
         );
     }
+    // Clean shutdown: release the lock and stamp the session's end time.
+    finalize_session(root, &opts.session_id);
     Ok(summary)
 }
 
@@ -278,6 +288,50 @@ fn write_log_line(root: Option<&Path>, session_id: &str, line: &str) {
     };
     if let Err(e) = session.append_log(line) {
         warn!("failed to write listen log line: {e:#}");
+    }
+}
+
+/// Opens (or mints) the session, records this run's provenance
+/// (`backend`, `speaker`) in `meta.yaml`, and claims `session.lock` with the
+/// current PID. Best-effort: a failure here logs a warning but never aborts a
+/// live session — the meta is enrichment and the lock is advisory.
+fn init_session(root: Option<&Path>, session_id: &str, backend: &str, speaker: Option<&str>) {
+    let opened = match root {
+        Some(r) => session::open_or_create_under(r, session_id),
+        None => session::open_or_create(session_id),
+    };
+    let Ok(mut session) = opened else {
+        warn!("failed to open session {session_id} to record provenance");
+        return;
+    };
+    session.meta.backend = Some(backend.to_string());
+    session.meta.speaker = speaker.map(str::to_string);
+    if let Err(e) = session::write_meta(&session.paths.meta, &session.meta) {
+        warn!("failed to write session meta: {e:#}");
+    }
+    if let Err(e) = session.write_lock(std::process::id()) {
+        warn!("failed to write session lock: {e:#}");
+    }
+}
+
+/// Releases `session.lock` and bumps `last_modified` on clean shutdown.
+/// Re-reads the meta from disk first, so reflection updates written during
+/// the run (e.g. `last_reflected_event_id`) are preserved rather than
+/// clobbered by a stale in-memory copy. Best-effort, like [`init_session`].
+fn finalize_session(root: Option<&Path>, session_id: &str) {
+    let opened = match root {
+        Some(r) => session::open_or_create_under(r, session_id),
+        None => session::open_or_create(session_id),
+    };
+    let Ok(mut session) = opened else {
+        return;
+    };
+    session.meta.touch(Utc::now());
+    if let Err(e) = session::write_meta(&session.paths.meta, &session.meta) {
+        warn!("failed to stamp session end time: {e:#}");
+    }
+    if let Err(e) = session.remove_lock() {
+        warn!("failed to remove session lock: {e:#}");
     }
 }
 
@@ -731,5 +785,36 @@ mod tests {
             total += c.len();
         }
         assert_eq!(total, 20, "passthrough drains identically with no ring");
+    }
+
+    #[test]
+    fn init_session_records_provenance_and_claims_lock() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let root = tmp.path();
+        init_session(Some(root), "s1", "mock", Some("jky"));
+
+        let paths = session::SessionPaths::under(root, "s1");
+        let meta = session::read_meta(&paths.meta).unwrap();
+        assert_eq!(meta.backend.as_deref(), Some("mock"));
+        assert_eq!(meta.speaker.as_deref(), Some("jky"));
+        assert_eq!(
+            session::read_lock(&paths.lock).unwrap(),
+            Some(std::process::id())
+        );
+    }
+
+    #[test]
+    fn finalize_session_releases_lock_and_preserves_provenance() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let root = tmp.path();
+        init_session(Some(root), "s1", "mock", None);
+        finalize_session(Some(root), "s1");
+
+        let paths = session::SessionPaths::under(root, "s1");
+        assert!(session::read_lock(&paths.lock).unwrap().is_none());
+        let meta = session::read_meta(&paths.meta).unwrap();
+        // Provenance survives the re-read-and-write finalize.
+        assert_eq!(meta.backend.as_deref(), Some("mock"));
+        assert!(meta.last_modified >= meta.created);
     }
 }
