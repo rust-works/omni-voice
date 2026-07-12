@@ -107,6 +107,27 @@ impl PcmRing {
     }
 }
 
+/// Embeds a 16 kHz mono i16 window into a speaker vector.
+///
+/// A trait so [`SpeakerGate`] owns the embedder behind a boxed `dyn`, letting
+/// production inject the real [`WespeakerEmbedder`] and tests inject a
+/// deterministic stub — the gate's ring/threshold/fail-open logic is then
+/// exercisable without the ONNX model on disk. `Send + Sync` because the gate
+/// lives in the `listen` scheduler's `Send` future.
+pub trait SpeakerEmbedder: Send + Sync {
+    /// Embeds `pcm` (16 kHz mono i16) into a speaker vector, or errors.
+    fn embed(&self, pcm: &[i16]) -> Result<Vec<f32>>;
+}
+
+impl SpeakerEmbedder for WespeakerEmbedder {
+    fn embed(&self, pcm: &[i16]) -> Result<Vec<f32>> {
+        // `Self::embed` resolves to the inherent method (inherent items take
+        // path-precedence over the same-named trait method), so this forwards
+        // rather than recursing.
+        Self::embed(self, pcm)
+    }
+}
+
 /// Per-`Final` speaker gate: reconstructs a segment's audio from the shared
 /// [`PcmRing`] and keeps the segment only when it matches the enrolled speaker.
 ///
@@ -116,7 +137,7 @@ impl PcmRing {
 pub struct SpeakerGate {
     name: String,
     enrolled: EnrolledSpeaker,
-    embedder: WespeakerEmbedder,
+    embedder: Box<dyn SpeakerEmbedder>,
     threshold: f32,
     ring: Arc<Mutex<PcmRing>>,
 }
@@ -142,19 +163,20 @@ impl SpeakerGate {
     }
 
     /// Assembles a gate from already-loaded parts, minting a fresh ring. The
-    /// seam [`load`](SpeakerGate::load) builds on and the one tests use to
-    /// inject a real embedder without going through disk resolution.
+    /// seam [`load`](SpeakerGate::load) builds on; tests inject a real
+    /// [`WespeakerEmbedder`] (end-to-end) or a stub (decision logic) without
+    /// going through disk resolution.
     #[must_use]
-    pub fn from_parts(
+    pub fn from_parts<E: SpeakerEmbedder + 'static>(
         name: &str,
         enrolled: EnrolledSpeaker,
-        embedder: WespeakerEmbedder,
+        embedder: E,
         threshold: f32,
     ) -> Self {
         Self {
             name: name.to_string(),
             enrolled,
-            embedder,
+            embedder: Box::new(embedder),
             threshold,
             ring: Arc::new(Mutex::new(PcmRing::new(RING_CAPACITY_SAMPLES))),
         }
@@ -327,5 +349,88 @@ mod tests {
 
         let mirrored = ring.lock().unwrap().slice(0, 3200).unwrap();
         assert_eq!(mirrored, samples);
+    }
+
+    /// Deterministic embedder for unit-testing the gate decision without the
+    /// ONNX model: returns `vector` (cloned), or an error when `None`.
+    struct StubEmbedder {
+        vector: Option<Vec<f32>>,
+    }
+
+    impl SpeakerEmbedder for StubEmbedder {
+        fn embed(&self, _pcm: &[i16]) -> Result<Vec<f32>> {
+            self.vector
+                .clone()
+                .ok_or_else(|| anyhow::anyhow!("stub embed failure"))
+        }
+    }
+
+    /// A gate enrolled on `enrolled`, whose embedder returns `stub_out` for
+    /// every window, at cosine `threshold`.
+    fn stub_gate(enrolled: Vec<f32>, stub_out: Option<Vec<f32>>, threshold: f32) -> SpeakerGate {
+        let enrolled = EnrolledSpeaker {
+            name: "me".to_string(),
+            model: "stub".to_string(),
+            dim: enrolled.len(),
+            vector: enrolled,
+            samples_used: 1,
+            enrolled_at: chrono::Utc::now(),
+        };
+        SpeakerGate::from_parts("me", enrolled, StubEmbedder { vector: stub_out }, threshold)
+    }
+
+    /// Pushes `n` silent samples into the gate's ring.
+    fn fill(gate: &SpeakerGate, n: usize) {
+        gate.ring().lock().unwrap().push(&vec![0_i16; n]);
+    }
+
+    fn secs(t: f64) -> Duration {
+        Duration::from_secs_f64(t)
+    }
+
+    #[test]
+    fn accept_keeps_on_cosine_match() {
+        let gate = stub_gate(vec![1.0, 0.0], Some(vec![1.0, 0.0]), 0.5);
+        fill(&gate, MIN_EMBED_SAMPLES);
+        assert!(gate.accept(secs(0.0), secs(0.5)));
+        assert_eq!(gate.speaker_id(), "me");
+    }
+
+    #[test]
+    fn accept_drops_on_cosine_mismatch() {
+        let gate = stub_gate(vec![1.0, 0.0], Some(vec![0.0, 1.0]), 0.5);
+        fill(&gate, MIN_EMBED_SAMPLES);
+        assert!(!gate.accept(secs(0.0), secs(0.5)));
+    }
+
+    #[test]
+    fn accept_drops_segment_too_short_to_embed() {
+        // stub_out would match, so a drop here is purely the length guard.
+        let gate = stub_gate(vec![1.0, 0.0], Some(vec![1.0, 0.0]), 0.5);
+        fill(&gate, 100); // < MIN_EMBED_SAMPLES
+        assert!(!gate.accept(secs(0.0), secs(0.5)));
+    }
+
+    #[test]
+    fn accept_fails_open_when_window_scrolled_out() {
+        // Mismatching stub, so keeping proves the fail-open (not a match).
+        let gate = stub_gate(vec![1.0, 0.0], Some(vec![0.0, 1.0]), 0.5);
+        fill(&gate, RING_CAPACITY_SAMPLES + MIN_EMBED_SAMPLES); // evicts index 0
+        assert!(gate.accept(secs(0.0), secs(0.5)));
+    }
+
+    #[test]
+    fn accept_fails_open_on_embed_error() {
+        let gate = stub_gate(vec![1.0, 0.0], None, 0.5); // embedder errors
+        fill(&gate, MIN_EMBED_SAMPLES);
+        assert!(gate.accept(secs(0.0), secs(0.5)));
+    }
+
+    #[test]
+    fn accept_fails_open_on_dim_mismatch() {
+        // 3-dim embedding vs 2-dim enrolled: guarded before cosine would panic.
+        let gate = stub_gate(vec![1.0, 0.0], Some(vec![1.0, 0.0, 0.0]), 0.5);
+        fill(&gate, MIN_EMBED_SAMPLES);
+        assert!(gate.accept(secs(0.0), secs(0.5)));
     }
 }

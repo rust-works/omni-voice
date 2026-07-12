@@ -690,4 +690,46 @@ mod tests {
             "expected an --audio-file context, got: {err:#}"
         );
     }
+
+    /// `--speaker` with no enrolment on disk fails fast (before capture) with
+    /// an actionable hint, rather than silently transcribing everyone.
+    #[tokio::test]
+    async fn run_listen_with_fails_fast_on_missing_enrollment() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut opts = ListenOptions::new("nospk");
+        opts.backend = Some("mock".to_string());
+        opts.speaker = Some("no-such-speaker-xyzzy".to_string());
+        let err = run_listen_with(
+            opts,
+            counting_ai_factory(),
+            Some(tmp.path().to_path_buf()),
+            Arc::new(AtomicBool::new(false)),
+        )
+        .await
+        .unwrap_err();
+        let msg = format!("{err:#}");
+        assert!(
+            msg.contains("enroll"),
+            "expected an enroll hint, got: {msg}"
+        );
+    }
+
+    /// `tee_if_gated` mirrors chunks into the ring when gating is on, and is a
+    /// passthrough when it is off.
+    #[tokio::test]
+    async fn tee_if_gated_mirrors_only_when_ring_present() {
+        let ring = Arc::new(Mutex::new(PcmRing::new(1_000)));
+        let input = FileAsyncAudioInput::from_samples(vec![5_i16; 20], 20, false);
+        let mut gated = tee_if_gated(Box::new(input), Some(Arc::clone(&ring)));
+        while gated.next_chunk().await.is_some() {}
+        assert_eq!(ring.lock().unwrap().slice(0, 20), Some(vec![5_i16; 20]));
+
+        let input2 = FileAsyncAudioInput::from_samples(vec![9_i16; 20], 20, false);
+        let mut plain = tee_if_gated(Box::new(input2), None);
+        let mut total = 0;
+        while let Some(c) = plain.next_chunk().await {
+            total += c.len();
+        }
+        assert_eq!(total, 20, "passthrough drains identically with no ring");
+    }
 }
