@@ -95,6 +95,11 @@ Reflect on the following transcript segment. Each line is
 - If the user replaces an item with a new version, emit `item.expire`
   with `reason: superseded` and `superseded_by: <new ULID>`, followed by
   `item.create` for the new item.
+- If the user corrects an existing item's wording or details in place
+  ("actually, make that X"; "no, the deadline is Friday"), emit
+  `item.update` on that `item_id` with the new `text` (and any changed
+  fields) — do NOT mint a duplicate `item.create`. Reserve
+  `item.expire` + `item.create` for a genuine replacement, not a small fix.
 - If the user re-mentions an existing item with the same intent, emit
   `item.update` to refresh `valid_until` — do not mint a duplicate
   `item.create`.

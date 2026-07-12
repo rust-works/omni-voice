@@ -28,6 +28,17 @@ const L2_EPSILON: f32 = 1e-12;
 /// this, the FBANK CMN is unstable and the embedding is meaningless.
 pub const MIN_EMBED_SAMPLES: usize = SAMPLE_RATE as usize / 2; // 0.5 s
 
+/// Default cosine-similarity threshold for speaker-locked filtering, shared
+/// by batch `transcribe --speaker` and live `listen --speaker`.
+///
+/// Calibrated against
+/// [tests/fixtures/voice/two_speakers.wav](../../tests/fixtures/voice/two_speakers.wav)
+/// in [SPIKE.md on `issue-805-spike-tract-speaker`]: within-speaker mean
+/// ≈ 0.91, cross-speaker mean ≈ 0.07. The 0.5 default sits ~0.4 above
+/// the cross-speaker max and ~0.4 below the within-speaker min, leaving
+/// comfortable margin on both sides.
+pub const DEFAULT_SPEAKER_THRESHOLD: f32 = 0.5;
+
 /// Type alias for the runnable tract-onnx plan shape that
 /// [`WespeakerEmbedder`] owns. `tract-onnx` 0.23 returns an `Arc`-wrapped
 /// plan from `into_runnable()` and [`TypedSimplePlan`]'s `run` takes

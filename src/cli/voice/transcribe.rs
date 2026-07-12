@@ -18,7 +18,7 @@ use crate::voice::models::SPEAKER_WESPEAKER_EN;
 use crate::voice::{
     cosine, create_default_transcriber, detect_format, render_jsonl, render_markdown, speaker_file,
     EnrolledSpeaker, OutputFormat, TranscriptEvent, VecAudioInput, VoiceOpts, WespeakerEmbedder,
-    MIN_EMBED_SAMPLES,
+    DEFAULT_SPEAKER_THRESHOLD, MIN_EMBED_SAMPLES,
 };
 
 /// Default chunk size handed to [`VecAudioInput`]. Doesn't affect the
@@ -26,16 +26,6 @@ use crate::voice::{
 /// (#806) where ~64 ms chunks at 16 kHz keep latency low without
 /// thrashing the inference loop.
 const DEFAULT_CHUNK_SAMPLES: usize = 1024;
-
-/// Default cosine-similarity threshold for `--speaker` filtering.
-///
-/// Calibrated against
-/// [tests/fixtures/voice/two_speakers.wav](../../../tests/fixtures/voice/two_speakers.wav)
-/// in [SPIKE.md on `issue-805-spike-tract-speaker`]: within-speaker mean
-/// ≈ 0.91, cross-speaker mean ≈ 0.07. The 0.5 default sits ~0.4 above
-/// the cross-speaker max and ~0.4 below the within-speaker min, leaving
-/// comfortable margin on both sides.
-pub const DEFAULT_SPEAKER_THRESHOLD: f32 = 0.5;
 
 /// Transcribes a 16 kHz mono WAV file to JSONL or markdown.
 ///

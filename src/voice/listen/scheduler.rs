@@ -39,6 +39,7 @@ use tracing::warn;
 use crate::claude::ai::AiClient;
 use crate::voice::clock::SystemClock;
 use crate::voice::det::SystemUlidRng;
+use crate::voice::listen::speaker_gate::SpeakerGate;
 use crate::voice::reflect::{run_reflect, ReflectOptions, TranscriptSource};
 use crate::voice::session::{self, Session};
 use crate::voice::transcriber::{EndpointKind, TranscriptEvent, TranscriptEventStream};
@@ -221,6 +222,10 @@ pub struct ListenScheduler {
     session_root_override: Option<PathBuf>,
     config: SchedulerConfig,
     ai_factory: AiClientFactory,
+    /// Optional live speaker gate. When present, a `Final` whose segment audio
+    /// does not match the enrolled speaker is dropped before it is persisted or
+    /// counted toward a reflection trigger. `None` transcribes every speaker.
+    gate: Option<SpeakerGate>,
 }
 
 enum EventOutcome {
@@ -244,7 +249,16 @@ impl ListenScheduler {
             session_root_override,
             config,
             ai_factory,
+            gate: None,
         }
+    }
+
+    /// Attaches (or clears) the live speaker gate. `Some(gate)` transcribes
+    /// only the enrolled speaker; `None` (the default) transcribes everyone.
+    #[must_use]
+    pub fn with_gate(mut self, gate: Option<SpeakerGate>) -> Self {
+        self.gate = gate;
+        self
     }
 
     /// Consumes `stream` until it ends or `shutdown` is set, firing
@@ -358,8 +372,43 @@ impl ListenScheduler {
                 *last_activity = Instant::now();
                 Ok(EventOutcome::Continue { silence: false })
             }
-            TranscriptEvent::Final { ref text, .. } => {
+            TranscriptEvent::Final {
+                event_id,
+                text,
+                start,
+                end,
+                confidence,
+                words: word_align,
+                speaker: backend_speaker,
+                revisable,
+            } => {
+                // Speaker gate: reject a segment that doesn't match the enrolled
+                // speaker before it can be persisted or counted. A rejected
+                // final still refreshes activity so idle/silence timers advance.
+                if let Some(gate) = &self.gate {
+                    if !gate.accept(start, end) {
+                        *last_activity = Instant::now();
+                        return Ok(EventOutcome::Continue { silence: false });
+                    }
+                }
                 let words = u32::try_from(text.split_whitespace().count()).unwrap_or(u32::MAX);
+                // Stamp the enrolled speaker onto kept finals; preserve any
+                // backend-provided tag when gating is off.
+                let speaker = self
+                    .gate
+                    .as_ref()
+                    .map(SpeakerGate::speaker_id)
+                    .or(backend_speaker);
+                let ev = TranscriptEvent::Final {
+                    event_id,
+                    text,
+                    start,
+                    end,
+                    confidence,
+                    words: word_align,
+                    speaker,
+                    revisable,
+                };
                 // Persist before any trigger — reflect reads finals from disk.
                 session.append_transcript(std::slice::from_ref(&ev))?;
                 trig.on_final(words);

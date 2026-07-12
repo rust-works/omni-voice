@@ -137,6 +137,12 @@ Options:
           Reflect at least this often (milliseconds) during unbroken speech [default: 60000]
       --idle-after <IDLE_AFTER>
           Auto-stop after this many seconds of continuous silence. `0` (default) runs until Ctrl-C [default: 0]
+      --speaker <SPEAKER>
+          Lock onto an enrolled speaker: only speech matching this speaker's voice is transcribed; other voices in the room are dropped. Requires a prior `omni-voice enroll --name <name>`. Omit to transcribe everyone
+      --speaker-threshold <SPEAKER_THRESHOLD>
+          Cosine-similarity threshold for `--speaker`. Defaults to 0.5; higher is stricter. Ignored unless `--speaker` is set
+      --speaker-model <SPEAKER_MODEL>
+          Path to the wespeaker ONNX model. Overrides the default at `~/.omni-voice/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and `OMNI_VOICE_VOICE_SPEAKER_MODEL`. Ignored unless `--speaker` is set
   -h, --help
           Print help
 

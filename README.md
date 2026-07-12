@@ -59,6 +59,28 @@ omni-voice transcribe recording.wav --backend whisper-candle
 See **[Getting Started](docs/getting-started.md)** for the full
 capture → transcribe → reflect → review walkthrough.
 
+### Live listen with speaker locking
+
+`listen` runs the capture → transcribe → reflect loop continuously. Enroll your
+voice once, then start a session that transcribes **only you** — other voices in
+the room are dropped by a per-segment speaker match:
+
+```bash
+# 1. Enroll your voice (records a short sample, stores an embedding)
+omni-voice install-model --variant speaker-wespeaker-en
+omni-voice enroll --name me
+
+# 2. Listen, locked onto the enrolled speaker; Ctrl-C to stop
+omni-voice listen --session morning --speaker me
+
+# 3. Inspect the session directory
+ls ~/.omni-voice/voice/morning/
+#   transcript.jsonl  events.jsonl  meta.yaml  reflections.log
+```
+
+Without `--speaker`, `listen` transcribes every speaker. `--speaker-threshold`
+(default 0.5) tunes how strict the match is.
+
 ### Shell completion
 
 `omni-voice completions <shell>` prints a completion script to stdout for
@@ -79,6 +101,7 @@ recipes and the `$fpath`/`compinit` setup zsh requires.
 | `capture` | Record microphone audio to a 16 kHz mono WAV |
 | `transcribe <WAV>` | Transcribe a 16 kHz mono WAV to JSONL or markdown |
 | `reflect [TRANSCRIPT]` | Reflect on a transcript and emit reflection events (needs an AI backend) |
+| `listen` | Continuously capture, transcribe, and reflect in real time; `--speaker` locks onto an enrolled voice |
 | `review <SESSION_ID>` | Reconcile a session's events into materialized markdown |
 | `install-model` | Download model files (Whisper tiny.en, or wespeaker for speaker embedding) |
 | `enroll` | Capture a sample and persist a speaker embedding |
@@ -105,6 +128,24 @@ See the **[AI Backends Guide](docs/ai-backends.md)** for required env vars,
 model selection, the Claude CLI sandbox and its escape hatches
 (`--claude-cli-allow-tools`, `--claude-cli-allow-mcp`), and the
 `--claude-cli-max-budget-usd` spending cap.
+
+### 🔒 Privacy boundary
+
+Audio never leaves your machine. Capture, transcription (Whisper/Voxtral), and
+speaker embedding (`enroll`, `listen --speaker`, `transcribe --speaker`) all run
+locally — no raw audio is uploaded.
+
+The one thing that leaves the machine is the **transcribed text** the `reflect`
+step sends to your AI backend. In a `listen` session this happens automatically
+on each reflection. What that means concretely:
+
+- `capture`, `transcribe`, `enroll`, and `review` are fully offline.
+- `reflect` (and therefore `listen`) sends transcript text to the configured AI
+  backend. With the default backend that is the Anthropic API; choose a local
+  backend (`USE_OLLAMA=true`) to keep even the text on-device.
+- The reflection subprocess has **no filesystem tools** by default —
+  `--claude-cli-allow-tools` is the only switch that widens that, and it is
+  off unless you set it.
 
 ## 🔧 Requirements
 

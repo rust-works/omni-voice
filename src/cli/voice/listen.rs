@@ -74,6 +74,23 @@ pub struct ListenCommand {
     /// hardware. Hidden: a developer/test affordance, not a primary flow.
     #[arg(long, value_name = "PATH", hide = true)]
     pub audio_file: Option<PathBuf>,
+
+    /// Lock onto an enrolled speaker: only speech matching this speaker's
+    /// voice is transcribed; other voices in the room are dropped. Requires a
+    /// prior `omni-voice enroll --name <name>`. Omit to transcribe everyone.
+    #[arg(long)]
+    pub speaker: Option<String>,
+
+    /// Cosine-similarity threshold for `--speaker`. Defaults to 0.5; higher is
+    /// stricter. Ignored unless `--speaker` is set.
+    #[arg(long)]
+    pub speaker_threshold: Option<f32>,
+
+    /// Path to the wespeaker ONNX model. Overrides the default at
+    /// `~/.omni-voice/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and
+    /// `OMNI_VOICE_VOICE_SPEAKER_MODEL`. Ignored unless `--speaker` is set.
+    #[arg(long)]
+    pub speaker_model: Option<PathBuf>,
 }
 
 impl ListenCommand {
@@ -95,6 +112,9 @@ impl ListenCommand {
             },
             idle_after: Duration::from_secs(u64::from(self.idle_after)),
             audio_file: self.audio_file,
+            speaker: self.speaker,
+            speaker_threshold: self.speaker_threshold,
+            speaker_model: self.speaker_model,
         };
 
         eprintln!("Listening on session {} (Ctrl-C to stop)…", opts.session_id);
@@ -147,6 +167,31 @@ mod tests {
         );
         assert_eq!(cli.listen.idle_after, 0);
         assert!(cli.listen.audio_file.is_none());
+        assert!(cli.listen.speaker.is_none());
+        assert!(cli.listen.speaker_threshold.is_none());
+        assert!(cli.listen.speaker_model.is_none());
+    }
+
+    #[test]
+    fn parses_speaker_flags() {
+        let cli = TestCli::try_parse_from([
+            "test",
+            "--session",
+            "s1",
+            "--speaker",
+            "jky",
+            "--speaker-threshold",
+            "0.65",
+            "--speaker-model",
+            "/models/wespeaker.onnx",
+        ])
+        .unwrap();
+        assert_eq!(cli.listen.speaker.as_deref(), Some("jky"));
+        assert_eq!(cli.listen.speaker_threshold, Some(0.65));
+        assert_eq!(
+            cli.listen.speaker_model.as_deref(),
+            Some(std::path::Path::new("/models/wespeaker.onnx"))
+        );
     }
 
     #[test]
