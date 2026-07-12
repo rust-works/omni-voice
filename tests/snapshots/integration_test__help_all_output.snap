@@ -14,6 +14,7 @@ Commands:
   reflect        Reflects on a transcript and emits reflection events
   listen         Listens on a live microphone, transcribing and reflecting continuously
   review         Reconciles a session's events.jsonl into materialized markdown
+  sessions       Lists, shows, or garbage-collects session storage
   install-model  Downloads the model files for a chosen variant (Whisper tiny.en for the `whisper-candle` backend, or wespeaker for speaker embedding) into `~/.omni-voice/voice/models/<variant>/`
   enroll         Captures a microphone sample and persists a speaker embedding to `~/.omni-voice/voice/speakers/<name>.json`
   help-all       Displays comprehensive help for all commands
@@ -118,11 +119,11 @@ omni-voice listen - Listens on a live microphone, transcribing and reflecting co
 
 Listens on a live microphone, transcribing and reflecting continuously
 
-Usage: listen [OPTIONS] --session <SESSION>
+Usage: listen [OPTIONS]
 
 Options:
       --session <SESSION>
-          Session id. Transcript, events, and logs live under `~/.omni-voice/voice/<id>/`
+          Session id. Transcript, events, and logs live under `~/.omni-voice/voice/<id>/`. Omit to auto-mint a fresh ULID (echoed on start so it can be passed to `omni-voice sessions show <id>`)
       --backend <BACKEND>
           ASR backend. Must be a streaming backend (`voxtral-mlx` or `mock`); batch backends are rejected. Defaults to the build's streaming default
       --device <DEVICE>
@@ -177,6 +178,65 @@ Arguments:
 Options:
       --what <WHAT>  Which artefact to materialise. `all` (default) writes both markdown files and applies the TTL pass. `transcript` renders `transcript.jsonl` to stdout instead [default: all] [possible values: transcript, todos, decisions, all]
   -h, --help         Print help (see more with '--help')
+
+
+================================================================================
+
+omni-voice sessions - Lists, shows, or garbage-collects session storage
+
+Lists, shows, or garbage-collects session storage
+
+Usage: sessions <COMMAND>
+
+Commands:
+  list  Lists sessions newest-first with summary stats
+  show  Prints a session's `meta.yaml` and computed stats
+  gc    Deletes sessions whose last activity is older than a retention window
+  help  Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+
+
+================================================================================
+
+omni-voice sessions gc - Deletes sessions whose last activity is older than a retention window
+
+Deletes sessions whose last activity is older than a retention window
+
+Usage: gc [OPTIONS]
+
+Options:
+      --older-than <OLDER_THAN>  Delete sessions whose `last_modified` is older than this age. Accepts a `<number><unit>` shorthand where unit is `d` (days), `h` (hours), or `m` (minutes) — e.g. `30d`, `24h`, `90m` [default: 30d]
+      --yes                      Skip the confirmation prompt and delete immediately
+  -h, --help                     Print help
+
+
+================================================================================
+
+omni-voice sessions list - Lists sessions newest-first with summary stats
+
+Lists sessions newest-first with summary stats
+
+Usage: list
+
+Options:
+  -h, --help  Print help
+
+
+================================================================================
+
+omni-voice sessions show - Prints a session's `meta.yaml` and computed stats
+
+Prints a session's `meta.yaml` and computed stats
+
+Usage: show <SESSION_ID>
+
+Arguments:
+  <SESSION_ID>  Session id under `~/.omni-voice/voice/<id>/`
+
+Options:
+  -h, --help  Print help
 
 
 ================================================================================
