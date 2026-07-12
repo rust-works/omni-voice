@@ -109,6 +109,8 @@ pub enum Commands {
     Listen(voice::listen::ListenCommand),
     /// Reconciles a session's events.jsonl into materialized markdown.
     Review(voice::review::ReviewCommand),
+    /// Lists, shows, or garbage-collects session storage.
+    Sessions(voice::sessions::SessionsCommand),
     /// Downloads the model files for a chosen variant (Whisper tiny.en
     /// for the `whisper-candle` backend, or wespeaker for speaker
     /// embedding) into `~/.omni-voice/voice/models/<variant>/`.
@@ -164,6 +166,7 @@ impl Cli {
             Commands::Reflect(cmd) => cmd.execute().await,
             Commands::Listen(cmd) => cmd.execute().await,
             Commands::Review(cmd) => cmd.execute(),
+            Commands::Sessions(cmd) => cmd.execute(),
             Commands::InstallModel(cmd) => cmd.execute(),
             Commands::Enroll(cmd) => cmd.execute(),
             Commands::Completions(completions_cmd) => completions_cmd.execute(),
