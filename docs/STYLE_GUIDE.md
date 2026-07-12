@@ -39,7 +39,7 @@ A new convention needs to be added to this style guide.
 
 ### Guidance
 
-Assign the next sequential ID (currently next is `STYLE-0028`) and include:
+Assign the next sequential ID (currently next is `STYLE-0029`) and include:
 
 1. A **Tags** line immediately after the heading — a comma-separated list of category labels
    from the tag vocabulary below.
@@ -1172,3 +1172,64 @@ Adding or substantially editing a file in [`docs/plan/`](plan/).
 ### Motivation
 
 A plan directory that mixes shipped, in-progress, and superseded content with no signalling forces every new contributor to read every file and cross-check the codebase before they can act on it. A one-line status header costs the author nothing and gives the reader an immediate orientation; ADR cross-links make the canonical decision discoverable.
+
+---
+
+## STYLE-0028: Serialize env-var-mutating tests on the crate-wide lock
+
+**Tags:** `testing`
+
+### Situation
+
+Writing a test that sets or removes a process environment variable
+(`std::env::set_var` / `remove_var`), or that drives code which does.
+
+### Guidance
+
+Environment variables are **process-global**, but `cargo test` runs tests on
+many threads concurrently. A module-local `Mutex` only serialises tests
+*within* that module — tests in other modules still race on the same variable
+(or on the global env namespace), producing intermittent failures. **Do not**
+introduce a new per-module env mutex.
+
+Instead, serialise on the single crate-wide lock in
+[`crate::test_support::env`](../src/test_support.rs):
+
+```rust
+#[test]
+fn reads_backend_from_env() {
+    // Held for the whole test; serialises against every other env test.
+    let _env = crate::test_support::env::env_lock();
+    std::env::set_var("OMNI_VOICE_AI_BACKEND", "claude-cli");
+    // ... assert ...
+    std::env::remove_var("OMNI_VOICE_AI_BACKEND");
+}
+```
+
+For the common "snapshot, clear, and auto-restore" shape, use `EnvGuard`, which
+locks and restores the listed vars to their prior values on drop:
+
+```rust
+#[test]
+fn backend_precedence() {
+    let guard = crate::test_support::env::EnvGuard::clearing(&["OMNI_VOICE_AI_BACKEND"]);
+    guard.set("OMNI_VOICE_AI_BACKEND", "claude-cli");
+    // ... assert; the var is restored on drop ...
+}
+```
+
+This applies even when a variable "looks" module-private: `HOME`,
+`OMNI_VOICE_VOICE_ROOT`, and the `OMNI_VOICE_*` config vars are read by
+resolvers in *other* modules, so a private lock is not enough.
+
+Non-env process-global locks are a separate concern and intentionally stay
+distinct — e.g. `test_support::shim`'s execve lock and the voxtral-mlx Metal
+device lock guard non-env state and must **not** be folded into `env_lock`.
+
+### Motivation
+
+Per-module env locks let tests in different modules race on the same variable
+under parallel `cargo test`, producing intermittent failures that pass on
+isolated re-run (issue #12). One process-global lock for one process-global
+resource is the only arrangement that actually serialises them, and a single
+source of truth stops the per-module pattern from reaccreting.
