@@ -20,11 +20,12 @@
 pub mod input;
 pub mod log;
 pub mod scheduler;
+pub mod speaker_gate;
 pub mod supervisor;
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::{Context, Result};
@@ -38,11 +39,13 @@ use crate::voice::session;
 use crate::voice::transcriber::{
     AsyncAudioInput, FileAsyncAudioInput, StreamingTranscriber, STREAM_CHUNK_SAMPLES,
 };
+use crate::voice::DEFAULT_SPEAKER_THRESHOLD;
 
 use self::input::{audio_channel, DEFAULT_CHANNEL_CAPACITY};
 use self::scheduler::{
     AiClientFactory, ListenScheduler, ListenSummary, SchedulerConfig, StopReason, TriggerConfig,
 };
+use self::speaker_gate::{PcmRing, SpeakerGate, TeeAudioInput};
 use self::supervisor::{run_cpal_supervisor, DEFAULT_BUFFER_FRAMES};
 
 /// Options for a live `voice listen` session.
@@ -66,6 +69,16 @@ pub struct ListenOptions {
     /// microphone (`--audio-file`). `None` uses live capture. For
     /// reproducible testing and demos without audio hardware.
     pub audio_file: Option<PathBuf>,
+    /// Enrolled speaker to lock onto (`--speaker`). When set, only speech
+    /// matching this speaker's embedding is transcribed; other voices are
+    /// dropped. `None` transcribes every speaker.
+    pub speaker: Option<String>,
+    /// Cosine-similarity threshold for `--speaker` (`--speaker-threshold`).
+    /// `None` uses [`DEFAULT_SPEAKER_THRESHOLD`].
+    pub speaker_threshold: Option<f32>,
+    /// Override for the wespeaker ONNX model dir/file (`--speaker-model`).
+    /// Ignored unless `speaker` is set.
+    pub speaker_model: Option<PathBuf>,
 }
 
 impl ListenOptions {
@@ -81,6 +94,9 @@ impl ListenOptions {
             trigger: TriggerConfig::default(),
             idle_after: Duration::ZERO,
             audio_file: None,
+            speaker: None,
+            speaker_threshold: None,
+            speaker_model: None,
         }
     }
 }
@@ -127,6 +143,21 @@ async fn run_listen_with(
         .clone()
         .unwrap_or_else(|| "default".to_string());
 
+    // Fail fast on a missing enrolment or speaker model before capture, too.
+    let gate = match opts.speaker.as_deref() {
+        Some(name) => Some(
+            SpeakerGate::load(
+                name,
+                opts.speaker_model.as_deref(),
+                opts.speaker_threshold.unwrap_or(DEFAULT_SPEAKER_THRESHOLD),
+            )
+            .with_context(|| format!("enabling --speaker {name}"))?,
+        ),
+        None => None,
+    };
+    // The ring the tee fills is shared with the gate that reads it.
+    let ring = gate.as_ref().map(SpeakerGate::ring);
+
     let root = session_root_override.as_deref();
     write_log_line(
         root,
@@ -144,12 +175,14 @@ async fn run_listen_with(
             ..SchedulerConfig::default()
         },
         ai_factory,
-    );
+    )
+    .with_gate(gate);
 
     // Source the audio: a mic-free WAV replay, or the live cpal supervisor.
     let (summary, dropped_chunks) = if let Some(path) = opts.audio_file.as_deref() {
         let input = FileAsyncAudioInput::from_wav_path(path, STREAM_CHUNK_SAMPLES, true)
             .with_context(|| format!("opening --audio-file {}", path.display()))?;
+        let input = tee_if_gated(Box::new(input), ring.clone());
         let summary = run_core(input, transcriber, scheduler, Arc::clone(&shutdown)).await;
         (summary, 0_u64)
     } else {
@@ -165,7 +198,10 @@ async fn run_listen_with(
                 .spawn(move || run_cpal_supervisor(device, buffer, tx, shutdown))
                 .context("spawning capture supervisor thread")?
         };
-        let summary = run_core(rx, transcriber, scheduler, Arc::clone(&shutdown)).await;
+        // Tee on the consumer side (after the channel's drop-on-overflow) so
+        // the gate's ring stays aligned with what the backend actually reads.
+        let input = tee_if_gated(Box::new(rx), ring.clone());
+        let summary = run_core(input, transcriber, scheduler, Arc::clone(&shutdown)).await;
         // Wind down the capture thread regardless of how the loop ended.
         shutdown.store(true, Ordering::Relaxed);
         if supervisor.join().is_err() {
@@ -194,16 +230,29 @@ async fn run_listen_with(
     Ok(summary)
 }
 
+/// Wraps `input` in a [`TeeAudioInput`] mirroring into `ring` when speaker
+/// gating is on; otherwise returns it unchanged. Wrapping is a passthrough with
+/// a per-chunk copy into the ring, so an ungated session pays nothing.
+fn tee_if_gated(
+    input: Box<dyn AsyncAudioInput>,
+    ring: Option<Arc<Mutex<PcmRing>>>,
+) -> Box<dyn AsyncAudioInput> {
+    match ring {
+        Some(ring) => Box::new(TeeAudioInput::new(input, ring)),
+        None => input,
+    }
+}
+
 /// The transcriber-plus-scheduler core, split out so tests can drive it with
 /// a fixture [`AsyncAudioInput`] and a mock streaming transcriber — no
 /// microphone, no signals.
 async fn run_core(
-    input: impl AsyncAudioInput + 'static,
+    input: Box<dyn AsyncAudioInput>,
     transcriber: Box<dyn StreamingTranscriber>,
     scheduler: ListenScheduler,
     shutdown: Arc<AtomicBool>,
 ) -> Result<ListenSummary> {
-    let stream = transcriber.transcribe_stream(Box::new(input));
+    let stream = transcriber.transcribe_stream(input);
     scheduler.run(stream, shutdown).await
 }
 
@@ -314,7 +363,7 @@ mod tests {
         );
 
         let shutdown = Arc::new(AtomicBool::new(false));
-        let summary = run_core(input, transcriber, scheduler, shutdown)
+        let summary = run_core(Box::new(input), transcriber, scheduler, shutdown)
             .await
             .unwrap();
 
@@ -374,7 +423,7 @@ mod tests {
         );
         // Pre-set shutdown: the loop should exit promptly with Signal.
         let shutdown = Arc::new(AtomicBool::new(true));
-        let summary = run_core(input, transcriber, scheduler, shutdown)
+        let summary = run_core(Box::new(input), transcriber, scheduler, shutdown)
             .await
             .unwrap();
         assert_eq!(summary.stopped_by, StopReason::Signal);
@@ -449,7 +498,7 @@ mod tests {
             counting_ai_factory(),
         );
         let shutdown = Arc::new(AtomicBool::new(false));
-        let summary = run_core(input, transcriber, scheduler, shutdown)
+        let summary = run_core(Box::new(input), transcriber, scheduler, shutdown)
             .await
             .unwrap();
         assert_eq!(summary.stopped_by, StopReason::StreamEnd);
