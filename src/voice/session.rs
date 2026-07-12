@@ -849,6 +849,10 @@ mod tests {
         assert_eq!(iso8601::parse("PT90M").unwrap(), Duration::from_secs(5_400));
         assert!(iso8601::parse("7D").is_err(), "must require leading P");
         assert!(iso8601::parse("P7X").is_err(), "unknown unit rejected");
+        assert!(
+            iso8601::parse("P7").is_err(),
+            "trailing number without a unit is rejected"
+        );
     }
 
     #[test]
@@ -1085,6 +1089,14 @@ mod tests {
         let path = tmp.path().join("session.lock");
         std::fs::create_dir(&path).unwrap(); // a directory where a file is expected
         assert!(read_lock(&path).is_err());
+    }
+
+    #[test]
+    fn remove_lock_errors_on_non_file() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("session.lock");
+        std::fs::create_dir(&path).unwrap(); // remove_file on a dir errors (not NotFound)
+        assert!(remove_lock(&path).is_err());
     }
 
     #[test]

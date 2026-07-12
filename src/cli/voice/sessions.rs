@@ -411,8 +411,15 @@ fn prompt_confirm(count: usize, bytes: u64) -> Result<bool> {
     std::io::stdout().flush()?;
     let mut line = String::new();
     std::io::stdin().read_line(&mut line)?;
-    let answer = line.trim().to_ascii_lowercase();
-    Ok(answer == "y" || answer == "yes")
+    Ok(is_affirmative(&line))
+}
+
+/// Whether a prompt answer counts as consent: only `y`/`yes`
+/// (case-insensitive, surrounding whitespace ignored). Everything else —
+/// including empty input (a bare Enter) — is declined.
+fn is_affirmative(answer: &str) -> bool {
+    let a = answer.trim().to_ascii_lowercase();
+    a == "y" || a == "yes"
 }
 
 /// Total byte size of the files directly (and recursively) under `path`.
@@ -435,7 +442,8 @@ fn dir_size(path: &Path) -> Result<u64> {
 mod tests {
     use super::*;
     use crate::voice::events::{
-        ExpireReason, ItemClass, ItemCreate, ItemExpire, Provenance, ReflectionId,
+        DecisionRecord, ExpireReason, ItemClass, ItemComplete, ItemCreate, ItemExpire, ItemUpdate,
+        Provenance, ReflectionError, ReflectionId, ResearchNote,
     };
     use crate::voice::session::{append_events, write_meta, SessionMeta};
     use chrono::TimeZone;
@@ -493,6 +501,56 @@ mod tests {
         )
     }
 
+    /// One event of every [`EventKind`] variant, in declared order.
+    fn one_of_each_kind() -> Vec<Event> {
+        let id = |n| ulid::Ulid::from_parts(0, n);
+        vec![
+            create(1, 10),
+            event(
+                2,
+                EventKind::ItemUpdate(ItemUpdate {
+                    item_id: id(10),
+                    text: None,
+                    priority: None,
+                    valid_until: None,
+                    tags: None,
+                }),
+            ),
+            expire(3, 11),
+            event(
+                4,
+                EventKind::ItemComplete(ItemComplete {
+                    item_id: id(12),
+                    note: None,
+                }),
+            ),
+            event(
+                5,
+                EventKind::DecisionRecord(DecisionRecord {
+                    decision_id: id(13),
+                    text: "d".into(),
+                    alternatives: None,
+                }),
+            ),
+            event(
+                6,
+                EventKind::ResearchNote(ResearchNote {
+                    note_id: id(14),
+                    text: "n".into(),
+                    links: None,
+                    valid_until: None,
+                }),
+            ),
+            event(
+                7,
+                EventKind::ReflectionError(ReflectionError {
+                    raw_output: "raw".into(),
+                    error: "bad".into(),
+                }),
+            ),
+        ]
+    }
+
     #[test]
     fn parse_age_accepts_d_h_m() {
         assert_eq!(parse_age("30d").unwrap(), chrono::Duration::days(30));
@@ -502,6 +560,8 @@ mod tests {
 
     #[test]
     fn parse_age_rejects_bad_input() {
+        assert!(parse_age("d").is_err(), "too short (unit only)");
+        assert!(parse_age("").is_err(), "empty");
         assert!(parse_age("30").is_err(), "missing unit");
         assert!(parse_age("30w").is_err(), "unsupported unit");
         assert!(parse_age("xd").is_err(), "non-numeric");
@@ -648,6 +708,40 @@ mod tests {
     }
 
     #[test]
+    fn event_type_counts_names_every_kind() {
+        // Exercises every arm of event_type_name and the fixed display order.
+        assert_eq!(
+            event_type_counts(&one_of_each_kind()),
+            vec![
+                ("item.create", 1),
+                ("item.update", 1),
+                ("item.expire", 1),
+                ("item.complete", 1),
+                ("decision.record", 1),
+                ("research.note", 1),
+                ("reflection.error", 1),
+            ]
+        );
+    }
+
+    #[test]
+    fn net_item_count_ignores_non_item_lifecycle_events() {
+        // Only create/expire move the count; every other kind contributes 0.
+        assert_eq!(net_item_count(&one_of_each_kind()), 0);
+    }
+
+    #[test]
+    fn report_skipped_warns_per_entry() {
+        let skipped = [("corrupt".to_string(), "boom".to_string())];
+        let mut out = Vec::new();
+        report_skipped(&skipped, &mut out).unwrap();
+        assert_eq!(
+            String::from_utf8(out).unwrap(),
+            "warning: skipping unreadable session corrupt: boom\n"
+        );
+    }
+
+    #[test]
     fn dir_size_sums_files_recursively() {
         let tmp = TempDir::new().unwrap();
         std::fs::write(tmp.path().join("a.txt"), b"hello").unwrap(); // 5
@@ -743,5 +837,24 @@ mod tests {
         .run(tmp.path(), &mut out)
         .unwrap();
         assert!(!tmp.path().join("old").exists());
+    }
+
+    #[test]
+    fn gather_errors_when_root_is_a_file() {
+        let tmp = TempDir::new().unwrap();
+        let not_a_dir = tmp.path().join("regular-file");
+        std::fs::write(&not_a_dir, b"x").unwrap();
+        // read_dir on a file errors with a kind other than NotFound.
+        assert!(gather_sessions(&not_a_dir).is_err());
+    }
+
+    #[test]
+    fn is_affirmative_accepts_only_y_and_yes() {
+        for yes in ["y", "Y", "yes", "YES", " yes \n", "Yes"] {
+            assert!(is_affirmative(yes), "{yes:?} should be consent");
+        }
+        for no in ["", "\n", "n", "no", "yeah", "yep", "sure"] {
+            assert!(!is_affirmative(no), "{no:?} should be declined");
+        }
     }
 }

@@ -164,4 +164,14 @@ mod tests {
         std::fs::create_dir(&path).unwrap(); // a directory where a file is expected
         assert!(read_reflections(&path).is_err());
     }
+
+    #[test]
+    fn ignores_unknown_keys_and_bare_tokens() {
+        // A recognised field keeps the line a reflection; an unknown `key=val`
+        // and a bare no-`=` token are both tolerated and skipped.
+        let e = parse_line("2026-07-09T10:00:00Z 01HZX status=ok future=1 barewords").unwrap();
+        assert_eq!(e.status.as_deref(), Some("ok"));
+        assert_eq!(e.model, None);
+        assert_eq!(e.cost_usd, None);
+    }
 }
