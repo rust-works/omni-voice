@@ -68,22 +68,34 @@ impl SessionsCommand {
     pub fn execute(self) -> Result<()> {
         let root = session::voice_root()?;
         let mut stdout = std::io::stdout().lock();
-        match self.command {
-            SessionsSubcommand::List => {
-                let (summaries, skipped) = gather_sessions(&root)?;
-                report_skipped(&skipped, &mut stdout)?;
-                render_list(&summaries, &mut stdout)?;
+        self.command.run(&root, &mut stdout)?;
+        stdout.flush()?;
+        Ok(())
+    }
+}
+
+impl SessionsSubcommand {
+    /// Dispatches the subcommand against `root`, writing all output to `w`.
+    /// Split out from [`SessionsCommand::execute`] so it can be driven over a
+    /// `tempfile` root and a captured buffer, independent of the real voice
+    /// root and stdout.
+    fn run(self, root: &Path, w: &mut impl Write) -> Result<()> {
+        match self {
+            Self::List => {
+                let (summaries, skipped) = gather_sessions(root)?;
+                report_skipped(&skipped, w)?;
+                render_list(&summaries, w)?;
             }
-            SessionsSubcommand::Show(args) => show_session(&root, &args.id, &mut stdout)?,
-            SessionsSubcommand::Gc(args) => {
+            Self::Show(args) => show_session(root, &args.id, w)?,
+            Self::Gc(args) => {
                 let age = parse_age(&args.older_than)?;
                 let assume_yes = args.yes;
                 run_gc(
-                    &root,
+                    root,
                     age,
                     Utc::now(),
                     SystemTime::now(),
-                    &mut stdout,
+                    w,
                     |count, bytes| {
                         if assume_yes {
                             Ok(true)
@@ -94,7 +106,6 @@ impl SessionsCommand {
                 )?;
             }
         }
-        stdout.flush()?;
         Ok(())
     }
 }
@@ -423,7 +434,10 @@ fn dir_size(path: &Path) -> Result<u64> {
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
-    use crate::voice::session::{write_meta, SessionMeta};
+    use crate::voice::events::{
+        ExpireReason, ItemClass, ItemCreate, ItemExpire, Provenance, ReflectionId,
+    };
+    use crate::voice::session::{append_events, write_meta, SessionMeta};
     use chrono::TimeZone;
     use tempfile::TempDir;
 
@@ -438,6 +452,45 @@ mod tests {
         let mut meta = SessionMeta::new(id, created, "p");
         meta.last_modified = last_modified;
         write_meta(&paths.meta, &meta).unwrap();
+    }
+
+    fn event(seq: u128, kind: EventKind) -> Event {
+        Event {
+            event_id: ulid::Ulid::from_parts(0, seq),
+            ts: ts(13),
+            reflection_id: ReflectionId::Ulid(ulid::Ulid::from_parts(0, 900)),
+            provenance: Provenance {
+                transcript_span: None,
+                model: None,
+                prompt_version: None,
+            },
+            kind,
+        }
+    }
+
+    fn create(seq: u128, item: u128) -> Event {
+        event(
+            seq,
+            EventKind::ItemCreate(ItemCreate {
+                item_id: ulid::Ulid::from_parts(0, item),
+                class: ItemClass::Todo,
+                text: format!("item {item}"),
+                priority: None,
+                valid_until: None,
+                tags: None,
+            }),
+        )
+    }
+
+    fn expire(seq: u128, item: u128) -> Event {
+        event(
+            seq,
+            EventKind::ItemExpire(ItemExpire {
+                item_id: ulid::Ulid::from_parts(0, item),
+                reason: ExpireReason::Ttl,
+                superseded_by: None,
+            }),
+        )
     }
 
     #[test]
@@ -577,5 +630,118 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let mut out = Vec::new();
         assert!(show_session(tmp.path(), "ghost", &mut out).is_err());
+    }
+
+    #[test]
+    fn net_item_count_creates_minus_expires() {
+        let events = [create(1, 10), create(2, 11), expire(3, 10)];
+        assert_eq!(net_item_count(&events), 1);
+    }
+
+    #[test]
+    fn event_type_counts_groups_in_wire_order() {
+        let events = [create(1, 10), create(2, 11), expire(3, 10)];
+        assert_eq!(
+            event_type_counts(&events),
+            vec![("item.create", 2), ("item.expire", 1)]
+        );
+    }
+
+    #[test]
+    fn dir_size_sums_files_recursively() {
+        let tmp = TempDir::new().unwrap();
+        std::fs::write(tmp.path().join("a.txt"), b"hello").unwrap(); // 5
+        std::fs::create_dir(tmp.path().join("sub")).unwrap();
+        std::fs::write(tmp.path().join("sub/b.txt"), b"xyz").unwrap(); // 3
+        assert_eq!(dir_size(tmp.path()).unwrap(), 8);
+    }
+
+    #[test]
+    fn render_list_empty_says_none() {
+        let mut out = Vec::new();
+        render_list(&[], &mut out).unwrap();
+        assert_eq!(String::from_utf8(out).unwrap(), "No sessions found.\n");
+    }
+
+    #[test]
+    fn render_list_formats_header_and_row() {
+        let summaries = [SessionSummary {
+            id: "01ABCXYZ".into(),
+            created: ts(13),
+            last_modified: ts(13) + chrono::Duration::hours(1) + chrono::Duration::minutes(23),
+            items: 3,
+            cost_usd: 0.12,
+        }];
+        let mut out = Vec::new();
+        render_list(&summaries, &mut out).unwrap();
+        let text = String::from_utf8(out).unwrap();
+        assert!(text.contains("ID") && text.contains("CREATED") && text.contains("COST"));
+        assert!(text.contains("01ABCXYZ"));
+        assert!(text.contains("2026-05-13 10:00"));
+        assert!(text.contains("1h 23m"));
+        assert!(text.contains('3'));
+        assert!(text.contains("$0.12"));
+    }
+
+    #[test]
+    fn show_prints_meta_events_reflections_and_todos() {
+        let tmp = TempDir::new().unwrap();
+        make_session(tmp.path(), "s1", ts(13), ts(13));
+        let paths = SessionPaths::under(tmp.path(), "s1");
+        append_events(
+            &paths.events,
+            &[create(1, 10), create(2, 11), expire(3, 10)],
+        )
+        .unwrap();
+        std::fs::write(
+            &paths.log,
+            "2026-05-13T10:31:00Z 01AA model=m cost_usd=unknown latency_ms=5 events=1 status=ok\n",
+        )
+        .unwrap();
+        std::fs::write(paths.root.join("todos.md"), "# Todos\n- [ ] a\n- [ ] b\n").unwrap();
+
+        let mut out = Vec::new();
+        show_session(tmp.path(), "s1", &mut out).unwrap();
+        let text = String::from_utf8(out).unwrap();
+        assert!(text.contains("session_id: s1"));
+        assert!(text.contains("item.create: 2"));
+        assert!(text.contains("item.expire: 1"));
+        assert!(text.contains("reflections: 1"));
+        assert!(text.contains("todos.md (first 5 lines):"));
+        assert!(text.contains("# Todos"));
+    }
+
+    #[test]
+    fn dispatch_list_renders_sessions() {
+        let tmp = TempDir::new().unwrap();
+        make_session(tmp.path(), "s1", ts(13), ts(13));
+        let mut out = Vec::new();
+        SessionsSubcommand::List.run(tmp.path(), &mut out).unwrap();
+        assert!(String::from_utf8(out).unwrap().contains("s1"));
+    }
+
+    #[test]
+    fn dispatch_show_prints_meta() {
+        let tmp = TempDir::new().unwrap();
+        make_session(tmp.path(), "s1", ts(13), ts(13));
+        let mut out = Vec::new();
+        SessionsSubcommand::Show(ShowArgs { id: "s1".into() })
+            .run(tmp.path(), &mut out)
+            .unwrap();
+        assert!(String::from_utf8(out).unwrap().contains("session_id: s1"));
+    }
+
+    #[test]
+    fn dispatch_gc_with_yes_deletes_old() {
+        let tmp = TempDir::new().unwrap();
+        make_session(tmp.path(), "old", ts(1), ts(1));
+        let mut out = Vec::new();
+        SessionsSubcommand::Gc(GcArgs {
+            older_than: "1d".into(),
+            yes: true,
+        })
+        .run(tmp.path(), &mut out)
+        .unwrap();
+        assert!(!tmp.path().join("old").exists());
     }
 }

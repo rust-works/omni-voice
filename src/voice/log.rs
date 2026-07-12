@@ -156,4 +156,12 @@ mod tests {
         assert!(parse_line("2026-07-09T10:00:00Z 01HZX").is_none());
         assert!(parse_line("").is_none());
     }
+
+    #[test]
+    fn errors_on_unreadable_log() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("reflections.log");
+        std::fs::create_dir(&path).unwrap(); // a directory where a file is expected
+        assert!(read_reflections(&path).is_err());
+    }
 }

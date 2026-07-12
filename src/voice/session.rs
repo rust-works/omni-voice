@@ -1074,6 +1074,20 @@ mod tests {
     }
 
     #[test]
+    fn pid_is_alive_rejects_out_of_range() {
+        // A value above i32::MAX cannot be a real process id.
+        assert!(!pid_is_alive(u32::MAX));
+    }
+
+    #[test]
+    fn read_lock_errors_on_unreadable_lock() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("session.lock");
+        std::fs::create_dir(&path).unwrap(); // a directory where a file is expected
+        assert!(read_lock(&path).is_err());
+    }
+
+    #[test]
     fn lock_absent_is_inactive() {
         let tmp = TempDir::new().unwrap();
         assert!(!lock_is_active(
