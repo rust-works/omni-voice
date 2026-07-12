@@ -135,6 +135,10 @@ mod tests {
 
     #[test]
     fn settings_get_env_var() {
+        // Mutates process-global env vars; serialise on the crate-wide env
+        // lock so it can't race env-touching tests in other modules (issue #12).
+        let _env = crate::test_support::env::env_lock();
+
         // Create a temporary directory (use current dir to avoid TMPDIR issues in tarpaulin)
         let temp_dir = {
             std::fs::create_dir_all("tmp").ok();

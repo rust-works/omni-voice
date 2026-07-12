@@ -355,15 +355,10 @@ pub fn ensure_model_present(dir: &Path) -> Result<()> {
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
-    use std::sync::{Mutex, MutexGuard};
-
-    static ENV_GUARD: Mutex<()> = Mutex::new(());
-
-    fn env_guard() -> MutexGuard<'static, ()> {
-        match ENV_GUARD.lock() {
-            Ok(g) => g,
-            Err(poisoned) => poisoned.into_inner(),
-        }
+    // Env-var-mutating tests serialise on the crate-wide env lock so they
+    // don't race env-touching tests in other modules (issue #12).
+    fn env_guard() -> std::sync::MutexGuard<'static, ()> {
+        crate::test_support::env::env_lock()
     }
 
     #[test]

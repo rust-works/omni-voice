@@ -687,8 +687,11 @@ mod tests {
 
     #[test]
     fn voice_root_respects_override_env_var() {
-        // Env mutation is process-wide; restore on exit. No serial guard
-        // here because no other test in this module reads/writes the var.
+        // Env mutation is process-wide, and `OMNI_VOICE_VOICE_ROOT` is read
+        // by the session-root resolver exercised in `review`/`reflect` tests
+        // too — so serialise on the crate-wide env lock and restore on exit
+        // (issue #12).
+        let _env = crate::test_support::env::env_lock();
         let original = std::env::var("OMNI_VOICE_VOICE_ROOT").ok();
         std::env::set_var("OMNI_VOICE_VOICE_ROOT", "/tmp/overridden");
         let root = voice_root().unwrap();

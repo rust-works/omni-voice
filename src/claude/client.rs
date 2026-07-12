@@ -212,45 +212,15 @@ mod tests {
 
     // ── create_default_claude_client factory ───────────────────────
 
-    /// Serialises env-mutating factory tests in this module.
-    static FACTORY_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
-    struct FactoryEnvGuard {
-        _lock: std::sync::MutexGuard<'static, ()>,
-        saved: Vec<(&'static str, Option<String>)>,
-    }
-
-    impl FactoryEnvGuard {
-        fn new(keys: &[&'static str]) -> Self {
-            let lock = FACTORY_ENV_LOCK
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
-            let saved = keys.iter().map(|k| (*k, std::env::var(k).ok())).collect();
-            for k in keys {
-                std::env::remove_var(k);
-            }
-            Self { _lock: lock, saved }
-        }
-
-        fn set(&self, key: &str, value: &str) {
-            std::env::set_var(key, value);
-        }
-    }
-
-    impl Drop for FactoryEnvGuard {
-        fn drop(&mut self) {
-            for (k, v) in self.saved.drain(..) {
-                match v {
-                    Some(val) => std::env::set_var(k, val),
-                    None => std::env::remove_var(k),
-                }
-            }
-        }
-    }
+    // Env-mutating factory tests serialise on the crate-wide env lock via
+    // `EnvGuard` (issue #12), sharing it with every other env-touching test
+    // — notably the `OMNI_VOICE_AI_BACKEND` writers in `cli` and
+    // `claude::ai::claude_cli`, which used to race this on a separate mutex.
+    use crate::test_support::env::EnvGuard;
 
     #[tokio::test]
     async fn factory_claude_cli_backend_dispatches_to_claude_cli_client() {
-        let guard = FactoryEnvGuard::new(&[
+        let guard = EnvGuard::clearing(&[
             "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
@@ -272,7 +242,7 @@ mod tests {
 
     #[tokio::test]
     async fn factory_claude_cli_backend_honours_model_precedence() {
-        let guard = FactoryEnvGuard::new(&[
+        let guard = EnvGuard::clearing(&[
             "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
@@ -296,7 +266,7 @@ mod tests {
 
     #[tokio::test]
     async fn factory_claude_cli_backend_explicit_model_wins_over_env() {
-        let guard = FactoryEnvGuard::new(&[
+        let guard = EnvGuard::clearing(&[
             "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
@@ -317,7 +287,7 @@ mod tests {
 
     #[tokio::test]
     async fn factory_claude_cli_backend_accepts_underscore_alias() {
-        let guard = FactoryEnvGuard::new(&[
+        let guard = EnvGuard::clearing(&[
             "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
@@ -351,7 +321,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let guard = FactoryEnvGuard::new(&[
+        let guard = EnvGuard::clearing(&[
             "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
@@ -390,7 +360,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let guard = FactoryEnvGuard::new(&[
+        let guard = EnvGuard::clearing(&[
             "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",
@@ -435,7 +405,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let guard = FactoryEnvGuard::new(&[
+        let guard = EnvGuard::clearing(&[
             "OMNI_VOICE_AI_BACKEND",
             "USE_OPENAI",
             "USE_OLLAMA",

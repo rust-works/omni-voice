@@ -177,16 +177,10 @@ pub fn create_default_streaming_transcriber(
 mod tests {
     use super::*;
     use crate::voice::transcriber::{TranscriptEvent, VecAudioInput};
-    use std::sync::{Mutex, MutexGuard};
-
-    // Guard so env-var-mutating tests in this module don't race each other.
-    static ENV_GUARD: Mutex<()> = Mutex::new(());
-
-    fn env_guard() -> MutexGuard<'static, ()> {
-        match ENV_GUARD.lock() {
-            Ok(g) => g,
-            Err(poisoned) => poisoned.into_inner(),
-        }
+    // Env-var-mutating tests serialise on the crate-wide env lock so they
+    // don't race env-touching tests in other modules (issue #12).
+    fn env_guard() -> std::sync::MutexGuard<'static, ()> {
+        crate::test_support::env::env_lock()
     }
 
     fn collect(transcriber: &dyn Transcriber) -> Vec<TranscriptEvent> {

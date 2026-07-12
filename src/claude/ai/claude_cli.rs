@@ -776,18 +776,6 @@ where
     unreachable!("loop exits via return")
 }
 
-/// Test-only mutex serialising every test that mutates global state read
-/// by `claude-cli` (env vars and process-global config).
-///
-/// Shared across this module's tests **and** `crate::cli`'s tests because
-/// `Cli::propagate_global_flags` forwards CLI flags to the same env vars
-/// (`OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS`, `OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP`,
-/// `OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD`, `OMNI_VOICE_AI_BACKEND`) that the
-/// guards below snapshot. A single shared mutex eliminates cross-module
-/// races and avoids multi-lock deadlock entirely.
-#[cfg(test)]
-pub(crate) static CLI_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::await_holding_lock)]
 mod tests {
@@ -1031,8 +1019,8 @@ mod tests {
     }
 
     /// Test-scoped guard for `OMNI_VOICE_CLAUDE_CLI_ALLOW_TOOLS`. Serialises
-    /// against every other env-mutating test via the shared
-    /// [`CLI_ENV_LOCK`].
+    /// against every other env-mutating test via the crate-wide env
+    /// lock in `crate::test_support::env`.
     struct AllowToolsEnvGuard {
         _lock: std::sync::MutexGuard<'static, ()>,
         saved: Option<String>,
@@ -1040,9 +1028,7 @@ mod tests {
 
     impl AllowToolsEnvGuard {
         fn new() -> Self {
-            let lock = CLI_ENV_LOCK
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let lock = crate::test_support::env::env_lock();
             let saved = std::env::var(ALLOW_TOOLS_ENV_VAR).ok();
             std::env::remove_var(ALLOW_TOOLS_ENV_VAR);
             Self { _lock: lock, saved }
@@ -1132,8 +1118,8 @@ mod tests {
     }
 
     /// Test-scoped guard for `OMNI_VOICE_CLAUDE_CLI_ALLOW_MCP`. Serialises
-    /// against every other env-mutating test via the shared
-    /// [`CLI_ENV_LOCK`].
+    /// against every other env-mutating test via the crate-wide env
+    /// lock in `crate::test_support::env`.
     struct AllowMcpEnvGuard {
         _lock: std::sync::MutexGuard<'static, ()>,
         saved: Option<String>,
@@ -1141,9 +1127,7 @@ mod tests {
 
     impl AllowMcpEnvGuard {
         fn new() -> Self {
-            let lock = CLI_ENV_LOCK
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let lock = crate::test_support::env::env_lock();
             let saved = std::env::var(ALLOW_MCP_ENV_VAR).ok();
             std::env::remove_var(ALLOW_MCP_ENV_VAR);
             Self { _lock: lock, saved }
@@ -1206,7 +1190,7 @@ mod tests {
 
     #[test]
     fn new_picks_up_allow_mcp_env_var() {
-        // Single guard locks `CLI_ENV_LOCK`; we manually snapshot
+        // Single guard locks the crate-wide env lock; we manually snapshot
         // `ALLOW_TOOLS_ENV_VAR` here because acquiring a second guard would
         // deadlock on the shared mutex.
         let mcp_guard = AllowMcpEnvGuard::new();
@@ -1248,8 +1232,8 @@ mod tests {
     // ── Budget cap tests (MAX_BUDGET_ENV_VAR / with_max_budget_usd) ──
 
     /// Test-scoped guard for `OMNI_VOICE_CLAUDE_CLI_MAX_BUDGET_USD`. Serialises
-    /// against every other env-mutating test via the shared
-    /// [`CLI_ENV_LOCK`].
+    /// against every other env-mutating test via the crate-wide env
+    /// lock in `crate::test_support::env`.
     struct MaxBudgetEnvGuard {
         _lock: std::sync::MutexGuard<'static, ()>,
         saved: Option<String>,
@@ -1257,9 +1241,7 @@ mod tests {
 
     impl MaxBudgetEnvGuard {
         fn new() -> Self {
-            let lock = CLI_ENV_LOCK
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let lock = crate::test_support::env::env_lock();
             let saved = std::env::var(MAX_BUDGET_ENV_VAR).ok();
             std::env::remove_var(MAX_BUDGET_ENV_VAR);
             Self { _lock: lock, saved }
@@ -2030,78 +2012,132 @@ mod tests {
         }
     }
 
+    /// Builds a shim script that spawns a backgrounded heartbeat helper
+    /// — appending one byte to `heartbeat` every ~50 ms — inside the
+    /// shim's own process group, then blocks. If the group is reaped
+    /// the helper stops and the file stops growing; if a descendant
+    /// leaks it keeps growing.
+    ///
+    /// Tracking file growth rather than a helper PID is deliberate:
+    /// a `kill(pid, 0)` liveness probe is fooled by a SIGKILL'd-but-
+    /// unreaped zombie (still occupies its PID until its new parent
+    /// reaps it) and by PID reuse, both of which are common under
+    /// parallel-test load and made the old probe flaky (issue #12).
+    #[cfg(unix)]
+    fn heartbeat_shim_script(heartbeat: &std::path::Path) -> String {
+        format!(
+            "#!/bin/sh\n\
+             ( while :; do printf . >> '{hb}'; sleep 0.05; done ) &\n\
+             sleep 30\n",
+            hb = heartbeat.display()
+        )
+    }
+
+    /// Asserts the heartbeat file grew (the helper actually ran) and
+    /// then stopped growing (the reaped helper is no longer executing).
+    /// A file that keeps growing means a backgrounded descendant
+    /// survived the process-group reap.
+    #[cfg(unix)]
+    async fn assert_heartbeat_reaped(heartbeat: &std::path::Path, context: &str) {
+        let file_len = |p: &std::path::Path| std::fs::metadata(p).map_or(0, |m| m.len());
+
+        // The helper starts as soon as the shim runs; wait for the
+        // first beat so we know it actually got going before judging
+        // whether it stopped.
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while file_len(heartbeat) == 0 {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap_or_else(|_| panic!("{context}: heartbeat never appeared — helper never started"));
+
+        // Let any in-flight kill settle, then confirm the file stops
+        // growing across a window several beats wide.
+        tokio::time::sleep(Duration::from_millis(150)).await;
+        let before = file_len(heartbeat);
+        tokio::time::sleep(Duration::from_millis(300)).await;
+        let after = file_len(heartbeat);
+        assert_eq!(
+            before, after,
+            "{context}: heartbeat still advancing ({before} -> {after} bytes) — a \
+             backgrounded helper survived the process-group reap (issue #633)"
+        );
+    }
+
     /// Acceptance test for issue #633: when a `claude -p` invocation
     /// times out, the entire subprocess group is reaped — including
     /// helper processes the child forked into the background. Without
-    /// `process_group(0)` + `killpg`, the background sleeper would
+    /// `process_group(0)` + `killpg`, the background helper would
     /// be reparented to PID 1 and survive its parent.
     #[tokio::test]
     #[cfg(unix)]
     async fn timeout_reaps_full_process_group() {
         let _guard = shim_lock();
-        let tmp = TempDir::new().unwrap();
-        let pid_file = tmp.path().join("sleeper.pid");
-        let shim = tmp.path().join("group-shim");
 
-        // Shim starts a long-lived background sleeper, records its PID
-        // for the parent test, then blocks long enough that the
-        // configured timeout fires. With process_group(0) + killpg the
-        // background sleeper dies alongside the shim; without them it
-        // survives until its own `sleep` elapses.
-        let script = format!(
-            "#!/bin/sh\nsleep 30 &\nprintf '%s' \"$!\" > '{}'\nsleep 30\n",
-            pid_file.display()
+        // Under heavy parallel-test load a freshly-execve'd shell can be
+        // reaped by the timeout before it even spawns its heartbeat
+        // helper — a run that proves nothing about group reaping. Retry
+        // with fresh state in that case rather than flaking (issue #12);
+        // a genuine reap regression still fails via `assert_heartbeat_reaped`.
+        for attempt in 1..=3 {
+            let tmp = TempDir::new().unwrap();
+            let heartbeat = tmp.path().join("heartbeat");
+            let shim = tmp.path().join("group-shim");
+
+            // Shim spawns a backgrounded heartbeat helper inside its own
+            // process group, then blocks past the timeout. With
+            // process_group(0) + killpg the helper dies alongside the shim
+            // and the heartbeat stops; without them it keeps beating. The
+            // timeout is generous so the shell reliably starts beating
+            // before it fires.
+            write_exec_script(&shim, &heartbeat_shim_script(&heartbeat));
+
+            let cli = ClaudeCliAiClient::new_with_config(
+                "sonnet".to_string(),
+                Duration::from_secs(2),
+                DEFAULT_STDOUT_CAP,
+                false,
+                shim,
+            );
+
+            let err = cli
+                .run("sys", "user")
+                .await
+                .expect_err("expected timeout error");
+            let chain = format!("{err:#}");
+            assert!(chain.contains("timed out"), "expected timeout: {chain}");
+
+            if std::fs::metadata(&heartbeat).map_or(0, |m| m.len()) == 0 {
+                eprintln!(
+                    "attempt {attempt}: heartbeat helper never started before the \
+                     timeout reaped it (load); retrying"
+                );
+                continue;
+            }
+
+            assert_heartbeat_reaped(&heartbeat, "timeout path").await;
+            return;
+        }
+
+        panic!(
+            "heartbeat helper never started across retries — could not exercise \
+             process-group reap under load"
         );
-        write_exec_script(&shim, &script);
-
-        let cli = ClaudeCliAiClient::new_with_config(
-            "sonnet".to_string(),
-            Duration::from_millis(500),
-            DEFAULT_STDOUT_CAP,
-            false,
-            shim,
-        );
-
-        let err = cli
-            .run("sys", "user")
-            .await
-            .expect_err("expected timeout error");
-        let chain = format!("{err:#}");
-        assert!(chain.contains("timed out"), "expected timeout: {chain}");
-
-        let pid_str = std::fs::read_to_string(&pid_file)
-            .expect("shim should have recorded sleeper PID before sleeping");
-        let sleeper_pid: i32 = pid_str.trim().parse().expect("valid pid");
-
-        wait_for_pid_gone(sleeper_pid, Duration::from_secs(3))
-            .await
-            .unwrap_or_else(|elapsed| {
-                panic!(
-                    "background sleeper {sleeper_pid} still alive {elapsed:?} after \
-                     parent timeout — process-group reap regressed (issue #633)"
-                )
-            });
     }
 
-    /// Companion to `timeout_reaps_full_process_group`: same shim
-    /// shape, but the inner I/O fails (write task errors via a closed
-    /// pipe by exiting fast) is not what we want here — instead we
-    /// assert the helper still gets reaped on the *write-error* branch
-    /// of `run()` by invoking `kill_and_reap` directly against a
-    /// fresh subprocess. This exercises the helper without depending
-    /// on the timeout path.
+    /// Companion to `timeout_reaps_full_process_group`: asserts the
+    /// backgrounded helper gets reaped when `kill_and_reap` is invoked
+    /// directly against a fresh subprocess, exercising the helper
+    /// without depending on the timeout path.
     #[tokio::test]
     #[cfg(unix)]
     async fn kill_and_reap_kills_full_process_group() {
         let _guard = shim_lock();
         let tmp = TempDir::new().unwrap();
-        let pid_file = tmp.path().join("sleeper-direct.pid");
+        let heartbeat = tmp.path().join("heartbeat-direct");
         let shim = tmp.path().join("direct-shim");
-        let script = format!(
-            "#!/bin/sh\nsleep 30 &\nprintf '%s' \"$!\" > '{}'\nsleep 30\n",
-            pid_file.display()
-        );
-        write_exec_script(&shim, &script);
+        write_exec_script(&shim, &heartbeat_shim_script(&heartbeat));
 
         let mut cmd = tokio::process::Command::new(&shim);
         cmd.stdin(Stdio::null())
@@ -2116,33 +2152,39 @@ mod tests {
             .await
             .expect("spawn shim");
 
-        // Wait until the shim has written its sleeper PID — the file
-        // appears after a few ms in practice, but poll defensively.
-        let pid_path = pid_file.clone();
-        let pid_str = tokio::time::timeout(Duration::from_secs(2), async move {
-            loop {
-                if let Ok(s) = std::fs::read_to_string(&pid_path) {
-                    if !s.trim().is_empty() {
-                        return s;
-                    }
-                }
+        // Wait until the helper has started beating before reaping, so
+        // the post-reap assertion has something to observe stopping. The
+        // cap is generous (it returns as soon as the first beat lands) so
+        // a slow shell start under load doesn't flake it (issue #12).
+        let hb = heartbeat.clone();
+        tokio::time::timeout(Duration::from_secs(10), async move {
+            while std::fs::metadata(&hb).map_or(0, |m| m.len()) == 0 {
                 tokio::time::sleep(Duration::from_millis(10)).await;
             }
         })
         .await
-        .expect("shim wrote PID");
-        let sleeper_pid: i32 = pid_str.trim().parse().expect("valid pid");
+        .expect("heartbeat helper started");
 
         kill_and_reap(&mut child).await;
 
-        wait_for_pid_gone(sleeper_pid, Duration::from_secs(3))
-            .await
-            .unwrap_or_else(|elapsed| {
-                panic!(
-                    "background sleeper {sleeper_pid} still alive {elapsed:?} after \
-                     kill_and_reap"
-                )
-            });
+        assert_heartbeat_reaped(&heartbeat, "kill_and_reap").await;
+    }
+
+    /// Covers `assert_heartbeat_reaped`'s wait-for-first-beat poll: the
+    /// heartbeat file is absent when the assertion starts and appears one
+    /// beat later, then never grows again — so the poll loop runs before
+    /// the stop-growing check passes.
+    #[tokio::test]
+    #[cfg(unix)]
+    async fn assert_heartbeat_reaped_waits_for_late_first_beat() {
+        let tmp = TempDir::new().unwrap();
+        let heartbeat = tmp.path().join("late-heartbeat");
+        let late = heartbeat.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            std::fs::write(&late, b"..").unwrap();
+        });
+        assert_heartbeat_reaped(&heartbeat, "late-first-beat").await;
     }
 
     /// `kill_and_reap` must tolerate a child that has already exited.
