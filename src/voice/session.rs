@@ -19,7 +19,7 @@
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Utc};
@@ -41,6 +41,8 @@ pub struct SessionPaths {
     pub events: PathBuf,
     /// `reflections.log` — per-reflection summary lines.
     pub log: PathBuf,
+    /// `session.lock` — PID lockfile held by a live `listen`.
+    pub lock: PathBuf,
 }
 
 impl SessionPaths {
@@ -53,6 +55,7 @@ impl SessionPaths {
             transcript: root.join("transcript.jsonl"),
             events: root.join("events.jsonl"),
             log: root.join("reflections.log"),
+            lock: root.join("session.lock"),
             root,
         }
     }
@@ -336,6 +339,16 @@ impl Session {
     pub fn append_log(&self, line: &str) -> Result<()> {
         append_log_line(&self.paths.log, line)
     }
+
+    /// Writes `pid` to this session's `session.lock`.
+    pub fn write_lock(&self, pid: u32) -> Result<()> {
+        write_lock(&self.paths.lock, pid)
+    }
+
+    /// Removes this session's `session.lock` (a missing file is fine).
+    pub fn remove_lock(&self) -> Result<()> {
+        remove_lock(&self.paths.lock)
+    }
 }
 
 /// Resolves the session root: `$OMNI_VOICE_VOICE_ROOT` if set, else
@@ -568,6 +581,91 @@ pub fn append_log_line(path: &Path, line: &str) -> Result<()> {
         .flush()
         .with_context(|| format!("flushing reflections log at {}", path.display()))?;
     Ok(())
+}
+
+/// A lock is considered "fresh" (and thus active regardless of its PID) if
+/// its file was touched within this window. Guards against `gc` racing a
+/// `listen` that just started.
+const LOCK_FRESH_WINDOW: Duration = Duration::from_secs(3600);
+
+/// Writes `pid` to the session lockfile. `listen` calls this on start; the
+/// lock is a plain text file containing the decimal PID.
+pub fn write_lock(path: &Path, pid: u32) -> Result<()> {
+    std::fs::write(path, pid.to_string())
+        .with_context(|| format!("writing session lock at {}", path.display()))
+}
+
+/// Reads the PID from a session lockfile. Returns `Ok(None)` when the file
+/// does not exist; errors only on unreadable-but-present or malformed files.
+pub fn read_lock(path: &Path) -> Result<Option<u32>> {
+    match std::fs::read_to_string(path) {
+        Ok(body) => {
+            let pid = body
+                .trim()
+                .parse::<u32>()
+                .with_context(|| format!("parsing PID from session lock at {}", path.display()))?;
+            Ok(Some(pid))
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e).with_context(|| format!("reading session lock at {}", path.display())),
+    }
+}
+
+/// Removes a session lockfile. A missing file is not an error — `listen`
+/// calls this on clean shutdown, and a crash may have already lost it.
+pub fn remove_lock(path: &Path) -> Result<()> {
+    match std::fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e).with_context(|| format!("removing session lock at {}", path.display())),
+    }
+}
+
+/// Whether a probe-signal (`kill(pid, 0)`) says `pid` is still a live
+/// process. `ESRCH` means gone; `EPERM` means it exists but we may not
+/// signal it (still alive). On non-Unix targets we cannot probe, so we
+/// conservatively report "alive" to avoid deleting a possibly-live session.
+#[cfg(unix)]
+#[must_use]
+pub fn pid_is_alive(pid: u32) -> bool {
+    use nix::errno::Errno;
+    use nix::sys::signal::kill;
+    use nix::unistd::Pid;
+
+    let Ok(raw) = i32::try_from(pid) else {
+        return false;
+    };
+    !matches!(kill(Pid::from_raw(raw), None), Err(Errno::ESRCH))
+}
+
+#[cfg(not(unix))]
+#[must_use]
+pub fn pid_is_alive(_pid: u32) -> bool {
+    true
+}
+
+/// Whether a session looks actively held, given the current time `now`.
+///
+/// True when `session.lock` exists and *either* it was touched within
+/// [`LOCK_FRESH_WINDOW`] *or* its recorded PID is still alive. The union is
+/// deliberately conservative: `gc` uses it to skip a session a live
+/// `listen` is writing to. A stale lock — dead PID and older than the fresh
+/// window — reports inactive, so a crashed session's leftover lock does not
+/// block cleanup forever.
+#[must_use]
+pub fn lock_is_active(path: &Path, now: SystemTime) -> bool {
+    let Ok(meta) = std::fs::metadata(path) else {
+        return false; // no lockfile → not held
+    };
+    if let Ok(modified) = meta.modified() {
+        if now
+            .duration_since(modified)
+            .is_ok_and(|age| age < LOCK_FRESH_WINDOW)
+        {
+            return true;
+        }
+    }
+    matches!(read_lock(path), Ok(Some(pid)) if pid_is_alive(pid))
 }
 
 #[cfg(test)]
@@ -954,5 +1052,60 @@ mod tests {
             Some(v) => std::env::set_var("OMNI_VOICE_VOICE_ROOT", v),
             None => std::env::remove_var("OMNI_VOICE_VOICE_ROOT"),
         }
+    }
+
+    #[test]
+    fn lock_round_trips_pid_and_removes() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("session.lock");
+        assert_eq!(read_lock(&path).unwrap(), None);
+        write_lock(&path, 4242).unwrap();
+        assert_eq!(read_lock(&path).unwrap(), Some(4242));
+        remove_lock(&path).unwrap();
+        assert!(!path.exists());
+        // Removing an already-absent lock is a no-op, not an error.
+        remove_lock(&path).unwrap();
+    }
+
+    #[test]
+    fn own_pid_is_alive() {
+        assert!(pid_is_alive(std::process::id()));
+    }
+
+    #[test]
+    fn lock_absent_is_inactive() {
+        let tmp = TempDir::new().unwrap();
+        assert!(!lock_is_active(
+            &tmp.path().join("session.lock"),
+            SystemTime::now()
+        ));
+    }
+
+    #[test]
+    fn fresh_lock_is_active_regardless_of_pid() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("session.lock");
+        // A very high, almost-certainly-dead PID — freshness alone keeps it active.
+        write_lock(&path, 4_000_000).unwrap();
+        assert!(lock_is_active(&path, SystemTime::now()));
+    }
+
+    #[test]
+    fn stale_lock_with_dead_pid_is_inactive() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("session.lock");
+        write_lock(&path, 4_000_000).unwrap();
+        // Evaluate as if it were well past the freshness window.
+        let future = SystemTime::now() + LOCK_FRESH_WINDOW + Duration::from_secs(60);
+        assert!(!lock_is_active(&path, future));
+    }
+
+    #[test]
+    fn stale_lock_with_live_pid_is_active() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("session.lock");
+        write_lock(&path, std::process::id()).unwrap();
+        let future = SystemTime::now() + LOCK_FRESH_WINDOW + Duration::from_secs(60);
+        assert!(lock_is_active(&path, future));
     }
 }
