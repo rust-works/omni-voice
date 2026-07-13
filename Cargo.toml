@@ -53,7 +53,7 @@ rubato = "3.0"
 hound = "3.5"
 signal-hook = "0.4"
 ringbuf = "0.5"
-ulid = { version = "1", features = ["serde"] }
+ulid = { version = "2", features = ["serde"] }
 # Metal acceleration on Apple Silicon with CPU fallback (ADR-0042).
 candle-core = { version = "0.11", default-features = false, features = ["metal"] }
 candle-nn = { version = "0.11", default-features = false, features = ["metal"] }
