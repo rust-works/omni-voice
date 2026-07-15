@@ -277,7 +277,12 @@ fn install_parakeet<W: Write>(spec: &ModelSpec, dest: &Path, w: &mut W) -> Resul
     // Download upstream files (config.json, model.safetensors) into dest.
     for file in PARAKEET_UPSTREAM_FILES {
         let start = Instant::now();
-        write!(w, "  fetching {file}... ")?;
+        // Terminate this label with a newline *before* handing the TTY to
+        // hf-hub's `repo.get`, which draws its own in-place `indicatif` bar on
+        // stderr. A dangling partial line (stdout) + the redrawing bar (stderr)
+        // sharing one terminal interleave into shading artifacts (issue #66);
+        // the paired `done (…)` summary lands on its own indented line below.
+        writeln!(w, "  fetching {file}...")?;
         w.flush()?;
         let downloaded = repo.get(file).with_context(|| {
             format!(
@@ -297,7 +302,7 @@ fn install_parakeet<W: Write>(spec: &ModelSpec, dest: &Path, w: &mut W) -> Resul
         let bytes = std::fs::metadata(&target).map_or(0, |m| m.len());
         writeln!(
             w,
-            "done ({bytes} bytes in {:.1}s; {note})",
+            "    done ({bytes} bytes in {:.1}s; {note})",
             start.elapsed().as_secs_f64()
         )?;
     }
@@ -499,7 +504,12 @@ fn download_hf_hub<W: Write>(
 
     for file in spec.required_files {
         let start = Instant::now();
-        write!(w, "  fetching {file}... ")?;
+        // Terminate this label with a newline *before* handing the TTY to
+        // hf-hub's `repo.get`, which draws its own in-place `indicatif` bar on
+        // stderr. A dangling partial line (stdout) + the redrawing bar (stderr)
+        // sharing one terminal interleave into shading artifacts (issue #66);
+        // the paired `done (…)` summary lands on its own indented line below.
+        writeln!(w, "  fetching {file}...")?;
         w.flush()?;
         let downloaded = repo.get(file).with_context(|| {
             format!(
@@ -521,7 +531,7 @@ fn download_hf_hub<W: Write>(
         let bytes = std::fs::metadata(&target).map_or(0, |m| m.len());
         writeln!(
             w,
-            "done ({bytes} bytes in {:.1}s; {note})",
+            "    done ({bytes} bytes in {:.1}s; {note})",
             start.elapsed().as_secs_f64()
         )?;
     }
@@ -681,7 +691,11 @@ fn download_release_asset<W: Write>(
         .with_context(|| format!("create install directory at {}", dest.display()))?;
 
     let start = Instant::now();
-    write!(w, "  fetching {url}... ")?;
+    // Terminate the label before the transfer so the `done (…)` summary lands
+    // on its own indented line — consistent with the two hf-hub paths, which
+    // must newline-terminate to avoid colliding with hf-hub's progress bar
+    // (issue #66). This ureq path has no in-place bar, but stays uniform.
+    writeln!(w, "  fetching {url}...")?;
     w.flush()?;
 
     // ureq turns non-2xx statuses into `Err` by default, which would make
@@ -720,7 +734,7 @@ fn download_release_asset<W: Write>(
     })?;
     writeln!(
         w,
-        "done ({} bytes in {:.1}s; sha256 verified)",
+        "    done ({} bytes in {:.1}s; sha256 verified)",
         bytes.len(),
         start.elapsed().as_secs_f64()
     )?;
