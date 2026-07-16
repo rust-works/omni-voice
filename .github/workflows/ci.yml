@@ -148,9 +148,13 @@ jobs:
         # call, which is rate-limited (60/hr per runner IP) and fails the run.
         version: 0.30.0
         fail-under-lines: 30
+        # --accept-downloads bypasses the interactive consent prompt, which
+        # otherwise aborts on the runner's non-interactive stdin whenever a
+        # model cache misses and a real download is needed (idempotent no-op on
+        # a cache hit).
         setup-commands: |
-          cargo run --all-features --bin omni-voice -- install-model
-          cargo run --all-features --bin omni-voice -- install-model --variant speaker-wespeaker-en
+          cargo run --all-features --bin omni-voice -- install-model --accept-downloads
+          cargo run --all-features --bin omni-voice -- install-model --variant speaker-wespeaker-en --accept-downloads
         extra-test-commands: |
           cargo test --all-features --test voice_transcribe_candle_test -- --ignored
           cargo test --all-features --test voice_streaming_candle_test streaming_smoke -- --ignored
