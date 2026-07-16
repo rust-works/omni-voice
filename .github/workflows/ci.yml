@@ -111,6 +111,17 @@ jobs:
       with:
         path: ~/.omni-voice/voice/models/whisper-tiny.en
         key: whisper-tiny-en-refs-pr-15
+    - name: Cache wespeaker speaker-embedding model
+      # The model-gated speaker test (voice_enroll_speaker_test, run below via
+      # extra-test-commands) needs the wespeaker ResNet34 ONNX on disk. The asset
+      # is a pinned public GitHub release (sha256 in src/voice/models.rs,
+      # SPEAKER_WESPEAKER_EN), so a constant cache key is correct; bump the key if
+      # the pin ever changes. The action's setup install-model is idempotent on a
+      # cache hit.
+      uses: actions/cache@v6
+      with:
+        path: ~/.omni-voice/voice/models/wespeaker-en-voxceleb-resnet34-LM
+        key: wespeaker-en-voxceleb-resnet34-lm-e9848563
     # The coverage pipeline — toolchain + cargo-llvm-cov run, merge-base baseline
     # (download + git-worktree recompute fallback), the `omni-dev coverage diff`
     # sticky PR comment, summary + artifacts, baseline publish on main, and the
@@ -124,9 +135,11 @@ jobs:
     #     instrumented build but contributes no coverage (the cache above feeds it).
     #   extra-test-commands run the fast model-gated `--ignored` suites that cover
     #     the candle Whisper inference path (WhisperEngine + the streaming
-    #     backend's real-decode seam), which the default workspace tests cannot
-    #     reach without a model on disk; their coverage lands in the head report
-    #     and the line gate. The 5-minute streaming envelope tests still run
+    #     backend's real-decode seam) and the wespeaker speaker-embedding path
+    #     (WespeakerEmbedder in src/voice/speaker.rs, driving enroll and
+    #     transcribe --speaker), which the default workspace tests cannot reach
+    #     without a model on disk; their coverage lands in the head report and the
+    #     line gate. The 5-minute streaming envelope tests still run
     #     manually/locally (ADR-0041).
     - uses: action-works/omni-dev-coverage-check@v1
       with:
@@ -135,11 +148,18 @@ jobs:
         # call, which is rate-limited (60/hr per runner IP) and fails the run.
         version: 0.30.0
         fail-under-lines: 30
-        setup-commands: cargo run --all-features --bin omni-voice -- install-model
+        # --accept-downloads bypasses the interactive consent prompt, which
+        # otherwise aborts on the runner's non-interactive stdin whenever a
+        # model cache misses and a real download is needed (idempotent no-op on
+        # a cache hit).
+        setup-commands: |
+          cargo run --all-features --bin omni-voice -- install-model --accept-downloads
+          cargo run --all-features --bin omni-voice -- install-model --variant speaker-wespeaker-en --accept-downloads
         extra-test-commands: |
           cargo test --all-features --test voice_transcribe_candle_test -- --ignored
           cargo test --all-features --test voice_streaming_candle_test streaming_smoke -- --ignored
           cargo test --all-features --lib voice::backends::candle:: -- --ignored
+          cargo test --all-features --test voice_enroll_speaker_test -- --ignored
 
   audit:
     name: Security Audit
