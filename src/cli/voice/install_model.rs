@@ -716,8 +716,19 @@ fn download_release_asset<W: Write>(
             status.canonical_reason().unwrap_or("Unknown"),
         );
     }
+    // ureq's `read_to_vec()` caps the body at a default 10 MB (MAX_BODY_SIZE)
+    // to guard against memory exhaustion. Release assets routinely exceed that
+    // — the wespeaker model is ~26 MB — so raise the ceiling to the asset's
+    // pinned size. The cap must be *strictly greater* than the body: ureq's
+    // LimitReader errors the moment the limit is reached, so a limit equal to
+    // `expected_bytes` would reject an exact-size download. The sha256 check
+    // below remains the integrity gate; this bound only prevents a runaway
+    // response from ballooning memory.
+    let byte_limit = expected_bytes.saturating_add(1);
     let bytes = resp
         .into_body()
+        .into_with_config()
+        .limit(byte_limit)
         .read_to_vec()
         .with_context(|| format!("read response body for {url}"))?;
 
@@ -1434,6 +1445,45 @@ mod tests {
         let msg = String::from_utf8(out).unwrap();
         assert!(msg.contains("sha256 verified"), "got: {msg}");
         assert!(msg.contains("Speaker model installed at"), "got: {msg}");
+    }
+
+    // Regression: ureq's `read_to_vec()` caps the body at 10 MB by default,
+    // which silently broke every real release-asset install (the wespeaker
+    // model is ~26 MB) while the small-body tests above stayed green. Exercise
+    // a body larger than that default cap to prove the raised per-download
+    // limit lets it through.
+    #[tokio::test(flavor = "multi_thread")]
+    async fn download_release_asset_allows_body_larger_than_ureq_default_cap() {
+        // 11 MiB > ureq's 10 MB MAX_BODY_SIZE default.
+        let body = vec![0xABu8; 11 * 1024 * 1024];
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(body.clone()))
+            .mount(&server)
+            .await;
+
+        let url = format!("{}/asset.onnx", server.uri());
+        let sha = sha256_hex(&body);
+        let expected_len = body.len() as u64;
+        let (result, dest) = tokio::task::spawn_blocking(move || {
+            let dest = tempfile::TempDir::new().unwrap();
+            let mut out: Vec<u8> = Vec::new();
+            let result = download_release_asset(
+                &SPEAKER_WESPEAKER_EN,
+                &url,
+                &sha,
+                expected_len,
+                dest.path(),
+                &mut out,
+            );
+            (result, dest)
+        })
+        .await
+        .unwrap();
+
+        result.unwrap();
+        let target = dest.path().join(SPEAKER_WESPEAKER_EN.required_files[0]);
+        assert_eq!(std::fs::metadata(&target).unwrap().len(), expected_len);
     }
 
     #[tokio::test(flavor = "multi_thread")]
