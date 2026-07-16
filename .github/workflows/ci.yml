@@ -135,9 +135,11 @@ jobs:
     #     instrumented build but contributes no coverage (the cache above feeds it).
     #   extra-test-commands run the fast model-gated `--ignored` suites that cover
     #     the candle Whisper inference path (WhisperEngine + the streaming
-    #     backend's real-decode seam), which the default workspace tests cannot
-    #     reach without a model on disk; their coverage lands in the head report
-    #     and the line gate. The 5-minute streaming envelope tests still run
+    #     backend's real-decode seam) and the wespeaker speaker-embedding path
+    #     (WespeakerEmbedder in src/voice/speaker.rs, driving enroll and
+    #     transcribe --speaker), which the default workspace tests cannot reach
+    #     without a model on disk; their coverage lands in the head report and the
+    #     line gate. The 5-minute streaming envelope tests still run
     #     manually/locally (ADR-0041).
     - uses: action-works/omni-dev-coverage-check@v1
       with:
@@ -146,11 +148,14 @@ jobs:
         # call, which is rate-limited (60/hr per runner IP) and fails the run.
         version: 0.30.0
         fail-under-lines: 30
-        setup-commands: cargo run --all-features --bin omni-voice -- install-model
+        setup-commands: |
+          cargo run --all-features --bin omni-voice -- install-model
+          cargo run --all-features --bin omni-voice -- install-model --variant speaker-wespeaker-en
         extra-test-commands: |
           cargo test --all-features --test voice_transcribe_candle_test -- --ignored
           cargo test --all-features --test voice_streaming_candle_test streaming_smoke -- --ignored
           cargo test --all-features --lib voice::backends::candle:: -- --ignored
+          cargo test --all-features --test voice_enroll_speaker_test -- --ignored
 
   audit:
     name: Security Audit
