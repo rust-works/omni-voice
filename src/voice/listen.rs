@@ -45,7 +45,7 @@ use self::input::{audio_channel, DEFAULT_CHANNEL_CAPACITY};
 use self::scheduler::{
     AiClientFactory, ListenScheduler, ListenSummary, SchedulerConfig, StopReason, TriggerConfig,
 };
-use self::speaker_gate::{PcmRing, SpeakerGate, TeeAudioInput};
+use self::speaker_gate::{PcmRing, SpeakerGate, TeeAudioInput, UnknownPolicy};
 use self::supervisor::{run_cpal_supervisor, DEFAULT_BUFFER_FRAMES};
 
 /// Options for a live `voice listen` session.
@@ -69,15 +69,21 @@ pub struct ListenOptions {
     /// microphone (`--audio-file`). `None` uses live capture. For
     /// reproducible testing and demos without audio hardware.
     pub audio_file: Option<PathBuf>,
-    /// Enrolled speaker to lock onto (`--speaker`). When set, only speech
-    /// matching this speaker's embedding is transcribed; other voices are
-    /// dropped. `None` transcribes every speaker.
-    pub speaker: Option<String>,
-    /// Cosine-similarity threshold for `--speaker` (`--speaker-threshold`).
-    /// `None` uses [`DEFAULT_SPEAKER_THRESHOLD`].
+    /// Enrolled speakers (`--speaker`, repeatable). One name **gates** on that
+    /// speaker (other voices dropped); two or more **label** each segment by the
+    /// nearest of them. Empty transcribes every speaker (unless `label` is set).
+    pub speaker: Vec<String>,
+    /// Label every segment by the nearest of *all* enrolled speakers
+    /// (`--label`). Mutually exclusive with `speaker`.
+    pub label: bool,
+    /// How labelling treats a below-threshold segment (`--unknown-policy`):
+    /// keep it as `unknown` or drop it. Ignored in single-speaker gate mode.
+    pub unknown_policy: UnknownPolicy,
+    /// Cosine-similarity threshold for `--speaker`/`--label`
+    /// (`--speaker-threshold`). `None` uses [`DEFAULT_SPEAKER_THRESHOLD`].
     pub speaker_threshold: Option<f32>,
     /// Override for the wespeaker ONNX model dir/file (`--speaker-model`).
-    /// Ignored unless `speaker` is set.
+    /// Ignored unless speaker gating/labelling is enabled.
     pub speaker_model: Option<PathBuf>,
 }
 
@@ -94,7 +100,9 @@ impl ListenOptions {
             trigger: TriggerConfig::default(),
             idle_after: Duration::ZERO,
             audio_file: None,
-            speaker: None,
+            speaker: Vec::new(),
+            label: false,
+            unknown_policy: UnknownPolicy::default(),
             speaker_threshold: None,
             speaker_model: None,
         }
@@ -144,16 +152,27 @@ async fn run_listen_with(
         .unwrap_or_else(|| "default".to_string());
 
     // Fail fast on a missing enrolment or speaker model before capture, too.
-    let gate = match opts.speaker.as_deref() {
-        Some(name) => Some(
-            SpeakerGate::load(
-                name,
-                opts.speaker_model.as_deref(),
-                opts.speaker_threshold.unwrap_or(DEFAULT_SPEAKER_THRESHOLD),
-            )
-            .with_context(|| format!("enabling --speaker {name}"))?,
-        ),
-        None => None,
+    // One `--speaker` gates (drop others); two or more, or `--label`, label each
+    // segment by the nearest enrolled speaker.
+    let threshold = opts.speaker_threshold.unwrap_or(DEFAULT_SPEAKER_THRESHOLD);
+    let model = opts.speaker_model.as_deref();
+    let gate = if opts.label {
+        Some(
+            SpeakerGate::labeller(&[], model, threshold, opts.unknown_policy)
+                .context("enabling --label")?,
+        )
+    } else {
+        match opts.speaker.as_slice() {
+            [] => None,
+            [name] => Some(
+                SpeakerGate::gate(name, model, threshold)
+                    .with_context(|| format!("enabling --speaker {name}"))?,
+            ),
+            names => Some(
+                SpeakerGate::labeller(names, model, threshold, opts.unknown_policy)
+                    .context("enabling multi-speaker labelling")?,
+            ),
+        }
     };
     // The ring the tee fills is shared with the gate that reads it.
     let ring = gate.as_ref().map(SpeakerGate::ring);
@@ -161,12 +180,13 @@ async fn run_listen_with(
     let root = session_root_override.as_deref();
     // Record this run's provenance in meta.yaml and claim the lock before
     // any audio flows, so `sessions gc` sees a live session immediately.
-    init_session(
-        root,
-        &opts.session_id,
-        &backend_label,
-        opts.speaker.as_deref(),
-    );
+    // meta.yaml has a single-speaker slot: record the gated speaker in gate
+    // mode; leave it unset when labelling (no single owner).
+    let provenance_speaker = match (opts.label, opts.speaker.as_slice()) {
+        (false, [name]) => Some(name.as_str()),
+        _ => None,
+    };
+    init_session(root, &opts.session_id, &backend_label, provenance_speaker);
     write_log_line(
         root,
         &opts.session_id,
@@ -752,7 +772,7 @@ mod tests {
         let tmp = tempfile::TempDir::new().unwrap();
         let mut opts = ListenOptions::new("nospk");
         opts.backend = Some("mock".to_string());
-        opts.speaker = Some("no-such-speaker-xyzzy".to_string());
+        opts.speaker = vec!["no-such-speaker-xyzzy".to_string()];
         let err = run_listen_with(
             opts,
             counting_ai_factory(),

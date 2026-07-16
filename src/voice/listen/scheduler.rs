@@ -39,7 +39,7 @@ use tracing::warn;
 use crate::claude::ai::AiClient;
 use crate::voice::clock::SystemClock;
 use crate::voice::det::SystemUlidRng;
-use crate::voice::listen::speaker_gate::SpeakerGate;
+use crate::voice::listen::speaker_gate::{GateDecision, SpeakerGate};
 use crate::voice::reflect::{run_reflect, ReflectOptions, TranscriptSource};
 use crate::voice::session::{self, Session};
 use crate::voice::transcriber::{EndpointKind, TranscriptEvent, TranscriptEventStream};
@@ -382,23 +382,21 @@ impl ListenScheduler {
                 speaker: backend_speaker,
                 revisable,
             } => {
-                // Speaker gate: reject a segment that doesn't match the enrolled
-                // speaker before it can be persisted or counted. A rejected
-                // final still refreshes activity so idle/silence timers advance.
-                if let Some(gate) = &self.gate {
-                    if !gate.accept(start, end) {
-                        *last_activity = Instant::now();
-                        return Ok(EventOutcome::Continue { silence: false });
-                    }
-                }
+                // Speaker gate/labeller: decide whether to keep this segment and
+                // which speaker to stamp onto it. A dropped final still refreshes
+                // activity so idle/silence timers advance. With no gate, the
+                // backend-provided tag (if any) passes through unchanged.
+                let speaker = match &self.gate {
+                    Some(gate) => match gate.decide(start, end) {
+                        GateDecision::Drop => {
+                            *last_activity = Instant::now();
+                            return Ok(EventOutcome::Continue { silence: false });
+                        }
+                        GateDecision::Keep(label) => label.or(backend_speaker),
+                    },
+                    None => backend_speaker,
+                };
                 let words = u32::try_from(text.split_whitespace().count()).unwrap_or(u32::MAX);
-                // Stamp the enrolled speaker onto kept finals; preserve any
-                // backend-provided tag when gating is off.
-                let speaker = self
-                    .gate
-                    .as_ref()
-                    .map(SpeakerGate::speaker_id)
-                    .or(backend_speaker);
                 let ev = TranscriptEvent::Final {
                     event_id,
                     text,
