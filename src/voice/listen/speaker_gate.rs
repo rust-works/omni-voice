@@ -39,7 +39,7 @@ use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
-use tracing::warn;
+use tracing::{debug, warn};
 
 use crate::voice::models::SPEAKER_WESPEAKER_EN;
 use crate::voice::transcriber::{AsyncAudioInput, AudioChunk, SpeakerId};
@@ -327,11 +327,15 @@ impl SpeakerGate {
         // Arg-max cosine over the enrolled speakers whose vector dimension
         // matches the embedding — a mismatch would panic `cosine`, so skip
         // those. Ties resolve to the last speaker in enrolment order.
-        let best = self
+        let scored: Vec<(&EnrolledSpeaker, f32)> = self
             .enrolled
             .iter()
             .filter(|s| s.vector.len() == emb.len())
             .map(|s| (s, cosine(&emb, &s.vector)))
+            .collect();
+        let best = scored
+            .iter()
+            .copied()
             .max_by(|(_, a), (_, b)| a.total_cmp(b));
         let Some((speaker, score)) = best else {
             warn!(
@@ -340,6 +344,21 @@ impl SpeakerGate {
             );
             return GateDecision::Keep(self.fail_open_label());
         };
+        let runner_up = scored
+            .iter()
+            .filter(|(s, _)| !std::ptr::eq(*s, speaker))
+            .map(|(_, c)| *c)
+            .max_by(f32::total_cmp);
+        debug!(
+            start_s = start.as_secs_f64(),
+            end_s = end.as_secs_f64(),
+            scores = %format_scores(&scored),
+            winner = %speaker.name,
+            score,
+            margin = runner_up.map_or(f32::INFINITY, |r| score - r),
+            threshold = self.threshold,
+            "speaker gate: per-speaker cosine scores"
+        );
         if score >= self.threshold {
             GateDecision::Keep(Some(speaker.name.clone()))
         } else {
@@ -372,6 +391,16 @@ impl SpeakerGate {
             } => GateDecision::Keep(Some(UNKNOWN_SPEAKER.to_string())),
         }
     }
+}
+
+/// Renders the per-speaker cosine scores as `name=0.912 name=0.071` for the
+/// debug log line in [`SpeakerGate::decide`].
+fn format_scores(scored: &[(&EnrolledSpeaker, f32)]) -> String {
+    scored
+        .iter()
+        .map(|(s, c)| format!("{}={c:.3}", s.name))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// Loads one enrolment by `name`, with an actionable error when it's missing.
