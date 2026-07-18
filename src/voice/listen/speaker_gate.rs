@@ -59,7 +59,7 @@ const RING_CAPACITY_SAMPLES: usize = 30 * 16_000;
 /// A bounded rolling buffer of the most-recent 16 kHz mono i16 samples, indexed
 /// by absolute sample position since the stream began.
 ///
-/// The absolute indexing is what lets [`SpeakerGate::accept`] map a `Final`'s
+/// The absolute indexing is what lets [`SpeakerGate::decide`] map a `Final`'s
 /// `start`/`end` seconds onto retained samples without threading any offset
 /// state through the pipeline.
 pub struct PcmRing {
@@ -293,8 +293,8 @@ impl SpeakerGate {
     ///
     /// Fails **open** on any infrastructure failure — audio scrolled out of the
     /// ring, an embedding error, or no dimension-compatible enrolment — so a
-    /// gate hiccup never silently swallows the user's own speech (see
-    /// [`fail_open_label`](Self::fail_open_label)).
+    /// gate hiccup never silently swallows the user's own speech (keeping with
+    /// the enrolled name in gate mode, or unattributed in label mode).
     #[must_use]
     pub fn decide(&self, start: Duration, end: Duration) -> GateDecision {
         let start_idx = (start.as_secs_f64() * SAMPLE_RATE) as u64;
