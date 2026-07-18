@@ -400,6 +400,27 @@ mod tests {
     }
 
     #[test]
+    fn load_all_enrolled_errors_when_path_is_not_a_directory() {
+        // A non-NotFound `read_dir` error (here: a plain file, not a dir) must
+        // surface, not be swallowed like the missing-dir case.
+        let tmp = tempfile::TempDir::new().unwrap();
+        let not_a_dir = tmp.path().join("speakers.json");
+        std::fs::write(&not_a_dir, b"{}").unwrap();
+        let err = load_all_enrolled_from(&not_a_dir).unwrap_err();
+        assert!(
+            format!("{err:#}").contains("read speakers dir"),
+            "got: {err:#}"
+        );
+    }
+
+    #[test]
+    fn load_all_enrolled_public_wrapper_resolves_speakers_dir() {
+        // Exercises the public entry point, which resolves the real speakers
+        // dir; absent or populated, it must not error on a resolvable home.
+        assert!(load_all_enrolled().is_ok());
+    }
+
+    #[test]
     fn wespeaker_embedder_new_errors_on_missing_file() {
         let Err(err) = WespeakerEmbedder::new(Path::new("/nope/wespeaker.onnx")) else {
             panic!("missing model file should error");

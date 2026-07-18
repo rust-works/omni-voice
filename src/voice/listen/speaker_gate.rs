@@ -698,6 +698,26 @@ mod tests {
         assert_eq!(gate.decide(secs(0.0), secs(0.5)), GateDecision::Keep(None));
     }
 
+    // ── Constructor fail-fast (model-free: errors before model resolution) ──
+
+    #[test]
+    fn gate_errors_on_missing_enrolment() {
+        // `.map(|_| ())` so `unwrap_err` doesn't require `SpeakerGate: Debug`.
+        let err = SpeakerGate::gate("no-such-speaker-xyzzy", None, 0.5)
+            .map(|_| ())
+            .unwrap_err();
+        assert!(format!("{err:#}").contains("enroll"), "got: {err:#}");
+    }
+
+    #[test]
+    fn labeller_errors_on_missing_named_speaker() {
+        let names = vec!["no-such-speaker-xyzzy".to_string()];
+        let err = SpeakerGate::labeller(&names, None, 0.5, UnknownPolicy::Keep)
+            .map(|_| ())
+            .unwrap_err();
+        assert!(format!("{err:#}").contains("enroll"), "got: {err:#}");
+    }
+
     #[test]
     fn label_skips_dim_mismatched_enrolment() {
         // One enrolment has an incompatible 3-dim vector; the labeller must skip

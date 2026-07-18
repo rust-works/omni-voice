@@ -788,6 +788,145 @@ mod tests {
         );
     }
 
+    /// Multi-speaker labelling (`--speaker a --speaker b`) also fails fast, with
+    /// its own context, when a named enrolment is missing.
+    #[tokio::test]
+    async fn run_listen_with_fails_fast_on_missing_labelled_speaker() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let mut opts = ListenOptions::new("nolabel");
+        opts.backend = Some("mock".to_string());
+        opts.speaker = vec![
+            "no-such-speaker-aaa".to_string(),
+            "no-such-speaker-bbb".to_string(),
+        ];
+        let err = run_listen_with(
+            opts,
+            counting_ai_factory(),
+            Some(tmp.path().to_path_buf()),
+            Arc::new(AtomicBool::new(false)),
+        )
+        .await
+        .unwrap_err();
+        let msg = format!("{err:#}");
+        assert!(
+            msg.contains("multi-speaker labelling") && msg.contains("enroll"),
+            "expected a labelling + enroll hint, got: {msg}"
+        );
+    }
+
+    /// The scheduler's speaker-gate arm end to end, model-free (a scripted
+    /// embedder behind the `SpeakerEmbedder` seam): a `Final` the labeller
+    /// matches is persisted tagged with that speaker; one it matches nobody for
+    /// (under `--unknown-policy drop`) is dropped before reaching
+    /// `transcript.jsonl`.
+    #[tokio::test]
+    async fn gated_scheduler_labels_kept_final_and_drops_unmatched() {
+        use crate::voice::listen::speaker_gate::{
+            GateMode, SpeakerEmbedder, SpeakerGate, UnknownPolicy,
+        };
+        use crate::voice::transcriber::{EndpointKind, TranscriptEvent, TranscriptEventStream};
+        use crate::voice::EnrolledSpeaker;
+        use futures::stream;
+
+        /// Returns each scripted vector in turn, one per `embed` call.
+        struct SeqEmbedder(Mutex<std::vec::IntoIter<Vec<f32>>>);
+        impl SpeakerEmbedder for SeqEmbedder {
+            fn embed(&self, _pcm: &[i16]) -> Result<Vec<f32>> {
+                Ok(self
+                    .0
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .next()
+                    .expect("embed called more times than scripted"))
+            }
+        }
+
+        fn enrolled(name: &str, vector: Vec<f32>) -> EnrolledSpeaker {
+            EnrolledSpeaker {
+                name: name.to_string(),
+                model: "stub".to_string(),
+                dim: vector.len(),
+                vector,
+                samples_used: 1,
+                enrolled_at: Utc::now(),
+            }
+        }
+
+        let tmp = tempfile::TempDir::new().unwrap();
+        let root = tmp.path().to_path_buf();
+
+        // First segment embeds to "a"; second to an orthogonal vector matching
+        // nobody above threshold.
+        let embedder = SeqEmbedder(Mutex::new(vec![vec![1.0, 0.0], vec![0.0, 0.0]].into_iter()));
+        let gate = SpeakerGate::from_parts(
+            vec![enrolled("a", vec![1.0, 0.0]), enrolled("b", vec![0.0, 1.0])],
+            embedder,
+            0.5,
+            GateMode::Label {
+                unknown_policy: UnknownPolicy::Drop,
+            },
+        );
+        // Pre-fill the ring so both Finals' [start,end) windows slice real audio
+        // (the tee that fills it in production is bypassed here).
+        gate.ring().lock().unwrap().push(&vec![0_i16; 16_000 * 3]);
+
+        let fin = |id: u128, text: &str, start: u64, end: u64| TranscriptEvent::Final {
+            event_id: ulid::Ulid::from_parts(0, id),
+            text: text.to_string(),
+            start: Duration::from_secs(start),
+            end: Duration::from_secs(end),
+            confidence: 1.0,
+            words: None,
+            speaker: None,
+            revisable: false,
+        };
+        let events: Vec<Result<TranscriptEvent>> = vec![
+            Ok(fin(1, "alpha speaking", 0, 1)),
+            Ok(fin(2, "someone else", 1, 2)),
+            Ok(TranscriptEvent::Endpoint {
+                at: Duration::from_secs(2),
+                kind: EndpointKind::StreamEnd,
+            }),
+        ];
+        let stream: TranscriptEventStream = Box::pin(stream::iter(events));
+
+        let scheduler = ListenScheduler::new(
+            "gated".to_string(),
+            Some(root.clone()),
+            SchedulerConfig {
+                trigger: TriggerConfig {
+                    silence_gap: Duration::from_secs(600),
+                    word_delta: 10_000,
+                    max_interval: Duration::from_secs(600),
+                    min_interval: Duration::ZERO,
+                },
+                idle_after: Duration::ZERO,
+                tick: Duration::from_millis(20),
+                spawn_reflections: false,
+            },
+            counting_ai_factory(),
+        )
+        .with_gate(Some(gate));
+
+        let summary = scheduler
+            .run(stream, Arc::new(AtomicBool::new(false)))
+            .await
+            .unwrap();
+        assert_eq!(summary.stopped_by, StopReason::StreamEnd);
+
+        // Only the matched final survives, tagged with its speaker.
+        let sess = session::open_or_create_under(&root, "gated").unwrap();
+        let finals = session::read_transcript_finals_after(&sess.paths.transcript, None).unwrap();
+        assert_eq!(finals.len(), 1, "unmatched final dropped, matched kept");
+        match &finals[0] {
+            TranscriptEvent::Final { speaker, text, .. } => {
+                assert_eq!(speaker.as_deref(), Some("a"));
+                assert_eq!(text, "alpha speaking");
+            }
+            other => panic!("expected a Final, got {other:?}"),
+        }
+    }
+
     /// `tee_if_gated` mirrors chunks into the ring when gating is on, and is a
     /// passthrough when it is off.
     #[tokio::test]
