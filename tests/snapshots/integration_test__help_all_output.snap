@@ -139,13 +139,17 @@ Options:
       --idle-after <IDLE_AFTER>
           Auto-stop after this many seconds of continuous silence. `0` (default) runs until Ctrl-C [default: 0]
       --speaker <SPEAKER>
-          Lock onto an enrolled speaker: only speech matching this speaker's voice is transcribed; other voices in the room are dropped. Requires a prior `omni-voice enroll --name <name>`. Omit to transcribe everyone
+          Enrolled speaker(s) to attribute speech to. Repeatable. A single `--speaker <name>` gates: only that speaker's speech is transcribed and other voices are dropped. Two or more label each segment with the nearest of them (below-threshold segments follow `--unknown-policy`). Requires a prior `omni-voice enroll --name <name>`. Omit to transcribe everyone
+      --label
+          Label each segment with the nearest of *all* enrolled speakers, tagging `transcript.jsonl` with who spoke. Mutually exclusive with `--speaker`; pass `--speaker a --speaker b` to label a specific subset instead
+      --unknown-policy <UNKNOWN_POLICY>
+          How to treat a segment matching no enrolled speaker above the threshold while labelling (`--speaker a --speaker b`, or `--label`): `keep` it tagged `unknown`, or `drop` it. Ignored for a single-speaker `--speaker` gate, which always drops non-matches [default: keep] [possible values: keep, drop]
       --speaker-threshold <SPEAKER_THRESHOLD>
-          Cosine-similarity threshold for `--speaker`. Defaults to 0.5; higher is stricter. Ignored unless `--speaker` is set
+          Cosine-similarity threshold for `--speaker`/`--label`. Defaults to 0.5; higher is stricter. Ignored unless speaker gating/labelling is enabled
       --speaker-model <SPEAKER_MODEL>
-          Path to the wespeaker ONNX model. Overrides the default at `~/.omni-voice/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and `OMNI_VOICE_VOICE_SPEAKER_MODEL`. Ignored unless `--speaker` is set
+          Path to the wespeaker ONNX model. Overrides the default at `~/.omni-voice/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and `OMNI_VOICE_VOICE_SPEAKER_MODEL`. Ignored unless speaker gating/labelling is enabled
   -h, --help
-          Print help
+          Print help (see more with '--help')
 
 
 ================================================================================

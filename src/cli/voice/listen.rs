@@ -13,6 +13,7 @@ use clap::Parser;
 
 use crate::voice::listen::input::DEFAULT_CHANNEL_CAPACITY;
 use crate::voice::listen::scheduler::TriggerConfig;
+use crate::voice::listen::speaker_gate::UnknownPolicy;
 use crate::voice::listen::supervisor::DEFAULT_BUFFER_FRAMES;
 use crate::voice::listen::{run_listen, ListenOptions};
 
@@ -76,20 +77,37 @@ pub struct ListenCommand {
     #[arg(long, value_name = "PATH", hide = true)]
     pub audio_file: Option<PathBuf>,
 
-    /// Lock onto an enrolled speaker: only speech matching this speaker's
-    /// voice is transcribed; other voices in the room are dropped. Requires a
-    /// prior `omni-voice enroll --name <name>`. Omit to transcribe everyone.
+    /// Enrolled speaker(s) to attribute speech to. Repeatable. A single
+    /// `--speaker <name>` gates: only that speaker's speech is transcribed and
+    /// other voices are dropped. Two or more label each segment with the
+    /// nearest of them (below-threshold segments follow `--unknown-policy`).
+    /// Requires a prior `omni-voice enroll --name <name>`. Omit to transcribe
+    /// everyone.
     #[arg(long)]
-    pub speaker: Option<String>,
+    pub speaker: Vec<String>,
 
-    /// Cosine-similarity threshold for `--speaker`. Defaults to 0.5; higher is
-    /// stricter. Ignored unless `--speaker` is set.
+    /// Label each segment with the nearest of *all* enrolled speakers, tagging
+    /// `transcript.jsonl` with who spoke. Mutually exclusive with `--speaker`;
+    /// pass `--speaker a --speaker b` to label a specific subset instead.
+    #[arg(long, conflicts_with = "speaker")]
+    pub label: bool,
+
+    /// How to treat a segment matching no enrolled speaker above the threshold
+    /// while labelling (`--speaker a --speaker b`, or `--label`): `keep` it
+    /// tagged `unknown`, or `drop` it. Ignored for a single-speaker `--speaker`
+    /// gate, which always drops non-matches.
+    #[arg(long, value_enum, default_value_t = UnknownPolicy::Keep)]
+    pub unknown_policy: UnknownPolicy,
+
+    /// Cosine-similarity threshold for `--speaker`/`--label`. Defaults to 0.5;
+    /// higher is stricter. Ignored unless speaker gating/labelling is enabled.
     #[arg(long)]
     pub speaker_threshold: Option<f32>,
 
     /// Path to the wespeaker ONNX model. Overrides the default at
     /// `~/.omni-voice/voice/models/wespeaker-en-voxceleb-resnet34-LM/` and
-    /// `OMNI_VOICE_VOICE_SPEAKER_MODEL`. Ignored unless `--speaker` is set.
+    /// `OMNI_VOICE_VOICE_SPEAKER_MODEL`. Ignored unless speaker gating/labelling
+    /// is enabled.
     #[arg(long)]
     pub speaker_model: Option<PathBuf>,
 }
@@ -118,6 +136,8 @@ impl ListenCommand {
             idle_after: Duration::from_secs(u64::from(self.idle_after)),
             audio_file: self.audio_file,
             speaker: self.speaker,
+            label: self.label,
+            unknown_policy: self.unknown_policy,
             speaker_threshold: self.speaker_threshold,
             speaker_model: self.speaker_model,
         };
@@ -174,7 +194,9 @@ mod tests {
         );
         assert_eq!(cli.listen.idle_after, 0);
         assert!(cli.listen.audio_file.is_none());
-        assert!(cli.listen.speaker.is_none());
+        assert!(cli.listen.speaker.is_empty());
+        assert!(!cli.listen.label);
+        assert_eq!(cli.listen.unknown_policy, UnknownPolicy::Keep);
         assert!(cli.listen.speaker_threshold.is_none());
         assert!(cli.listen.speaker_model.is_none());
     }
@@ -193,12 +215,57 @@ mod tests {
             "/models/wespeaker.onnx",
         ])
         .unwrap();
-        assert_eq!(cli.listen.speaker.as_deref(), Some("jky"));
+        assert_eq!(cli.listen.speaker, vec!["jky".to_string()]);
         assert_eq!(cli.listen.speaker_threshold, Some(0.65));
         assert_eq!(
             cli.listen.speaker_model.as_deref(),
             Some(std::path::Path::new("/models/wespeaker.onnx"))
         );
+    }
+
+    #[test]
+    fn parses_repeatable_speaker_for_labelling() {
+        let cli = TestCli::try_parse_from([
+            "test",
+            "--session",
+            "s1",
+            "--speaker",
+            "me",
+            "--speaker",
+            "sabine",
+        ])
+        .unwrap();
+        assert_eq!(
+            cli.listen.speaker,
+            vec!["me".to_string(), "sabine".to_string()]
+        );
+        assert!(!cli.listen.label);
+    }
+
+    #[test]
+    fn parses_label_and_unknown_policy() {
+        let cli = TestCli::try_parse_from([
+            "test",
+            "--session",
+            "s1",
+            "--label",
+            "--unknown-policy",
+            "drop",
+        ])
+        .unwrap();
+        assert!(cli.listen.label);
+        assert!(cli.listen.speaker.is_empty());
+        assert_eq!(cli.listen.unknown_policy, UnknownPolicy::Drop);
+    }
+
+    #[test]
+    fn label_conflicts_with_speaker() {
+        // `.map(|_| ())` so `unwrap_err` doesn't require `TestCli: Debug`.
+        let err =
+            TestCli::try_parse_from(["test", "--session", "s1", "--label", "--speaker", "me"])
+                .map(|_| ())
+                .unwrap_err();
+        assert_eq!(err.kind(), clap::error::ErrorKind::ArgumentConflict);
     }
 
     #[test]

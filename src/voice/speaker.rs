@@ -13,11 +13,13 @@ use std::sync::Arc;
 use anyhow::{anyhow, bail, Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use tracing::warn;
 use tract_onnx::prelude::*;
 
 use crate::voice::features::{
     build_mel_filterbank, compute_fbank, FFT_SIZE, NUM_MEL_BINS, SAMPLE_RATE,
 };
+use crate::voice::speakers_dir;
 
 /// Numerical floor for L2 norm — prevents divide-by-zero when an
 /// embedding is exactly the zero vector (vanishingly unlikely with
@@ -201,6 +203,48 @@ impl EnrolledSpeaker {
     }
 }
 
+/// Loads every enrolment under `~/.omni-voice/voice/speakers/` — the `*.json`
+/// files [`enroll`](crate::cli::voice) writes — sorted by name for a
+/// deterministic order.
+///
+/// The N-way [`SpeakerGate`](crate::voice::listen::speaker_gate::SpeakerGate)
+/// labeller loads its enrolled set through this when `--label` is passed. An
+/// individual file that fails to parse is skipped with a warning rather than
+/// failing the whole load, so one corrupt enrolment can't break labelling; a
+/// missing speakers directory yields an empty `Vec` (the caller decides whether
+/// zero enrolments is an error).
+pub fn load_all_enrolled() -> Result<Vec<EnrolledSpeaker>> {
+    load_all_enrolled_from(&speakers_dir()?)
+}
+
+/// The directory-scoped core of [`load_all_enrolled`], split out so the
+/// enumeration/skip/sort logic is unit-testable against a tempdir without
+/// touching the real `~/.omni-voice` tree.
+fn load_all_enrolled_from(dir: &Path) -> Result<Vec<EnrolledSpeaker>> {
+    let entries = match std::fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => {
+            return Err(e).with_context(|| format!("read speakers dir {}", dir.display()));
+        }
+    };
+    let mut speakers = Vec::new();
+    for entry in entries {
+        let path = entry
+            .with_context(|| format!("read dir entry in {}", dir.display()))?
+            .path();
+        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+            continue;
+        }
+        match EnrolledSpeaker::load(&path) {
+            Ok(speaker) => speakers.push(speaker),
+            Err(e) => warn!("skipping unreadable enrolment {}: {e:#}", path.display()),
+        }
+    }
+    speakers.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(speakers)
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
@@ -310,6 +354,70 @@ mod tests {
         // dot-product answer.
         let v = l2_normalise(vec![0.0, 0.0, 0.0]);
         assert!(v.iter().all(|x| x.is_finite()));
+    }
+
+    #[test]
+    fn load_all_enrolled_reads_sorted_skipping_non_json() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        // Write out of order; expect name-sorted output.
+        stub_speaker("bob")
+            .save(&tmp.path().join("bob.json"))
+            .unwrap();
+        stub_speaker("alice")
+            .save(&tmp.path().join("alice.json"))
+            .unwrap();
+        // Non-JSON siblings are ignored.
+        std::fs::write(tmp.path().join("notes.txt"), b"ignore me").unwrap();
+        std::fs::write(tmp.path().join("alice.json.tmp"), b"{").unwrap();
+
+        let loaded = load_all_enrolled_from(tmp.path()).unwrap();
+        let names: Vec<_> = loaded.iter().map(|s| s.name.as_str()).collect();
+        assert_eq!(names, ["alice", "bob"]);
+    }
+
+    #[test]
+    fn load_all_enrolled_skips_corrupt_json_without_failing() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        stub_speaker("alice")
+            .save(&tmp.path().join("alice.json"))
+            .unwrap();
+        std::fs::write(tmp.path().join("broken.json"), b"{not json").unwrap();
+
+        let loaded = load_all_enrolled_from(tmp.path()).unwrap();
+        let names: Vec<_> = loaded.iter().map(|s| s.name.as_str()).collect();
+        assert_eq!(
+            names,
+            ["alice"],
+            "corrupt enrolment skipped, valid one kept"
+        );
+    }
+
+    #[test]
+    fn load_all_enrolled_missing_dir_is_empty() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let absent = tmp.path().join("does/not/exist");
+        assert!(load_all_enrolled_from(&absent).unwrap().is_empty());
+    }
+
+    #[test]
+    fn load_all_enrolled_errors_when_path_is_not_a_directory() {
+        // A non-NotFound `read_dir` error (here: a plain file, not a dir) must
+        // surface, not be swallowed like the missing-dir case.
+        let tmp = tempfile::TempDir::new().unwrap();
+        let not_a_dir = tmp.path().join("speakers.json");
+        std::fs::write(&not_a_dir, b"{}").unwrap();
+        let err = load_all_enrolled_from(&not_a_dir).unwrap_err();
+        assert!(
+            format!("{err:#}").contains("read speakers dir"),
+            "got: {err:#}"
+        );
+    }
+
+    #[test]
+    fn load_all_enrolled_public_wrapper_resolves_speakers_dir() {
+        // Exercises the public entry point, which resolves the real speakers
+        // dir; absent or populated, it must not error on a resolvable home.
+        assert!(load_all_enrolled().is_ok());
     }
 
     #[test]

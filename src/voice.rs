@@ -43,8 +43,8 @@ pub use factory::{create_default_streaming_transcriber, create_default_transcrib
 pub use paths::{captures_dir, omni_voice_voice_root, speaker_file, speakers_dir};
 pub use render::{detect_format, render_jsonl, render_markdown, OutputFormat};
 pub use speaker::{
-    cosine, l2_normalise, EnrolledSpeaker, WespeakerEmbedder, DEFAULT_SPEAKER_THRESHOLD,
-    MIN_EMBED_SAMPLES,
+    cosine, l2_normalise, load_all_enrolled, EnrolledSpeaker, WespeakerEmbedder,
+    DEFAULT_SPEAKER_THRESHOLD, MIN_EMBED_SAMPLES,
 };
 pub use transcriber::{
     AsyncAudioInput, AudioChunk, AudioInput, EndpointKind, EventId, EventStream,

@@ -1,39 +1,51 @@
-//! Live speaker gating for `voice listen`.
+//! Live speaker gating **and labelling** for `voice listen`.
 //!
 //! `voice listen` streams audio into the ASR backend, which emits text-only
 //! `Final` events — the PCM is gone from the scheduler's view by the time a
-//! `Final` arrives. To gate on speaker identity we reconstruct each segment's
+//! `Final` arrives. To decide speaker identity we reconstruct each segment's
 //! audio the same way batch `transcribe --speaker` does
 //! ([`SpeakerFilter`](crate::cli::voice::transcribe)): retain a rolling window
 //! of recent PCM and slice it by the `Final`'s `start`/`end` timestamps (a fixed
-//! 16 kHz mono i16 contract), embed the slice, and keep the `Final` only when
-//! its cosine similarity to the enrolled speaker clears the threshold.
+//! 16 kHz mono i16 contract), embed the slice **once**, and cosine it against
+//! the enrolled speaker(s).
+//!
+//! [`SpeakerGate`] runs in one of two modes ([`GateMode`]):
+//!
+//! - **Gate** (`--speaker <name>`, one enrolment) — keep the `Final` only when
+//!   its cosine to the enrolled speaker clears the threshold; drop everyone
+//!   else. Answers *"transcribe only me."*
+//! - **Label** (`--speaker a --speaker b`, or `--label` over all enrolments) —
+//!   tag the `Final` with the *nearest* enrolled speaker above the threshold; a
+//!   below-threshold or too-short segment follows the [`UnknownPolicy`]
+//!   (keep-as-`unknown` or drop). Answers *"who said what."*
 //!
 //! The rolling window is a [`PcmRing`] filled by a [`TeeAudioInput`] that wraps
 //! the audio source on the **consumer** side of the capture channel — *after*
 //! its drop-on-overflow point — so the ring stays sample-aligned with what the
-//! backend actually consumed. The [`SpeakerGate`] shares the ring with the tee
-//! and runs the per-`Final` decision inside
+//! backend actually consumed. The gate shares the ring with the tee and runs
+//! the per-`Final` decision inside
 //! [`ListenScheduler`](super::scheduler::ListenScheduler).
 //!
-//! Gating is **per-segment (per `Final`)**, not per-frame. Any *infrastructure*
-//! failure — segment audio already scrolled out of the ring, an embedding
-//! error, or a dimensionality mismatch — fails **open** (keeps the segment and
-//! warns) so a gate hiccup never silently swallows the user's own speech. A
-//! genuine mismatch, or a segment too short to embed, drops the `Final`.
+//! Deciding is **per-segment (per `Final`)**, not per-frame. Any
+//! *infrastructure* failure — segment audio already scrolled out of the ring,
+//! an embedding error, or no dimension-compatible enrolment — fails **open**
+//! (keeps the segment and warns) so a gate hiccup never silently swallows the
+//! user's own speech.
 
 use std::collections::VecDeque;
 use std::path::Path;
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use tracing::warn;
 
 use crate::voice::models::SPEAKER_WESPEAKER_EN;
 use crate::voice::transcriber::{AsyncAudioInput, AudioChunk, SpeakerId};
-use crate::voice::{cosine, speaker_file, EnrolledSpeaker, WespeakerEmbedder, MIN_EMBED_SAMPLES};
+use crate::voice::{
+    cosine, load_all_enrolled, speaker_file, EnrolledSpeaker, WespeakerEmbedder, MIN_EMBED_SAMPLES,
+};
 
 /// The fixed 16 kHz sample rate of the streaming seam, as an `f64` for
 /// timestamp→sample-index arithmetic.
@@ -47,7 +59,7 @@ const RING_CAPACITY_SAMPLES: usize = 30 * 16_000;
 /// A bounded rolling buffer of the most-recent 16 kHz mono i16 samples, indexed
 /// by absolute sample position since the stream began.
 ///
-/// The absolute indexing is what lets [`SpeakerGate::accept`] map a `Final`'s
+/// The absolute indexing is what lets [`SpeakerGate::decide`] map a `Final`'s
 /// `start`/`end` seconds onto retained samples without threading any offset
 /// state through the pipeline.
 pub struct PcmRing {
@@ -128,56 +140,138 @@ impl SpeakerEmbedder for WespeakerEmbedder {
     }
 }
 
-/// Per-`Final` speaker gate: reconstructs a segment's audio from the shared
-/// [`PcmRing`] and keeps the segment only when it matches the enrolled speaker.
+/// How a labelling session treats a segment that matches no enrolled speaker
+/// above the threshold (or is too short to embed).
 ///
-/// Load it once at startup with [`SpeakerGate::load`] (fail-fast on missing
-/// enrolment or model), hand its [`ring`](SpeakerGate::ring) to a
-/// [`TeeAudioInput`], and call [`accept`](SpeakerGate::accept) on each `Final`.
+/// Only meaningful in [`GateMode::Label`]; the single-speaker gate always drops
+/// non-matches. Surfaced as the `--unknown-policy` CLI flag.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, clap::ValueEnum)]
+pub enum UnknownPolicy {
+    /// Keep the segment, tagging it `speaker: "unknown"` (still transcribed).
+    #[default]
+    Keep,
+    /// Drop the segment, as the single-speaker gate does.
+    Drop,
+}
+
+/// The literal speaker tag stamped on kept-but-unattributable segments under
+/// [`UnknownPolicy::Keep`].
+const UNKNOWN_SPEAKER: &str = "unknown";
+
+/// Which decision policy [`SpeakerGate::decide`] applies.
+#[derive(Clone, Copy, Debug)]
+pub enum GateMode {
+    /// Single-speaker gate (`--speaker <name>`, Approach 1): keep only the one
+    /// enrolled speaker, drop everyone else. `enrolled` holds exactly one.
+    Gate,
+    /// N-way labeller (`--speaker a --speaker b` / `--label`, Approach 2): tag
+    /// each kept segment with the nearest enrolled speaker.
+    Label {
+        /// How to treat a segment matching no enrolled speaker above threshold.
+        unknown_policy: UnknownPolicy,
+    },
+}
+
+/// The outcome of [`SpeakerGate::decide`] for one `Final` segment.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum GateDecision {
+    /// Keep the segment, stamping this speaker tag: `Some(name)` on a confident
+    /// match, `Some("unknown")` under [`UnknownPolicy::Keep`], or `None` when
+    /// the gate can't say (fail-open in label mode) — the caller then falls
+    /// back to any backend-provided tag.
+    Keep(Option<SpeakerId>),
+    /// Drop the segment entirely (it never reaches `transcript.jsonl`).
+    Drop,
+}
+
+/// Per-`Final` speaker gate / labeller.
+///
+/// Reconstructs a segment's audio from the shared [`PcmRing`], embeds it once,
+/// and cosines it against the enrolled speaker(s) to keep/drop (gate) or tag
+/// (label) the segment.
+///
+/// Load it once at startup with [`SpeakerGate::gate`] or
+/// [`SpeakerGate::labeller`] (fail-fast on missing enrolment or model), hand its
+/// [`ring`](SpeakerGate::ring) to a [`TeeAudioInput`], and call
+/// [`decide`](SpeakerGate::decide) on each `Final`.
 pub struct SpeakerGate {
-    name: String,
-    enrolled: EnrolledSpeaker,
+    /// Enrolled speakers to score against — exactly one in [`GateMode::Gate`],
+    /// one or more in [`GateMode::Label`]. Never empty.
+    enrolled: Vec<EnrolledSpeaker>,
     embedder: Box<dyn SpeakerEmbedder>,
     threshold: f32,
+    mode: GateMode,
     ring: Arc<Mutex<PcmRing>>,
 }
 
 impl SpeakerGate {
-    /// Loads the enrolled speaker `name` and the wespeaker embedder, failing
-    /// fast (before capture) if either is missing. Mirrors the batch
-    /// `transcribe --speaker` loader but feeds a rolling ring instead of a
-    /// whole-file PCM buffer.
-    pub fn load(name: &str, speaker_model: Option<&Path>, threshold: f32) -> Result<Self> {
-        let enrolled_path = speaker_file(name)?;
-        let enrolled = EnrolledSpeaker::load(&enrolled_path).with_context(|| {
-            format!(
-                "load enrolled speaker {name} from {}; run `omni-voice enroll --name {name}` first",
-                enrolled_path.display()
-            )
-        })?;
-        let dir = SPEAKER_WESPEAKER_EN.resolve_dir(speaker_model)?;
-        SPEAKER_WESPEAKER_EN.ensure_present(&dir)?;
-        let model_path = dir.join(SPEAKER_WESPEAKER_EN.required_files[0]);
-        let embedder = WespeakerEmbedder::new(&model_path)?;
-        Ok(Self::from_parts(name, enrolled, embedder, threshold))
+    /// Single-speaker gate for `--speaker <name>` (Approach 1): loads the one
+    /// enrolment and the wespeaker embedder, failing fast (before capture) if
+    /// either is missing. Non-matching segments are dropped.
+    pub fn gate(name: &str, speaker_model: Option<&Path>, threshold: f32) -> Result<Self> {
+        let enrolled = load_enrolled(name)?;
+        let embedder = load_embedder(speaker_model)?;
+        Ok(Self::from_parts(
+            vec![enrolled],
+            embedder,
+            threshold,
+            GateMode::Gate,
+        ))
+    }
+
+    /// N-way labeller (Approach 2): loads the enrolled set and the wespeaker
+    /// embedder, then tags each `Final` with the nearest speaker.
+    ///
+    /// `names` non-empty selects that subset (`--speaker a --speaker b`); an
+    /// empty `names` loads *all* enrolments (`--label`). Fails fast if a named
+    /// speaker is missing, the model is missing, or no enrolments exist at all.
+    pub fn labeller(
+        names: &[String],
+        speaker_model: Option<&Path>,
+        threshold: f32,
+        unknown_policy: UnknownPolicy,
+    ) -> Result<Self> {
+        let enrolled = if names.is_empty() {
+            let all = load_all_enrolled()?;
+            if all.is_empty() {
+                bail!(
+                    "no enrolled speakers found; run `omni-voice enroll --name <name>` \
+                     before `--label`"
+                );
+            }
+            all
+        } else {
+            names
+                .iter()
+                .map(|name| load_enrolled(name))
+                .collect::<Result<Vec<_>>>()?
+        };
+        let embedder = load_embedder(speaker_model)?;
+        Ok(Self::from_parts(
+            enrolled,
+            embedder,
+            threshold,
+            GateMode::Label { unknown_policy },
+        ))
     }
 
     /// Assembles a gate from already-loaded parts, minting a fresh ring. The
-    /// seam [`load`](SpeakerGate::load) builds on; tests inject a real
-    /// [`WespeakerEmbedder`] (end-to-end) or a stub (decision logic) without
-    /// going through disk resolution.
+    /// seam the [`gate`](SpeakerGate::gate) / [`labeller`](SpeakerGate::labeller)
+    /// constructors build on; tests inject a real [`WespeakerEmbedder`]
+    /// (end-to-end) or a stub (decision logic) without going through disk
+    /// resolution. `enrolled` must be non-empty.
     #[must_use]
     pub fn from_parts<E: SpeakerEmbedder + 'static>(
-        name: &str,
-        enrolled: EnrolledSpeaker,
+        enrolled: Vec<EnrolledSpeaker>,
         embedder: E,
         threshold: f32,
+        mode: GateMode,
     ) -> Self {
         Self {
-            name: name.to_string(),
             enrolled,
             embedder: Box::new(embedder),
             threshold,
+            mode,
             ring: Arc::new(Mutex::new(PcmRing::new(RING_CAPACITY_SAMPLES))),
         }
     }
@@ -188,21 +282,21 @@ impl SpeakerGate {
         Arc::clone(&self.ring)
     }
 
-    /// The enrolled speaker name stamped onto kept `Final`s.
-    #[must_use]
-    pub fn speaker_id(&self) -> SpeakerId {
-        self.name.clone()
-    }
-
-    /// Decides whether the segment spanning `[start, end)` is the enrolled
-    /// speaker.
+    /// Decides how to treat the `Final` spanning `[start, end)`: keep it with a
+    /// speaker tag, or drop it.
     ///
-    /// Keeps (`true`) on a cosine match; drops (`false`) on a genuine mismatch
-    /// or a segment too short to embed (matching batch's conservative drop).
-    /// Fails **open** (keeps + warns) on any infrastructure failure so a gate
-    /// hiccup never eats the user's own speech.
+    /// Embeds the segment once and cosines it against every enrolled speaker.
+    /// In [`GateMode::Gate`] the sole enrolled speaker is kept above threshold
+    /// and dropped below (matching batch `transcribe --speaker`). In
+    /// [`GateMode::Label`] the nearest speaker above threshold is stamped, and a
+    /// below-threshold or too-short segment follows the [`UnknownPolicy`].
+    ///
+    /// Fails **open** on any infrastructure failure — audio scrolled out of the
+    /// ring, an embedding error, or no dimension-compatible enrolment — so a
+    /// gate hiccup never silently swallows the user's own speech (keeping with
+    /// the enrolled name in gate mode, or unattributed in label mode).
     #[must_use]
-    pub fn accept(&self, start: Duration, end: Duration) -> bool {
+    pub fn decide(&self, start: Duration, end: Duration) -> GateDecision {
         let start_idx = (start.as_secs_f64() * SAMPLE_RATE) as u64;
         let end_idx = (end.as_secs_f64() * SAMPLE_RATE) as u64;
 
@@ -217,29 +311,87 @@ impl SpeakerGate {
                 ?end,
                 "speaker gate: segment audio scrolled out of the ring; keeping (fail-open)"
             );
-            return true;
+            return GateDecision::Keep(self.fail_open_label());
         };
         if window.len() < MIN_EMBED_SAMPLES {
-            // Too short for a stable embedding; drop, as `transcribe --speaker`.
-            return false;
+            // Too short for a stable embedding; can't attribute it.
+            return self.no_match_decision();
         }
         let emb = match self.embedder.embed(&window) {
             Ok(v) => v,
             Err(e) => {
                 warn!("speaker gate: embedding failed ({e:#}); keeping (fail-open)");
-                return true;
+                return GateDecision::Keep(self.fail_open_label());
             }
         };
-        if emb.len() != self.enrolled.vector.len() {
+        // Arg-max cosine over the enrolled speakers whose vector dimension
+        // matches the embedding — a mismatch would panic `cosine`, so skip
+        // those. Ties resolve to the last speaker in enrolment order.
+        let best = self
+            .enrolled
+            .iter()
+            .filter(|s| s.vector.len() == emb.len())
+            .map(|s| (s, cosine(&emb, &s.vector)))
+            .max_by(|(_, a), (_, b)| a.total_cmp(b));
+        let Some((speaker, score)) = best else {
             warn!(
-                got = emb.len(),
-                want = self.enrolled.vector.len(),
-                "speaker gate: embedding dim mismatch; keeping (fail-open)"
+                emb = emb.len(),
+                "speaker gate: no dimension-compatible enrolment; keeping (fail-open)"
             );
-            return true;
+            return GateDecision::Keep(self.fail_open_label());
+        };
+        if score >= self.threshold {
+            GateDecision::Keep(Some(speaker.name.clone()))
+        } else {
+            self.no_match_decision()
         }
-        cosine(&emb, &self.enrolled.vector) >= self.threshold
     }
+
+    /// The keep-tag used when the gate can't verify the speaker (fail-open): the
+    /// sole enrolled name in gate mode (unchanged #5 behaviour — a fail-open
+    /// keep is still attributed to the enrolled speaker), or `None` in label
+    /// mode (we genuinely can't say who, so defer to any backend tag).
+    fn fail_open_label(&self) -> Option<SpeakerId> {
+        match self.mode {
+            GateMode::Gate => self.enrolled.first().map(|s| s.name.clone()),
+            GateMode::Label { .. } => None,
+        }
+    }
+
+    /// The decision for a segment matching no enrolled speaker above the
+    /// threshold (or too short to embed): drop in gate mode; in label mode,
+    /// keep-as-`unknown` or drop per the [`UnknownPolicy`].
+    fn no_match_decision(&self) -> GateDecision {
+        match self.mode {
+            GateMode::Gate
+            | GateMode::Label {
+                unknown_policy: UnknownPolicy::Drop,
+            } => GateDecision::Drop,
+            GateMode::Label {
+                unknown_policy: UnknownPolicy::Keep,
+            } => GateDecision::Keep(Some(UNKNOWN_SPEAKER.to_string())),
+        }
+    }
+}
+
+/// Loads one enrolment by `name`, with an actionable error when it's missing.
+fn load_enrolled(name: &str) -> Result<EnrolledSpeaker> {
+    let path = speaker_file(name)?;
+    EnrolledSpeaker::load(&path).with_context(|| {
+        format!(
+            "load enrolled speaker {name} from {}; run `omni-voice enroll --name {name}` first",
+            path.display()
+        )
+    })
+}
+
+/// Resolves and loads the wespeaker embedder, honouring a `--speaker-model`
+/// override. Shared by both [`SpeakerGate`] constructors.
+fn load_embedder(speaker_model: Option<&Path>) -> Result<WespeakerEmbedder> {
+    let dir = SPEAKER_WESPEAKER_EN.resolve_dir(speaker_model)?;
+    SPEAKER_WESPEAKER_EN.ensure_present(&dir)?;
+    let model_path = dir.join(SPEAKER_WESPEAKER_EN.required_files[0]);
+    WespeakerEmbedder::new(&model_path)
 }
 
 /// Wraps an [`AsyncAudioInput`] and mirrors every chunk it yields into a shared
@@ -365,18 +517,47 @@ mod tests {
         }
     }
 
-    /// A gate enrolled on `enrolled`, whose embedder returns `stub_out` for
-    /// every window, at cosine `threshold`.
-    fn stub_gate(enrolled: Vec<f32>, stub_out: Option<Vec<f32>>, threshold: f32) -> SpeakerGate {
-        let enrolled = EnrolledSpeaker {
-            name: "me".to_string(),
+    /// Builds an `EnrolledSpeaker` from a name and vector (dim inferred).
+    fn enrolled_speaker(name: &str, vector: Vec<f32>) -> EnrolledSpeaker {
+        EnrolledSpeaker {
+            name: name.to_string(),
             model: "stub".to_string(),
-            dim: enrolled.len(),
-            vector: enrolled,
+            dim: vector.len(),
+            vector,
             samples_used: 1,
             enrolled_at: chrono::Utc::now(),
-        };
-        SpeakerGate::from_parts("me", enrolled, StubEmbedder { vector: stub_out }, threshold)
+        }
+    }
+
+    /// A single-speaker **gate** enrolled on `enrolled`, whose embedder returns
+    /// `stub_out` for every window, at cosine `threshold`.
+    fn stub_gate(enrolled: Vec<f32>, stub_out: Option<Vec<f32>>, threshold: f32) -> SpeakerGate {
+        SpeakerGate::from_parts(
+            vec![enrolled_speaker("me", enrolled)],
+            StubEmbedder { vector: stub_out },
+            threshold,
+            GateMode::Gate,
+        )
+    }
+
+    /// An N-way **labeller** over `enrolled` (name → vector), whose embedder
+    /// returns `stub_out` for every window, at cosine `threshold`.
+    fn stub_labeller(
+        enrolled: Vec<(&str, Vec<f32>)>,
+        stub_out: Option<Vec<f32>>,
+        threshold: f32,
+        unknown_policy: UnknownPolicy,
+    ) -> SpeakerGate {
+        let enrolled = enrolled
+            .into_iter()
+            .map(|(name, v)| enrolled_speaker(name, v))
+            .collect();
+        SpeakerGate::from_parts(
+            enrolled,
+            StubEmbedder { vector: stub_out },
+            threshold,
+            GateMode::Label { unknown_policy },
+        )
     }
 
     /// Pushes `n` silent samples into the gate's ring.
@@ -388,49 +569,166 @@ mod tests {
         Duration::from_secs_f64(t)
     }
 
+    fn keep(name: &str) -> GateDecision {
+        GateDecision::Keep(Some(name.to_string()))
+    }
+
+    // ── Gate mode: preserves the #5 single-speaker keep/drop behaviour ──────
+
     #[test]
-    fn accept_keeps_on_cosine_match() {
+    fn gate_keeps_on_cosine_match() {
         let gate = stub_gate(vec![1.0, 0.0], Some(vec![1.0, 0.0]), 0.5);
         fill(&gate, MIN_EMBED_SAMPLES);
-        assert!(gate.accept(secs(0.0), secs(0.5)));
-        assert_eq!(gate.speaker_id(), "me");
+        assert_eq!(gate.decide(secs(0.0), secs(0.5)), keep("me"));
     }
 
     #[test]
-    fn accept_drops_on_cosine_mismatch() {
+    fn gate_drops_on_cosine_mismatch() {
         let gate = stub_gate(vec![1.0, 0.0], Some(vec![0.0, 1.0]), 0.5);
         fill(&gate, MIN_EMBED_SAMPLES);
-        assert!(!gate.accept(secs(0.0), secs(0.5)));
+        assert_eq!(gate.decide(secs(0.0), secs(0.5)), GateDecision::Drop);
     }
 
     #[test]
-    fn accept_drops_segment_too_short_to_embed() {
+    fn gate_drops_segment_too_short_to_embed() {
         // stub_out would match, so a drop here is purely the length guard.
         let gate = stub_gate(vec![1.0, 0.0], Some(vec![1.0, 0.0]), 0.5);
         fill(&gate, 100); // < MIN_EMBED_SAMPLES
-        assert!(!gate.accept(secs(0.0), secs(0.5)));
+        assert_eq!(gate.decide(secs(0.0), secs(0.5)), GateDecision::Drop);
     }
 
     #[test]
-    fn accept_fails_open_when_window_scrolled_out() {
-        // Mismatching stub, so keeping proves the fail-open (not a match).
+    fn gate_fails_open_when_window_scrolled_out() {
+        // Mismatching stub, so a keep proves fail-open (not a real match); the
+        // gate still stamps the enrolled name, as #5 did.
         let gate = stub_gate(vec![1.0, 0.0], Some(vec![0.0, 1.0]), 0.5);
         fill(&gate, RING_CAPACITY_SAMPLES + MIN_EMBED_SAMPLES); // evicts index 0
-        assert!(gate.accept(secs(0.0), secs(0.5)));
+        assert_eq!(gate.decide(secs(0.0), secs(0.5)), keep("me"));
     }
 
     #[test]
-    fn accept_fails_open_on_embed_error() {
+    fn gate_fails_open_on_embed_error() {
         let gate = stub_gate(vec![1.0, 0.0], None, 0.5); // embedder errors
         fill(&gate, MIN_EMBED_SAMPLES);
-        assert!(gate.accept(secs(0.0), secs(0.5)));
+        assert_eq!(gate.decide(secs(0.0), secs(0.5)), keep("me"));
     }
 
     #[test]
-    fn accept_fails_open_on_dim_mismatch() {
-        // 3-dim embedding vs 2-dim enrolled: guarded before cosine would panic.
+    fn gate_fails_open_on_dim_mismatch() {
+        // 3-dim embedding vs 2-dim enrolled: no dimension-compatible enrolment,
+        // so it fails open rather than panicking in cosine.
         let gate = stub_gate(vec![1.0, 0.0], Some(vec![1.0, 0.0, 0.0]), 0.5);
         fill(&gate, MIN_EMBED_SAMPLES);
-        assert!(gate.accept(secs(0.0), secs(0.5)));
+        assert_eq!(gate.decide(secs(0.0), secs(0.5)), keep("me"));
+    }
+
+    // ── Label mode: nearest-of-N tagging ────────────────────────────────────
+
+    #[test]
+    fn label_picks_nearest_enrolled_speaker() {
+        let enrolled = vec![("a", vec![1.0, 0.0]), ("b", vec![0.0, 1.0])];
+        // Closest to A.
+        let gate = stub_labeller(
+            enrolled.clone(),
+            Some(vec![0.9, 0.1]),
+            0.5,
+            UnknownPolicy::Keep,
+        );
+        fill(&gate, MIN_EMBED_SAMPLES);
+        assert_eq!(gate.decide(secs(0.0), secs(0.5)), keep("a"));
+        // Closest to B.
+        let gate = stub_labeller(enrolled, Some(vec![0.1, 0.9]), 0.5, UnknownPolicy::Keep);
+        fill(&gate, MIN_EMBED_SAMPLES);
+        assert_eq!(gate.decide(secs(0.0), secs(0.5)), keep("b"));
+    }
+
+    #[test]
+    fn label_below_threshold_keeps_unknown() {
+        let enrolled = vec![("a", vec![1.0, 0.0]), ("b", vec![0.0, 1.0])];
+        // Both cosines (0.3) fall below the 0.5 threshold.
+        let gate = stub_labeller(enrolled, Some(vec![0.3, 0.3]), 0.5, UnknownPolicy::Keep);
+        fill(&gate, MIN_EMBED_SAMPLES);
+        assert_eq!(gate.decide(secs(0.0), secs(0.5)), keep(UNKNOWN_SPEAKER));
+    }
+
+    #[test]
+    fn label_below_threshold_drops_under_drop_policy() {
+        let enrolled = vec![("a", vec![1.0, 0.0]), ("b", vec![0.0, 1.0])];
+        let gate = stub_labeller(enrolled, Some(vec![0.3, 0.3]), 0.5, UnknownPolicy::Drop);
+        fill(&gate, MIN_EMBED_SAMPLES);
+        assert_eq!(gate.decide(secs(0.0), secs(0.5)), GateDecision::Drop);
+    }
+
+    #[test]
+    fn label_too_short_follows_unknown_policy() {
+        // stub_out would match A, so the outcome is purely the length guard.
+        let keep_gate = stub_labeller(
+            vec![("a", vec![1.0, 0.0])],
+            Some(vec![1.0, 0.0]),
+            0.5,
+            UnknownPolicy::Keep,
+        );
+        fill(&keep_gate, 100); // < MIN_EMBED_SAMPLES
+        assert_eq!(
+            keep_gate.decide(secs(0.0), secs(0.5)),
+            keep(UNKNOWN_SPEAKER)
+        );
+
+        let drop_gate = stub_labeller(
+            vec![("a", vec![1.0, 0.0])],
+            Some(vec![1.0, 0.0]),
+            0.5,
+            UnknownPolicy::Drop,
+        );
+        fill(&drop_gate, 100);
+        assert_eq!(drop_gate.decide(secs(0.0), secs(0.5)), GateDecision::Drop);
+    }
+
+    #[test]
+    fn label_fails_open_with_none_when_scrolled_out() {
+        // Label-mode fail-open leaves the segment unattributed (None), not a
+        // misattributed name.
+        let gate = stub_labeller(
+            vec![("a", vec![1.0, 0.0])],
+            Some(vec![1.0, 0.0]),
+            0.5,
+            UnknownPolicy::Keep,
+        );
+        fill(&gate, RING_CAPACITY_SAMPLES + MIN_EMBED_SAMPLES); // evicts index 0
+        assert_eq!(gate.decide(secs(0.0), secs(0.5)), GateDecision::Keep(None));
+    }
+
+    // ── Constructor fail-fast (model-free: errors before model resolution) ──
+
+    #[test]
+    fn gate_errors_on_missing_enrolment() {
+        // `.map(|_| ())` so `unwrap_err` doesn't require `SpeakerGate: Debug`.
+        let err = SpeakerGate::gate("no-such-speaker-xyzzy", None, 0.5)
+            .map(|_| ())
+            .unwrap_err();
+        assert!(format!("{err:#}").contains("enroll"), "got: {err:#}");
+    }
+
+    #[test]
+    fn labeller_errors_on_missing_named_speaker() {
+        let names = vec!["no-such-speaker-xyzzy".to_string()];
+        let err = SpeakerGate::labeller(&names, None, 0.5, UnknownPolicy::Keep)
+            .map(|_| ())
+            .unwrap_err();
+        assert!(format!("{err:#}").contains("enroll"), "got: {err:#}");
+    }
+
+    #[test]
+    fn label_skips_dim_mismatched_enrolment() {
+        // One enrolment has an incompatible 3-dim vector; the labeller must skip
+        // it (not panic in cosine) and pick the dimension-compatible match.
+        let gate = stub_labeller(
+            vec![("bad", vec![1.0, 0.0, 0.0]), ("good", vec![1.0, 0.0])],
+            Some(vec![1.0, 0.0]),
+            0.5,
+            UnknownPolicy::Keep,
+        );
+        fill(&gate, MIN_EMBED_SAMPLES);
+        assert_eq!(gate.decide(secs(0.0), secs(0.5)), keep("good"));
     }
 }
