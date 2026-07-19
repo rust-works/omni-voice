@@ -102,8 +102,8 @@ Run real meetings/conversations with labelling and the score log enabled:
 
 ```bash
 RUST_LOG=omni_voice::voice::listen::speaker_gate=debug \
-  omni-voice listen --speaker me --speaker sabine \
-  2> ~/spike80-session-N.log
+  omni-voice listen --speaker john --speaker william \
+  --session spike80-dogfood-N 2> ~/spike80-session-N.log
 ```
 
 After each session (transcript at
@@ -120,6 +120,77 @@ After each session (transcript at
 | Date | Session | Dur | Finals | Cross-turn | Wrong-name | Unknown | Overlap notes |
 |------|---------|-----|--------|------------|------------|---------|---------------|
 |      |         |     |        |            |            |         |               |
+
+### Scripted session (do once among the ≥5; keep the rest natural)
+
+Because the words are known, every `Final` maps back to the script by its
+`text` — exact who-said-what ground truth on real acoustics. Read at a
+natural pace; leave a ~3 s silent pause **between** sections (clean section
+boundaries in the transcript) and **no gap at all** on handoffs **within**
+sections 2–5. Each section stresses one failure mode; when scoring, watch
+for: Finals whose text merges both speakers' lines (true cross-turn — what
+did the tag do?), section 3 tags (expect some `unknown` on sub-second
+turns), and section 4B's winner and margin in the score log.
+
+**1 — long turns (baseline).**
+
+- JOHN: So I've been thinking about the trail for Saturday. The forecast
+  finally looks decent, and if we start from the northern car park we can do
+  the ridge loop before lunch. It's about eleven kilometres, mostly shaded,
+  and the climb is front-loaded, so the afternoon is all downhill. I'd
+  rather carry less water and refill at the halfway hut.
+- WILLIAM: That works for me, though I'd push the start earlier than last
+  time. We lost the best light standing around waiting for coffee. If we're
+  walking by seven we get the lookout to ourselves, and we're back at the
+  cars before the tour buses show up. I'll bring the stove this time so
+  we're not depending on the hut being open.
+
+**2 — rapid alternation (cross-turn stressor; come in on the last word).**
+
+- JOHN: Did you pack the map?
+- WILLIAM: It's in the front pocket.
+- JOHN: And the first-aid kit?
+- WILLIAM: Restocked it this morning.
+- JOHN: What about the head torches?
+- WILLIAM: Both on the charger now.
+- JOHN: Batteries for the beacon?
+- WILLIAM: Swapped them yesterday.
+- JOHN: Rain shells?
+- WILLIAM: Top of my pack.
+- JOHN: Then I think we're set.
+- WILLIAM: I think so too.
+
+**3 — one-word volleys (sub-second segments).**
+
+- JOHN: Ready? — WILLIAM: Yes. — JOHN: Sure? — WILLIAM: Certain. —
+  JOHN: Coffee? — WILLIAM: Obviously. — JOHN: Mine? — WILLIAM: Never. —
+  JOHN: Fine. — WILLIAM: Good.
+
+**4A — backchannel overlap.** John reads all three sentences without
+stopping; William murmurs "yeah… right… okay…" over the top.
+
+- JOHN: The thing about the ridge track is that the guidebook time is
+  wildly pessimistic. They allow six hours but we've never taken more than
+  four and a half, even with photo stops. As long as the wind stays down on
+  the saddle, it's honestly a gentle day out.
+
+**4B — full crosstalk.** Count down "three, two, one" together, then both
+read your own line simultaneously at normal volume:
+
+- JOHN: I still say the western descent is faster, whatever the map claims,
+  and the surface is kinder on the knees.
+- WILLIAM: The eastern steps are safer when it's wet, and you know it
+  rained up there on Thursday night.
+
+**5 — interruption (turn grabbed mid-sentence).**
+
+- JOHN: If we're early enough at the lookout we could actually try the side
+  trail down to the—
+- WILLIAM (cutting in before John finishes): No. Last time we tried a side
+  trail we missed lunch entirely and Sarah still brings it up.
+- JOHN: That's fair.
+- WILLIAM: Saturday, seven o'clock, northern car park. Don't be late.
+- JOHN: I'm never late. I'm occasionally early to a different meeting point.
 
 ## GO/NO-GO scaffold (for the #70/#71 comments)
 
