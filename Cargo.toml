@@ -49,7 +49,7 @@ sha2 = "0.11"
 # RustCrypto `digest 0.11` line as `sha2`.
 sha1 = "0.11"
 cpal = "0.18"
-rubato = "3.0"
+rubato = "4.0"
 hound = "3.5"
 signal-hook = "0.4"
 ringbuf = "0.5"
