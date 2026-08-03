@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: action-works/omni-dev-commit-check@v1
+      - uses: action-works/omni-dev-commit-check@v1.3
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           guidelines: .omni-voice/commit-guidelines.md
